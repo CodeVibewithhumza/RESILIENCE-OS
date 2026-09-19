@@ -1,0 +1,16 @@
+{
+  "scenario_id": "scenario_main_power_failure",
+  "name": "Catastrophic Main Grid Outage + Elevated Ambient Heatwave",
+  "description": "City 11kV feeder trips due to grid overload. High ambient temperature (35°C) increases chiller demand while ATS switches essential services to battery UPS and diesel generators.",
+  "target_asset": "GRID_MAIN",
+  "failure_type": "complete_outage",
+  "severity": "high",
+  "duration_minutes": 60,
+  "modifiers": {
+    "compound_heatwave": true,
+    "ambient_temp_c": 35.0,
+    "generator_startup_lag_seconds": 15
+  },
+  "expected_critical_service_risk": ["SERVICE_ICU", "SERVICE_OT", "SERVICE_ER"],
+  "recommended_strategy": "strat_c"
+}

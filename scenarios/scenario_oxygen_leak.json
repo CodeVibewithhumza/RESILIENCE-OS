@@ -1,0 +1,11 @@
+{
+  "scenario_id": "scenario_oxygen_pressure_drop",
+  "name": "Medical Gas & Oxygen Manifold Pressure Drop",
+  "description": "Pressure regulator diaphragm malfunction on central liquid oxygen tank header. Line pressure drops from 55 PSI to 28 PSI, threatening ICU and OT ventilator operation.",
+  "target_asset": "OXYGEN_MANIFOLD",
+  "failure_type": "pressure_loss",
+  "severity": "critical",
+  "duration_minutes": 30,
+  "expected_critical_service_risk": ["SERVICE_ICU", "SERVICE_OT"],
+  "recommended_strategy": "strat_e"
+}
