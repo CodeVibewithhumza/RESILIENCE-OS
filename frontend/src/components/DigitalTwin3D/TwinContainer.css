@@ -1,0 +1,247 @@
+/* ==========================================================================
+   Digital Twin 3D Component Styles (TwinContainer.css)
+   ========================================================================== */
+
+.twin-master-panel {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.twin-header {
+  padding: 12px 18px;
+  background-color: var(--bg-panel-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.twin-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.twin-title {
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.twin-subtitle {
+  font-size: 11px;
+  color: var(--text-muted);
+  border-left: 1px solid var(--border-subtle);
+  padding-left: 10px;
+}
+
+/* 2-Column Split: 3D Canvas + Asset Inspector */
+.twin-viewport-grid {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  min-height: 480px;
+  background-color: #070A12;
+}
+
+@media (max-width: 1024px) {
+  .twin-viewport-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Canvas Area */
+.twin-canvas-wrapper {
+  position: relative;
+  width: 100%;
+  height: 480px;
+  background: radial-gradient(circle at 50% 40%, #0F172A 0%, #070A12 85%);
+  overflow: hidden;
+}
+
+.twin-canvas-controls-hint {
+  position: absolute;
+  bottom: 12px;
+  left: 16px;
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--text-muted);
+  background: rgba(11, 15, 25, 0.75);
+  backdrop-filter: blur(4px);
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  pointer-events: none;
+  z-index: 10;
+}
+
+/* 3D Floating HTML Label */
+.twin-3d-label {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: #F3F4F6;
+  background: rgba(11, 15, 25, 0.88);
+  border: 1px solid var(--border-bright);
+  padding: 2px 6px;
+  border-radius: 3px;
+  white-space: nowrap;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
+  user-select: none;
+}
+
+.twin-3d-label.is-selected-label {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 8px var(--accent-cyan);
+}
+
+/* Inspector Sidebar on Right */
+.twin-inspector-sidebar {
+  background-color: var(--bg-panel);
+  border-left: 1px solid var(--border-subtle);
+  padding: 16px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+
+@media (max-width: 1024px) {
+  .twin-inspector-sidebar {
+    border-left: none;
+    border-top: 1px solid var(--border-subtle);
+    max-height: 280px;
+  }
+}
+
+.inspector-sidebar-title {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.inspector-selected-card {
+  background: var(--bg-panel-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.inspector-selected-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inspector-selected-id {
+  font-size: 14px;
+  font-weight: 800;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.inspector-selected-name {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.inspector-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  font-size: 11px;
+}
+
+.inspector-field-cell {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 6px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.inspector-field-label {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.inspector-field-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.inspector-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 180px;
+  text-align: center;
+  gap: 10px;
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+/* Legend & Disclaimer Footer Bar */
+.twin-footer-bar {
+  padding: 10px 18px;
+  background-color: var(--bg-panel-elevated);
+  border-top: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 11px;
+}
+
+.twin-legend-items {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.twin-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.twin-disclaimer {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-family: var(--font-mono);
+}
