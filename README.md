@@ -117,7 +117,7 @@ npm run dev
 
 * **Mohammed Humza** — Project Structure, Simulation Engine, Cascade & 3D Twin
 * **Arjit Bhadouria** — System Architecture, API Design & FastAPI Core
-* **Anuj Kushwah (Gurujii)** — Metrics, Strategy Design & Resilience Formulation
+* **Anuj Kushwah ** — Metrics, Strategy Design & Resilience Formulation
 * **Balwant Singh** — Data Schemas, Asset Catalog & Graph Dependencies
 * **Jatin Kumar** — Frontend Skeleton, UI Components & Dashboard Layout
 * **Shishant Yadav** — Testing, Verification & Presentation Readiness
