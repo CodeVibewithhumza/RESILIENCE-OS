@@ -1,0 +1,198 @@
+/* ==========================================================================
+   ResilienceCard Component Styles (ResilienceCard.css)
+   ========================================================================== */
+
+.resilience-card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.resilience-card-header {
+  padding: 12px 18px;
+  background-color: var(--bg-panel-elevated);
+  border-bottom: 1px solid var(--border-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.resilience-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-primary);
+}
+
+.resilience-card-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Overall Score Hero Section */
+.resilience-hero-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-subtle);
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.resilience-hero-left {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+}
+
+.resilience-hero-num {
+  font-size: 52px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: var(--font-mono);
+  letter-spacing: -0.02em;
+}
+
+.resilience-hero-scale {
+  font-size: 16px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.resilience-hero-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.resilience-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.resilience-delta-badge {
+  font-size: 11px;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.resilience-delta-val {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+/* 4 Sub-Scores Grid */
+.subscores-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+@media (max-width: 960px) {
+  .subscores-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 540px) {
+  .subscores-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.subscore-box {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.15s ease;
+}
+
+.subscore-box:hover {
+  border-color: var(--border-default);
+}
+
+.subscore-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.subscore-name-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.subscore-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.subscore-symbol {
+  font-size: 10px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+.subscore-weight {
+  font-size: 10px;
+  font-family: var(--font-mono);
+  color: var(--accent-cyan);
+  background: var(--accent-cyan-dim);
+  border: 1px solid rgba(6, 182, 212, 0.25);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+}
+
+.subscore-value-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.subscore-value-num {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  color: var(--text-primary);
+}
+
+.subscore-meter-track {
+  height: 5px;
+  background-color: var(--border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.subscore-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}

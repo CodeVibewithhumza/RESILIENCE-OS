@@ -1,0 +1,191 @@
+/* ==========================================================================
+   Service Status Component Styles (ServiceStatus.css)
+   ========================================================================== */
+
+.service-list-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.service-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 16px;
+}
+
+/* --------------------------------------------------------------------------
+   Service Card
+   -------------------------------------------------------------------------- */
+.service-card {
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.service-card:hover {
+  border-color: var(--border-bright);
+  background-color: var(--bg-panel-elevated);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.service-card.is-selected {
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 1px var(--accent-cyan);
+}
+
+/* Distinguishable border for Critical Life-Support (Level 5) */
+.service-card.is-critical-service {
+  border-left: 3px solid var(--accent-cyan);
+}
+
+.service-card.is-at-risk {
+  border-left: 3px solid var(--status-critical);
+}
+
+/* Top Identity */
+.service-card-header-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.service-title-group {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.service-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.service-location {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+}
+
+/* Criticality & Priority Badges */
+.service-badges-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.criticality-badge {
+  font-size: 10px;
+  font-weight: 700;
+  font-family: var(--font-mono);
+  letter-spacing: 0.05em;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+}
+
+.crit-5 {
+  color: var(--status-critical);
+  background: var(--status-critical-bg);
+  border-color: var(--status-critical-border);
+}
+
+.crit-3 {
+  color: var(--status-warning);
+  background: var(--status-warning-bg);
+  border-color: var(--status-warning-border);
+}
+
+.crit-1 {
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border-color: var(--border-subtle);
+}
+
+/* Continuity Meter */
+.service-continuity-block {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.service-continuity-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+}
+
+.continuity-title {
+  color: var(--text-secondary);
+}
+
+.continuity-val {
+  font-family: var(--font-mono);
+  font-weight: 700;
+}
+
+.service-meter-track {
+  height: 6px;
+  background-color: var(--border-subtle);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.service-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.35s ease;
+}
+
+/* Risk Warning Box */
+.service-risk-alert {
+  background-color: var(--status-critical-bg);
+  border: 1px solid var(--status-critical-border);
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--status-critical);
+  line-height: 1.4;
+}
+
+/* Bottom Meta Info (Patients, Power, Requirements) */
+.service-meta-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 10px;
+  border-top: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+
+.service-demands-pills {
+  display: flex;
+  gap: 6px;
+}
+
+.demand-pill {
+  font-size: 10px;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-subtle);
+  padding: 1px 5px;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-mono);
+}
