@@ -1,6 +1,7 @@
 """Hospital Core Endpoints: State, Assets, Services, Telemetry, and Reset."""
 from fastapi import APIRouter, Depends
 from typing import Dict, Any, List
+from models.api_responses import ResetHospitalResponse
 from backend.app.services.hospital_service import get_state_engine, HospitalStateEngine
 
 router = APIRouter(tags=["Hospital State"])
@@ -45,7 +46,10 @@ def get_telemetry(engine: HospitalStateEngine = Depends(get_state_engine)):
     """Returns current live telemetry snapshot."""
     return engine.get_telemetry_snapshot().model_dump()
 
-@router.post("/hospital/reset")
+@router.post(
+    "/hospital/reset",
+    response_model=ResetHospitalResponse,
+)
 def reset_hospital(engine: HospitalStateEngine = Depends(get_state_engine)):
     """Resets digital twin back to baseline normal operation."""
     engine.reset_to_baseline()

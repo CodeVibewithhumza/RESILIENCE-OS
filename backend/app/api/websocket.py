@@ -39,12 +39,13 @@ async def websocket_telemetry_endpoint(websocket: WebSocket):
             
             await websocket.send_json({
                 "type": "telemetry_tick",
-                "telemetry": telemetry.model_dump(),
+                "telemetry": telemetry.model_dump(mode="json"),
                 "resilience_score": resilience.overall_score,
                 "status_label": resilience.status_label
             })
             await asyncio.sleep(1.0)
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception:
+    except Exception as exc:
+        print(f"WebSocket error: {type(exc).__name__}: {exc}")
         manager.disconnect(websocket)

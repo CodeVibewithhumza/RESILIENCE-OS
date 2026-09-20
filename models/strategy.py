@@ -57,3 +57,20 @@ class WhatIfComparison(BaseModel):
     strategies: List[StrategyResult]
     recommended_strategy_id: str
     causal_explanation: str
+
+class ApplyStrategyRequest(BaseModel):
+    strategy_id: str = Field(
+        ...,
+        min_length=1,
+        description="Identifier of the strategy to apply, e.g. strat_c"
+    )
+
+class ApplyStrategyResponse(BaseModel):
+    status: str
+    strategy: Optional[str] = None
+    message: str
+    new_resilience_score: Optional[float] = Field(
+        default=None,
+        ge=0.0,
+        le=100.0
+    )
