@@ -8,10 +8,20 @@ from backend.app.api.simulation import router as simulation_router
 from backend.app.api.graph import router as graph_router
 from backend.app.api.websocket import router as websocket_router
 
+from contextlib import asynccontextmanager
+
+from database.session import init_db
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db()
+    yield
+
 app = FastAPI(
     title="ResilienceOS API",
     description="AI-Powered Intelligent Hospital Digital Twin for Infrastructure Resilience Decision Support",
-    version="1.0.0"
+    version="1.0.0",
+    lifespan=lifespan,
 )
 
 # Enable CORS for frontend dashboard and 3D canvas

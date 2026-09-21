@@ -1,0 +1,528 @@
+infrastructure_assets:
+
+  - id: GRID_MAIN
+    name: City Utility Grid
+    type: grid
+    location: Main Substation
+    floor: 0
+    nominal_capacity: 1200
+    available_capacity: 1200
+    current_load: 750
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    metadata:
+      voltage: 11000
+
+  - id: TRANSFORMER_01
+    name: Main Distribution Transformer
+    type: transformer
+    location: Main Substation
+    floor: 0
+    nominal_capacity: 800
+    available_capacity: 800
+    current_load: 430
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    metadata: {}
+
+  - id: TRANSFORMER_02
+    name: Essential Emergency Transformer
+    type: transformer
+    location: Emergency Substation
+    floor: 0
+    nominal_capacity: 800
+    available_capacity: 800
+    current_load: 320
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    metadata: {}
+
+  - id: MAIN_BUS
+    name: Main Switchboard
+    type: main_bus
+    location: Electrical Plant
+    floor: 0
+    nominal_capacity: 1000
+    available_capacity: 1000
+    current_load: 430
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    metadata: {}
+
+  - id: EMERGENCY_BUS
+    name: Emergency Switchboard
+    type: emergency_bus
+    location: Emergency Electrical Plant
+    floor: 0
+    nominal_capacity: 600
+    available_capacity: 600
+    current_load: 320
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    metadata: {}
+
+  - id: GEN_01
+    name: Primary Emergency Generator 750kVA
+    type: generator
+    location: Generator Room
+    floor: 0
+    nominal_capacity: 750
+    available_capacity: 750
+    current_load: 0
+    capacity_unit: kW
+    status: offline
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    fuel_level_pct: 95
+    runtime_remaining_min: null
+    metadata:
+      warmup_seconds: 10
+
+  - id: GEN_02
+    name: Auxiliary Generator 500kVA
+    type: generator
+    location: Generator Room
+    floor: 0
+    nominal_capacity: 500
+    available_capacity: 500
+    current_load: 0
+    capacity_unit: kW
+    status: offline
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    fuel_level_pct: 90
+    runtime_remaining_min: null
+    metadata:
+      warmup_seconds: 15
+
+  - id: UPS_CRITICAL
+    name: Static Double-Conversion UPS
+    type: ups
+    location: Critical Power Room
+    floor: 0
+    nominal_capacity: 250
+    available_capacity: 250
+    current_load: 120
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    battery_level_pct: 100
+    runtime_remaining_min: 45
+    metadata: {}
+
+  - id: CHILLER_PLANT
+    name: Central Chiller Plant
+    type: chiller_hvac
+    location: Utility Plant
+    floor: 0
+    nominal_capacity: 400
+    available_capacity: 400
+    current_load: 280
+    capacity_unit: kW
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    temperature_c: 7.2
+    metadata: {}
+
+  - id: OXYGEN_MANIFOLD
+    name: Central Liquid O2 Tank and Header
+    type: oxygen_system
+    location: Medical Gas Plant
+    floor: 0
+    nominal_capacity: 100
+    available_capacity: 100
+    current_load: 45
+    capacity_unit: PSI
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    pressure_psi: 55
+    metadata:
+      reserve_hours: 72
+
+  - id: WATER_PUMP_STATION
+    name: Hydro-Pneumatic Water Pumps
+    type: water_pump
+    location: Utility Plant
+    floor: 0
+    nominal_capacity: 100
+    available_capacity: 100
+    current_load: 35
+    capacity_unit: PSI
+    status: normal
+    health_score: 100
+    redundancy_level: 1
+    threshold: 0.70
+    pressure_psi: 60
+    metadata: {}
+
+
+services:
+
+  - id: SERVICE_ICU
+    name: 24-Bed Critical Intensive Care
+    type: icu
+    location: ICU
+    floor: 3
+    criticality: 5
+    min_required_capacity_pct: 80
+    acceptable_degradation: 20
+    status: full_operation
+    service_continuity_pct: 100
+    backup_priority: 1
+    metadata:
+      estimated_active_patients: 24
+      required_power_kw: 150
+      requires_hvac_cooling: true
+      requires_medical_gas: true
+      requires_pressurized_water: true
+
+  - id: SERVICE_OT
+    name: Operating Theatres OT 1-4
+    type: operating_theatre
+    location: Operating Theatre
+    floor: 3
+    criticality: 5
+    min_required_capacity_pct: 80
+    acceptable_degradation: 20
+    status: full_operation
+    service_continuity_pct: 100
+    backup_priority: 1
+    metadata:
+      active_surgeries: 4
+      required_power_kw: 180
+      requires_hvac_cooling: true
+      requires_medical_gas: true
+      requires_pressurized_water: true
+
+  - id: SERVICE_ER
+    name: Emergency Trauma Department
+    type: emergency_dept
+    location: Emergency Department
+    floor: 1
+    criticality: 5
+    min_required_capacity_pct: 80
+    acceptable_degradation: 20
+    status: full_operation
+    service_continuity_pct: 100
+    backup_priority: 1
+    metadata:
+      estimated_active_patients: 32
+      required_power_kw: 120
+      requires_hvac_cooling: true
+      requires_medical_gas: true
+      requires_pressurized_water: true
+
+  - id: SERVICE_WARD
+    name: General Inpatient Wards
+    type: general_ward
+    location: General Ward
+    floor: 3
+    criticality: 3
+    min_required_capacity_pct: 80
+    acceptable_degradation: 20
+    status: full_operation
+    service_continuity_pct: 100
+    backup_priority: 2
+    metadata:
+      beds: 120
+      estimated_active_patients: 94
+      required_power_kw: 220
+      requires_hvac_cooling: true
+      requires_medical_gas: false
+      requires_pressurized_water: true
+
+  - id: SERVICE_ADMIN
+    name: Administrative and Facilities
+    type: admin_facility
+    location: Administration
+    floor: 2
+    criticality: 1
+    min_required_capacity_pct: 50
+    acceptable_degradation: 50
+    status: full_operation
+    service_continuity_pct: 100
+    backup_priority: 3
+    metadata:
+      required_power_kw: 80
+      requires_hvac_cooling: false
+      requires_medical_gas: false
+      requires_pressurized_water: false
+
+
+dependencies:
+
+  - source: GRID_MAIN
+    target: TRANSFORMER_01
+    relationship: supplies
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: GRID_MAIN
+    target: TRANSFORMER_02
+    relationship: supplies
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: TRANSFORMER_01
+    target: MAIN_BUS
+    relationship: feeds
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: TRANSFORMER_02
+    target: EMERGENCY_BUS
+    relationship: feeds
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: GEN_01
+    target: EMERGENCY_BUS
+    relationship: backs_up
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: false
+    is_redundant: true
+    failure_propagation_rule: backup_loss
+    recovery_behavior: generator_startup
+    priority: 1
+
+  - source: GEN_02
+    target: MAIN_BUS
+    relationship: backs_up
+    dependency_strength: 0.8
+    threshold: 0.70
+    is_active: false
+    is_redundant: true
+    failure_propagation_rule: backup_loss
+    recovery_behavior: generator_startup
+    priority: 2
+
+  - source: UPS_CRITICAL
+    target: EMERGENCY_BUS
+    relationship: backs_up
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: true
+    failure_propagation_rule: backup_loss
+    recovery_behavior: battery_runtime
+    priority: 1
+
+  - source: MAIN_BUS
+    target: CHILLER_PLANT
+    relationship: powers
+    dependency_strength: 0.9
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 2
+
+  - source: MAIN_BUS
+    target: WATER_PUMP_STATION
+    relationship: powers
+    dependency_strength: 0.8
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: downstream
+    recovery_behavior: restore_after_source_recovery
+    priority: 2
+
+  - source: MAIN_BUS
+    target: SERVICE_WARD
+    relationship: powers
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 2
+
+  - source: MAIN_BUS
+    target: SERVICE_ADMIN
+    relationship: powers
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 3
+
+  - source: EMERGENCY_BUS
+    target: SERVICE_ICU
+    relationship: powers
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: EMERGENCY_BUS
+    target: SERVICE_OT
+    relationship: powers
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: EMERGENCY_BUS
+    target: SERVICE_ER
+    relationship: powers
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: CHILLER_PLANT
+    target: SERVICE_OT
+    relationship: cools
+    dependency_strength: 0.95
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: CHILLER_PLANT
+    target: SERVICE_ICU
+    relationship: cools
+    dependency_strength: 0.85
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: CHILLER_PLANT
+    target: SERVICE_WARD
+    relationship: cools
+    dependency_strength: 0.60
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 2
+
+  - source: OXYGEN_MANIFOLD
+    target: SERVICE_ICU
+    relationship: provides_gas
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: OXYGEN_MANIFOLD
+    target: SERVICE_OT
+    relationship: provides_gas
+    dependency_strength: 1.0
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: OXYGEN_MANIFOLD
+    target: SERVICE_ER
+    relationship: provides_gas
+    dependency_strength: 0.90
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: WATER_PUMP_STATION
+    target: SERVICE_ICU
+    relationship: provides_water
+    dependency_strength: 0.70
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: WATER_PUMP_STATION
+    target: SERVICE_OT
+    relationship: provides_water
+    dependency_strength: 0.85
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 1
+
+  - source: WATER_PUMP_STATION
+    target: SERVICE_WARD
+    relationship: provides_water
+    dependency_strength: 0.60
+    threshold: 0.70
+    is_active: true
+    is_redundant: false
+    failure_propagation_rule: service_impact
+    recovery_behavior: restore_after_source_recovery
+    priority: 2

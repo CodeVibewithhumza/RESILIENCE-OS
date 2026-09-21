@@ -62,3 +62,5 @@ Thumbs.db
 # Logs
 logs/
 *.log
+# Local database
+*.db
