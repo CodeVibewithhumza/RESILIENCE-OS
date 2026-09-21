@@ -1,20 +1,20 @@
-import asyncio
 import json
-import pytest
-import websockets
+
+from fastapi.testclient import TestClient
+
+from backend.app.main import app
 
 
-@pytest.mark.asyncio
-async def test_websocket():
-    uri = "ws://127.0.0.1:8000/ws/telemetry"
+def test_websocket():
+    with TestClient(app) as client:
+        with client.websocket_connect("/ws/telemetry") as websocket:
+            message = websocket.receive_json()
 
-    async with websockets.connect(uri) as websocket:
-        message = await websocket.recv()
-        data = json.loads(message)
+            assert message["type"] == "telemetry_tick"
+            assert "telemetry" in message
+            assert "resilience_score" in message
+            assert "status_label" in message
 
-        print("WebSocket connected successfully!")
-        print("Message type:", data.get("type"))
-        print("Resilience score:", data.get("resilience_score"))
-
-
-asyncio.run(test_websocket())
+            print("WebSocket connected successfully!")
+            print("Message type:", message["type"])
+            print("Resilience score:", message["resilience_score"])

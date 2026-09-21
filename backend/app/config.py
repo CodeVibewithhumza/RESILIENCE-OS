@@ -6,6 +6,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
+    DATABASE_URL: str = ""
     
     # Simulation
     SIMULATION_TICK_RATE_MS: int = 1000

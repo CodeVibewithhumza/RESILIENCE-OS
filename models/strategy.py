@@ -74,3 +74,12 @@ class ApplyStrategyResponse(BaseModel):
         ge=0.0,
         le=100.0
     )
+
+class SimulationRunRequest(BaseModel):
+    """Request to persist a selected What-If simulation result."""
+
+    strategy_id: str = Field(
+        ...,
+        min_length=1,
+        description="Strategy identifier, e.g. strat_c",
+    )
