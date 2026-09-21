@@ -6,16 +6,11 @@ import {
   Layers,
   Box,
   Info,
-  Activity,
-  Zap,
   Thermometer,
   Gauge,
   Fuel,
   BatteryCharging,
   Clock,
-  CheckCircle2,
-  AlertTriangle,
-  XCircle,
   X,
   Compass
 } from 'lucide-react'
@@ -160,17 +155,17 @@ function ConduitBeam({ start, end, isSevered = false, isDegraded = false }) {
     return { position: mid, quaternion: q, length: len }
   }, [start, end])
 
-  const beamColor = isSevered ? '#DC2626' : isDegraded ? '#F59E0B' : '#38BDF8'
-  const beamEmissive = isSevered ? '#7F1D1D' : isDegraded ? '#B45309' : '#0284C7'
-  const beamOpacity = isSevered ? 0.35 : 0.8
+  const beamColor = isSevered ? '#DC2626' : isDegraded ? '#F59E0B' : '#06B6D4'
+  const beamEmissive = isSevered ? '#7F1D1D' : isDegraded ? '#B45309' : '#0891B2'
+  const beamOpacity = isSevered ? 0.35 : 0.85
 
   return (
     <mesh position={position} quaternion={quaternion}>
-      <cylinderGeometry args={[0.035, 0.035, length, 8]} />
+      <cylinderGeometry args={[0.04, 0.04, length, 8]} />
       <meshStandardMaterial
         color={beamColor}
         emissive={beamEmissive}
-        emissiveIntensity={0.5}
+        emissiveIntensity={0.6}
         transparent
         opacity={beamOpacity}
       />
@@ -213,7 +208,7 @@ function InfrastructureNode({
       {/* Selection Halo Ring on Floor */}
       {isSelected && (
         <mesh position={[0, -height / 2 + 0.02, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-          <ringGeometry args={[1.2, 1.35, 32]} />
+          <ringGeometry args={[1.2, 1.4, 32]} />
           <meshBasicMaterial color="#00F0FF" side={THREE.DoubleSide} transparent opacity={0.9} />
         </mesh>
       )}
@@ -232,9 +227,9 @@ function InfrastructureNode({
         <meshStandardMaterial
           color={statusColor}
           emissive={isSelected ? '#00F0FF' : hovered ? statusColor : '#000000'}
-          emissiveIntensity={isSelected ? 0.45 : hovered ? 0.3 : 0.0}
-          roughness={0.35}
-          metalness={0.3}
+          emissiveIntensity={isSelected ? 0.5 : hovered ? 0.35 : 0.05}
+          roughness={0.3}
+          metalness={0.4}
         />
       </mesh>
 
@@ -268,12 +263,12 @@ function DigitalTwinScene({
 }) {
   return (
     <>
-      <ambientLight intensity={0.65} />
-      <directionalLight position={[12, 22, 16]} intensity={0.9} />
-      <directionalLight position={[-12, -8, -10]} intensity={0.3} />
+      <ambientLight intensity={0.75} />
+      <directionalLight position={[12, 22, 16]} intensity={1.1} />
+      <directionalLight position={[-12, -8, -10]} intensity={0.4} />
 
       {/* Ground Coordinate Grid */}
-      <gridHelper args={[26, 26, '#1E293B', '#0F172A']} position={[0, 0, 0]} />
+      <gridHelper args={[26, 26, '#1E293B', '#0B1120']} position={[0, 0, 0]} />
 
       {/* Dependency Connections */}
       {DEPENDENCY_CONNECTIONS.map((conn, idx) => {
@@ -334,8 +329,9 @@ export default function TwinContainer({
   selectedAssetId: externalSelectedAssetId,
   onSelectAsset
 }) {
-  // Support both external selection from App.jsx and internal selection
   const [internalSelectedId, setInternalSelectedId] = useState(null)
+  const [showInspector, setShowInspector] = useState(true)
+
   const activeSelectedId = externalSelectedAssetId !== undefined
     ? externalSelectedAssetId
     : internalSelectedId
@@ -366,22 +362,31 @@ export default function TwinContainer({
       {/* 1. Header Bar */}
       <div className="twin-header">
         <div className="twin-title-group">
-          <Layers size={17} color="var(--accent-cyan)" />
-          <span className="twin-title">DIGITAL TWIN</span>
-          <span className="twin-subtitle">Simulated Dependency Topology</span>
+          <Layers size={17} style={{ color: 'var(--accent-cyan)' }} />
+          <span className="twin-title">DIGITAL TWIN 3D</span>
+          <span className="twin-subtitle">Simulated Infrastructure Dependency Topology</span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span className="meta-badge" style={{ fontSize: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span className="meta-badge font-mono" style={{ fontSize: 10 }}>
             <Box size={11} /> 11 Topo Nodes
           </span>
-          <span className="meta-badge" style={{ fontSize: 10 }}>
+          <span className="meta-badge font-mono" style={{ fontSize: 10 }}>
             <Compass size={11} /> Interactive Orbit
           </span>
+          <button
+            type="button"
+            className="twin-toggle-inspector-btn font-mono"
+            onClick={() => setShowInspector(!showInspector)}
+            title="Toggle Inspector Sidebar"
+          >
+            {showInspector ? 'Hide Inspector' : 'Show Inspector'}
+            {selectedAsset && <span className="inspector-active-dot" />}
+          </button>
         </div>
       </div>
 
       {/* 2. Split Grid: 3D Canvas + Asset Inspector */}
-      <div className="twin-viewport-grid">
+      <div className={`twin-viewport-grid ${!showInspector ? 'inspector-hidden' : ''}`}>
         {/* 3D Canvas Area */}
         <div className="twin-canvas-wrapper">
           <Canvas
@@ -397,213 +402,217 @@ export default function TwinContainer({
 
           {/* Canvas Navigation Hint */}
           <div className="twin-canvas-controls-hint">
-            Rotate: Left Click + Drag | Pan: Right Click + Drag | Zoom: Scroll
+            Rotate: Left Click + Drag | Pan: Right Click + Drag | Zoom: Scroll | Click node to inspect
           </div>
         </div>
 
         {/* Right Inspector Sidebar */}
-        <div className="twin-inspector-sidebar">
-          <div className="inspector-sidebar-title">
-            <span>Asset Inspector</span>
-            {selectedAsset && (
-              <button
-                type="button"
-                className="close-drawer-btn"
-                onClick={() => handleSelectNode(null)}
-                title="Deselect asset"
-              >
-                <X size={14} />
-              </button>
-            )}
-          </div>
-
-          {selectedAsset ? (
-            <div className="inspector-selected-card">
-              <div className="inspector-selected-header">
-                <div>
-                  <div className="inspector-selected-id">{selectedAsset.id}</div>
-                  <div className="inspector-selected-name">{selectedAsset.name}</div>
-                </div>
-                <span
-                  className={`status-pill status-${selectedAsset.status || 'normal'}`}
-                  style={{ textTransform: 'uppercase', fontSize: 10 }}
+        {showInspector && (
+          <div className="twin-inspector-sidebar">
+            <div className="inspector-sidebar-title">
+              <span>Asset Inspector</span>
+              {selectedAsset && (
+                <button
+                  type="button"
+                  className="close-drawer-btn"
+                  onClick={() => handleSelectNode(null)}
+                  title="Deselect asset"
                 >
-                  {selectedAsset.status || 'normal'}
-                </span>
-              </div>
-
-              {/* Subsystem & Location */}
-              <div style={{ fontSize: 11, color: 'var(--text-secondary)' }}>
-                <strong>Subsystem:</strong> {selectedTopo?.subsystem || 'General'}
-                <br />
-                <strong>Location:</strong> {selectedAsset.location} (Floor {selectedAsset.floor})
-              </div>
-
-              {/* Core Telemetry Grid */}
-              <div className="inspector-field-grid">
-                <div className="inspector-field-cell">
-                  <span className="inspector-field-label">Current Load</span>
-                  <span className="inspector-field-val">
-                    {selectedAsset.current_load} {selectedAsset.capacity_unit}
-                  </span>
-                </div>
-                <div className="inspector-field-cell">
-                  <span className="inspector-field-label">Available Cap</span>
-                  <span className="inspector-field-val">
-                    {selectedAsset.available_capacity} {selectedAsset.capacity_unit}
-                  </span>
-                </div>
-                <div className="inspector-field-cell">
-                  <span className="inspector-field-label">Health Score</span>
-                  <span
-                    className="inspector-field-val"
-                    style={{
-                      color:
-                        selectedAsset.health_score > 80
-                          ? 'var(--status-normal)'
-                          : selectedAsset.health_score > 50
-                          ? 'var(--status-degraded)'
-                          : 'var(--status-failed)'
-                    }}
-                  >
-                    {selectedAsset.health_score?.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="inspector-field-cell">
-                  <span className="inspector-field-label">Redundancy</span>
-                  <span className="inspector-field-val">
-                    Level {selectedAsset.redundancy_level}
-                  </span>
-                </div>
-              </div>
-
-              {/* Specific Subsystem Telemetry Details */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
-                {selectedAsset.fuel_level_pct != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Fuel size={12} color="var(--accent-amber)" /> Fuel Level:
-                    </span>
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {selectedAsset.fuel_level_pct}%
-                    </strong>
-                  </div>
-                )}
-                {selectedAsset.battery_level_pct != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <BatteryCharging size={12} color="var(--accent-cyan)" /> Battery Reserve:
-                    </span>
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {selectedAsset.battery_level_pct}%
-                    </strong>
-                  </div>
-                )}
-                {selectedAsset.temperature_c != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Thermometer size={12} color="var(--status-critical)" /> Temperature:
-                    </span>
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {selectedAsset.temperature_c}°C
-                    </strong>
-                  </div>
-                )}
-                {selectedAsset.pressure_psi != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Gauge size={12} color="var(--accent-cyan)" /> Header Pressure:
-                    </span>
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {selectedAsset.pressure_psi} PSI
-                    </strong>
-                  </div>
-                )}
-                {selectedAsset.runtime_remaining_min != null && (
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
-                    <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} color="var(--text-muted)" /> Runtime Left:
-                    </span>
-                    <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
-                      {selectedAsset.runtime_remaining_min} min
-                    </strong>
-                  </div>
-                )}
-              </div>
+                  <X size={14} />
+                </button>
+              )}
             </div>
-          ) : (
-            <div className="inspector-empty-state">
-              <Info size={32} color="var(--text-muted)" />
-              <div>
-                <strong>NO ASSET SELECTED</strong>
-                <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
-                  Click any 3D node in the digital twin topology to inspect live load, capacity, health, and redundancy telemetry.
-                </p>
-              </div>
 
-              {/* Quick Select Buttons */}
-              <div style={{ width: '100%', marginTop: 8 }}>
-                <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6, textAlign: 'left' }}>
-                  Quick Inspect Node:
+            {selectedAsset ? (
+              <div className="inspector-selected-card">
+                <div className="inspector-selected-header">
+                  <div>
+                    <div className="inspector-selected-id font-mono">{selectedAsset.id}</div>
+                    <div className="inspector-selected-name">{selectedAsset.name}</div>
+                  </div>
+                  <span
+                    className={`badge badge-${selectedAsset.status || 'normal'} font-mono`}
+                    style={{ textTransform: 'uppercase', fontSize: 9 }}
+                  >
+                    {selectedAsset.status || 'normal'}
+                  </span>
                 </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                  {Object.keys(ASSET_TOPOLOGY_DEFS).map((id) => (
-                    <button
-                      key={id}
-                      type="button"
-                      onClick={() => handleSelectNode(id)}
-                      className="meta-badge"
+
+                {/* Subsystem & Location */}
+                <div style={{ fontSize: 11, color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Subsystem: </span>
+                  <strong style={{ color: 'var(--text-primary)' }}>{selectedTopo?.subsystem || 'General'}</strong>
+                  <br />
+                  <span style={{ color: 'var(--text-muted)' }}>Location: </span>
+                  <span>{selectedAsset.location} (Floor {selectedAsset.floor})</span>
+                </div>
+
+                {/* Core Telemetry Grid */}
+                <div className="inspector-field-grid">
+                  <div className="inspector-field-cell">
+                    <span className="inspector-field-label">Current Load</span>
+                    <span className="inspector-field-val font-mono">
+                      {selectedAsset.current_load} {selectedAsset.capacity_unit}
+                    </span>
+                  </div>
+                  <div className="inspector-field-cell">
+                    <span className="inspector-field-label">Available Cap</span>
+                    <span className="inspector-field-val font-mono">
+                      {selectedAsset.available_capacity} {selectedAsset.capacity_unit}
+                    </span>
+                  </div>
+                  <div className="inspector-field-cell">
+                    <span className="inspector-field-label">Health Score</span>
+                    <span
+                      className="inspector-field-val font-mono"
                       style={{
-                        cursor: 'pointer',
-                        fontSize: 9,
-                        padding: '2px 6px',
-                        background: 'var(--bg-subtle)'
+                        color:
+                          selectedAsset.health_score > 80
+                            ? 'var(--status-normal)'
+                            : selectedAsset.health_score > 50
+                            ? 'var(--status-warning)'
+                            : 'var(--status-critical)'
                       }}
                     >
-                      {id}
-                    </button>
-                  ))}
+                      {selectedAsset.health_score?.toFixed(1)}%
+                    </span>
+                  </div>
+                  <div className="inspector-field-cell">
+                    <span className="inspector-field-label">Redundancy</span>
+                    <span className="inspector-field-val font-mono">
+                      Level {selectedAsset.redundancy_level}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Specific Subsystem Telemetry Details */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6, fontSize: 11 }}>
+                  {selectedAsset.fuel_level_pct != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Fuel size={12} style={{ color: 'var(--status-warning)' }} /> Fuel Level:
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {selectedAsset.fuel_level_pct}%
+                      </strong>
+                    </div>
+                  )}
+                  {selectedAsset.battery_level_pct != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <BatteryCharging size={12} style={{ color: 'var(--accent-cyan)' }} /> Battery Reserve:
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {selectedAsset.battery_level_pct}%
+                      </strong>
+                    </div>
+                  )}
+                  {selectedAsset.temperature_c != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Thermometer size={12} style={{ color: 'var(--status-critical)' }} /> Temperature:
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {selectedAsset.temperature_c}°C
+                      </strong>
+                    </div>
+                  )}
+                  {selectedAsset.pressure_psi != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Gauge size={12} style={{ color: 'var(--accent-cyan)' }} /> Header Pressure:
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {selectedAsset.pressure_psi} PSI
+                      </strong>
+                    </div>
+                  )}
+                  {selectedAsset.runtime_remaining_min != null && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', color: 'var(--text-secondary)' }}>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} style={{ color: 'var(--text-muted)' }} /> Runtime Left:
+                      </span>
+                      <strong style={{ color: 'var(--text-primary)', fontFamily: 'var(--font-mono)' }}>
+                        {selectedAsset.runtime_remaining_min} min
+                      </strong>
+                    </div>
+                  )}
                 </div>
               </div>
-            </div>
-          )}
-        </div>
+            ) : (
+              <div className="inspector-empty-state">
+                <Info size={28} style={{ color: 'var(--text-muted)' }} />
+                <div>
+                  <strong style={{ color: 'var(--text-primary)', fontSize: 11 }}>NO NODE SELECTED</strong>
+                  <p style={{ marginTop: 4, color: 'var(--text-muted)', fontSize: 11, lineHeight: 1.4 }}>
+                    Click any 3D node in the twin topology to inspect live load, capacity, health, and redundancy telemetry.
+                  </p>
+                </div>
+
+                {/* Quick Select Buttons */}
+                <div style={{ width: '100%', marginTop: 6 }}>
+                  <div style={{ fontSize: 9, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', marginBottom: 6, textAlign: 'left' }}>
+                    Quick Pick Node:
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+                    {Object.keys(ASSET_TOPOLOGY_DEFS).map((id) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => handleSelectNode(id)}
+                        className="meta-badge font-mono"
+                        style={{
+                          cursor: 'pointer',
+                          fontSize: 9,
+                          padding: '2px 5px',
+                          background: 'var(--bg-surface)'
+                        }}
+                      >
+                        {id}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* 3. Footer Bar: Status Legend & Disclaimer */}
       <div className="twin-footer-bar">
         <div className="twin-legend-items">
-          <span style={{ fontWeight: 700, color: 'var(--text-muted)', marginRight: 4 }}>
+          <span style={{ fontWeight: 700, color: 'var(--text-muted)', marginRight: 2 }}>
             STATUS LEGEND:
           </span>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.normal }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.normal }} />
             <span>Normal</span>
           </div>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.degraded }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.degraded }} />
             <span>Degraded</span>
           </div>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.critical }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.critical }} />
             <span>Critical</span>
           </div>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.failed }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.failed }} />
             <span>Failed</span>
           </div>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.starting }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.starting }} />
             <span>Starting</span>
           </div>
           <div className="twin-legend-item">
-            <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: STATUS_COLORS.offline }} />
+            <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: STATUS_COLORS.offline }} />
             <span>Offline</span>
           </div>
         </div>
 
         <div className="twin-disclaimer">
-          Visualization reflects simulated infrastructure state.
+          Simulated R3F Digital Twin Topology
         </div>
       </div>
     </div>

@@ -1,4 +1,4 @@
-import { Clock, AlertTriangle, CheckCircle2, Circle } from 'lucide-react'
+import { Clock, AlertTriangle, CheckCircle2 } from 'lucide-react'
 
 export default function TimelineView({
   timeline = [],
@@ -7,7 +7,7 @@ export default function TimelineView({
   onSelectCheckpoint
 }) {
   return (
-    <div className="timeline-panel">
+    <div className="timeline-panel" id="cascade-timeline-module">
       {/* Panel Header */}
       <div className="timeline-panel-header">
         <div className="timeline-panel-title">
@@ -19,7 +19,14 @@ export default function TimelineView({
             isIncidentActive ? 'badge-critical' : 'badge-offline'
           }`}
         >
-          {isIncidentActive ? 'Cascade Unfolding (T+0 → T+20)' : 'Deterministic Standby'}
+          {isIncidentActive ? (
+            <>
+              <span className="status-dot status-dot-pulse" style={{ backgroundColor: 'var(--status-critical)' }} />
+              <span>Cascade Unfolding (T+0 → T+20)</span>
+            </>
+          ) : (
+            'Deterministic Standby'
+          )}
         </span>
       </div>
 
@@ -73,7 +80,7 @@ export default function TimelineView({
                     <span className="timeline-title">{step.title}</span>
                   </div>
 
-                  <div className="timeline-resilience-badge" style={{ color: scoreColor }}>
+                  <div className="timeline-resilience-badge font-mono" style={{ color: scoreColor }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>PREDICTED:</span>
                     <span>{step.system_resilience_score.toFixed(1)}</span>
                   </div>
@@ -85,12 +92,11 @@ export default function TimelineView({
 
                 {/* Affected Nodes Badges */}
                 {step.affected_node_ids && step.affected_node_ids.length > 0 && (
-                  <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '2px' }}>
+                  <div className="timeline-nodes-wrap">
                     {step.affected_node_ids.map((nodeId) => (
                       <span
                         key={nodeId}
-                        className="badge badge-offline font-mono"
-                        style={{ fontSize: '9px', padding: '1px 5px' }}
+                        className="badge badge-offline font-mono timeline-node-pill"
                       >
                         {nodeId}
                       </span>

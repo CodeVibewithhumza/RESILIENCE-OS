@@ -1,4 +1,4 @@
-import { AlertTriangle, ShieldCheck, HeartPulse, User, Zap } from 'lucide-react'
+import { AlertTriangle, HeartPulse, User, Zap } from 'lucide-react'
 
 export default function ServiceCard({ service, isSelected, onSelect }) {
   if (!service) return null
@@ -55,14 +55,14 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
       <div className="service-card-header-row">
         <div className="service-title-group">
           <div className="service-name">
-            <HeartPulse size={16} style={{ color: criticality >= 5 ? 'var(--accent-cyan)' : 'var(--text-muted)' }} />
+            <HeartPulse size={15} style={{ color: criticality >= 5 ? 'var(--accent-cyan)' : 'var(--text-muted)' }} />
             <span>{name}</span>
           </div>
-          <span className="service-location">{location}</span>
+          <span className="service-location font-mono">{location}</span>
         </div>
 
         <div className="service-badges-row">
-          <span className={`criticality-badge ${getCritClass(criticality)}`} title={`Criticality Level ${criticality} / 5`}>
+          <span className={`criticality-badge ${getCritClass(criticality)} font-mono`} title={`Criticality Level ${criticality} / 5`}>
             L{criticality} Crit
           </span>
           <span className={`badge ${getStatusBadgeClass(status)} font-mono`}>
@@ -74,8 +74,8 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
       {/* Continuity Progress Bar */}
       <div className="service-continuity-block">
         <div className="service-continuity-header">
-          <span className="continuity-title">Service Continuity</span>
-          <span className="continuity-val" style={{ color: continuityColor }}>
+          <span className="continuity-title">Care Continuity Index</span>
+          <span className="continuity-val font-mono" style={{ color: continuityColor }}>
             {service_continuity_pct.toFixed(0)}%
           </span>
         </div>
@@ -84,7 +84,8 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
             className="service-meter-fill"
             style={{
               width: `${Math.min(100, Math.max(0, service_continuity_pct))}%`,
-              backgroundColor: continuityColor
+              backgroundColor: continuityColor,
+              boxShadow: `0 0 8px ${continuityColor}60`
             }}
           />
         </div>
@@ -93,9 +94,9 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
       {/* At-Risk Alert Box (only displayed if at_risk is true) */}
       {at_risk && (
         <div className="service-risk-alert">
-          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '2px' }} />
+          <AlertTriangle size={14} style={{ flexShrink: 0, marginTop: '1px' }} />
           <div>
-            <strong>Service At Risk: </strong>
+            <strong>Service Vulnerability: </strong>
             <span>{risk_reason || 'Upstream dependency threshold compromised.'}</span>
           </div>
         </div>
@@ -106,7 +107,7 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)' }}>
             <User size={12} style={{ color: 'var(--text-muted)' }} />
-            <span className="font-mono">{estimated_active_patients} pts</span>
+            <span className="font-mono">{estimated_active_patients} patients</span>
           </span>
 
           <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-muted)' }}>
@@ -116,16 +117,16 @@ export default function ServiceCard({ service, isSelected, onSelect }) {
         </div>
 
         <div className="service-demands-pills">
-          <span className="demand-pill" title="Backup Generator Switchboard Priority">
+          <span className="demand-pill font-mono" title="Emergency Bus Priority">
             Pri #{backup_priority}
           </span>
           {requires_medical_gas && (
-            <span className="demand-pill" title="Requires Medical Oxygen Feed">
+            <span className="demand-pill font-mono" title="Requires Medical Oxygen Supply">
               O2
             </span>
           )}
           {requires_hvac_cooling && (
-            <span className="demand-pill" title="Requires Continuous Chilled Air HVAC">
+            <span className="demand-pill font-mono" title="Requires Environmental Chilled HVAC">
               HVAC
             </span>
           )}

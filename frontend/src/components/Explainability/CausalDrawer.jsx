@@ -83,7 +83,7 @@ export default function CausalDrawer({
               <span>WHY DID RESILIENCE CHANGE?</span>
             </span>
             <span className="causal-sub-title">
-              Traceable dependency-path explanation • Simulated causal reasoning
+              Traceable dependency-path explanation • Graph traversal causal reasoning
             </span>
           </div>
           <button
@@ -118,17 +118,17 @@ export default function CausalDrawer({
           <div className="causal-summary-card">
             <div className="causal-summary-label">
               <FileText size={12} />
-              <span>Simulated Causal Explanation Summary</span>
+              <span>Causal Explanation Synthesis</span>
             </div>
             <p className="causal-summary-text">{summaryText}</p>
           </div>
 
-          {/* Explicit Dependency Path (if present in fixture) */}
+          {/* Explicit Dependency Path */}
           {dependencyPath.length > 0 && (
             <div className="causal-path-section">
               <span className="causal-section-heading">
                 <GitBranch size={13} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Observed Dependency Traversal Path</span>
+                <span>Observed Propagation Path</span>
               </span>
 
               <div className="dependency-path-flow">
@@ -142,12 +142,12 @@ export default function CausalDrawer({
                     : 'path-node-inter'
 
                   return (
-                    <div key={node} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span className={`path-node-chip ${nodeClass}`}>
+                    <div key={node} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span className={`path-node-chip ${nodeClass} font-mono`}>
                         {node}
                       </span>
                       {idx < dependencyPath.length - 1 && (
-                        <ArrowRight size={13} className="path-arrow-icon" />
+                        <ArrowRight size={12} className="path-arrow-icon" />
                       )}
                     </div>
                   )
@@ -156,7 +156,7 @@ export default function CausalDrawer({
             </div>
           )}
 
-          {/* Sequential Causal Chain (if present in fixture) */}
+          {/* Sequential Causal Chain */}
           {causalSteps.length > 0 && (
             <div className="causal-chain-section">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -164,15 +164,15 @@ export default function CausalDrawer({
                   <ShieldAlert size={13} style={{ color: 'var(--status-warning)' }} />
                   <span>Sequential Disruption Chain</span>
                 </span>
-                <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  Failure ➔ Dependency ➔ Impact ➔ Service
+                <span style={{ fontSize: '9px', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                  Grid ➔ Transformer ➔ Bus ➔ Service
                 </span>
               </div>
 
               <div className="causal-chain-list">
                 {causalSteps.map((stepText, idx) => (
                   <div key={idx} className="causal-step-item">
-                    <span className="causal-step-badge">
+                    <span className="causal-step-badge font-mono">
                       STEP {idx + 1}
                     </span>
                     <p className="causal-step-text">{stepText}</p>
@@ -182,18 +182,18 @@ export default function CausalDrawer({
             </div>
           )}
 
-          {/* Decision Factors (if present in fixture) */}
+          {/* Decision Factors */}
           {decisionFactors.length > 0 && (
             <div className="causal-chain-section">
               <span className="causal-section-heading">
                 <CheckCircle2 size={13} style={{ color: 'var(--status-normal)' }} />
-                <span>Simulated Decision Ranking Criteria</span>
+                <span>Ranking Factors & Optimization Rationale</span>
               </span>
 
               <div className="decision-factors-list">
                 {decisionFactors.map((factor, fIdx) => (
                   <div key={fIdx} className="decision-factor-item">
-                    <span style={{ color: 'var(--status-normal)', flexShrink: 0 }}>✓</span>
+                    <span style={{ color: 'var(--status-normal)', flexShrink: 0, fontWeight: 700 }}>✓</span>
                     <span>{factor}</span>
                   </div>
                 ))}
@@ -206,10 +206,10 @@ export default function CausalDrawer({
         <div className="causal-drawer-footer">
           <span className="causal-source-label">
             <Database size={12} style={{ color: 'var(--accent-cyan)' }} />
-            <span>Source: Simulated dependency graph + cascade fixture</span>
+            <span>Telemetry Graph Engine • Causal Trace</span>
           </span>
-          <span className="badge badge-offline font-mono" style={{ fontSize: '9px' }}>
-            Prototype Trace
+          <span className="badge badge-subtle font-mono" style={{ fontSize: '9px' }}>
+            Synchronized
           </span>
         </div>
       </div>

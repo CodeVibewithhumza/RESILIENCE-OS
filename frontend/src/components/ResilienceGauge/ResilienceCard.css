@@ -10,6 +10,7 @@
   overflow: hidden;
   display: flex;
   flex-direction: column;
+  height: 100%;
 }
 
 .resilience-card-header {
@@ -33,108 +34,182 @@
 }
 
 .resilience-card-body {
-  padding: 20px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
+  flex: 1;
+  justify-content: space-between;
 }
 
 /* Overall Score Hero Section */
 .resilience-hero-section {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  gap: 24px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-subtle);
   flex-wrap: wrap;
-  gap: 16px;
 }
 
-.resilience-hero-left {
+/* Circular SVG Gauge */
+.resilience-gauge-wrapper {
+  position: relative;
+  width: 170px;
+  height: 170px;
   display: flex;
-  align-items: baseline;
-  gap: 14px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
-.resilience-hero-num {
-  font-size: 52px;
-  font-weight: 800;
-  line-height: 1;
-  font-family: var(--font-mono);
-  letter-spacing: -0.02em;
+.resilience-gauge-svg {
+  transform: rotate(0deg);
+  overflow: visible;
 }
 
-.resilience-hero-scale {
-  font-size: 16px;
-  color: var(--text-muted);
-  font-family: var(--font-mono);
-}
-
-.resilience-hero-meta {
+.gauge-center-content {
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  pointer-events: none;
 }
 
-.resilience-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 10px;
-  font-size: 12px;
-  font-weight: 700;
+.gauge-center-num {
+  font-size: 38px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: -0.03em;
+  text-shadow: 0 0 16px rgba(0, 0, 0, 0.6);
+}
+
+.gauge-center-scale {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.gauge-center-status-badge {
+  margin-top: 4px;
+  font-size: 9px;
+  font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  border-radius: var(--radius-sm);
+  padding: 2px 7px;
+  border-radius: var(--radius-xs);
   border: 1px solid transparent;
+}
+
+/* Metric Details & Delta Status */
+.resilience-meta-summary {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.meta-summary-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.meta-summary-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+}
+
+.meta-summary-desc {
+  font-size: 11px;
+  color: var(--text-muted);
+  line-height: 1.45;
+}
+
+.meta-summary-chips {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
 }
 
 .resilience-delta-badge {
   font-size: 11px;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   display: flex;
   align-items: center;
   gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
 }
 
 .resilience-delta-val {
-  font-family: var(--font-mono);
-  font-weight: 600;
-  color: var(--text-secondary);
+  font-weight: 700;
 }
 
-/* 4 Sub-Scores Grid */
+.resilience-state-badge {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 5px 10px;
+  border-radius: var(--radius-xs);
+}
+
+/* Subscores Section */
+.subscores-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.subscores-heading {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
 .subscores-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
 }
 
-@media (max-width: 960px) {
-  .subscores-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-@media (max-width: 540px) {
+@media (max-width: 600px) {
   .subscores-grid {
     grid-template-columns: 1fr;
   }
 }
 
 .subscore-box {
-  background: var(--bg-subtle);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  transition: border-color 0.15s ease;
+  gap: 6px;
+  transition: all 0.15s ease;
 }
 
 .subscore-box:hover {
   border-color: var(--border-default);
+  background: var(--bg-panel-elevated);
 }
 
 .subscore-top {
@@ -150,25 +225,24 @@
 }
 
 .subscore-name {
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   color: var(--text-primary);
 }
 
 .subscore-symbol {
-  font-size: 10px;
-  color: var(--text-muted);
+  font-size: 9px;
+  color: var(--text-dim);
   font-family: var(--font-mono);
 }
 
 .subscore-weight {
-  font-size: 10px;
-  font-family: var(--font-mono);
+  font-size: 9px;
   color: var(--accent-cyan);
   background: var(--accent-cyan-dim);
-  border: 1px solid rgba(6, 182, 212, 0.25);
+  border: 1px solid var(--border-cyan-glow);
   padding: 1px 5px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
 }
 
 .subscore-value-row {
@@ -178,21 +252,19 @@
 }
 
 .subscore-value-num {
-  font-size: 20px;
+  font-size: 17px;
   font-weight: 700;
-  font-family: var(--font-mono);
-  color: var(--text-primary);
 }
 
 .subscore-meter-track {
-  height: 5px;
+  height: 4px;
   background-color: var(--border-subtle);
-  border-radius: 3px;
+  border-radius: 2px;
   overflow: hidden;
 }
 
 .subscore-meter-fill {
   height: 100%;
-  border-radius: 3px;
-  transition: width 0.35s ease;
+  border-radius: 2px;
+  transition: width 0.4s ease;
 }

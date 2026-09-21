@@ -1,4 +1,4 @@
-import { AlertOctagon, ZapOff, RotateCcw, ShieldAlert, ArrowRight, Workflow } from 'lucide-react'
+import { AlertOctagon, ZapOff, RotateCcw, ShieldAlert, ArrowRight, Workflow, CheckCircle2 } from 'lucide-react'
 
 export default function IncidentPanel({
   incident,
@@ -15,7 +15,7 @@ export default function IncidentPanel({
   const affectedServices = incident?.affected_service_ids || []
 
   return (
-    <div className={`incident-panel ${isActive ? 'is-active-incident' : ''}`}>
+    <div className={`incident-panel ${isActive ? 'is-active-incident' : ''}`} id="incident-module">
       {/* Panel Header */}
       <div className="incident-panel-header">
         <div className="incident-panel-title">
@@ -26,26 +26,28 @@ export default function IncidentPanel({
           <span>Incident Injection & Control</span>
         </div>
         <span
-          className={`badge font-mono ${isActive ? 'badge-critical' : 'badge-normal'
-            }`}
+          className={`badge font-mono ${
+            isActive ? 'badge-critical' : 'badge-normal'
+          }`}
         >
+          <span className="status-dot status-dot-pulse" style={{ backgroundColor: isActive ? 'var(--status-critical)' : 'var(--status-normal)' }} />
           {isActive ? 'OUTAGE ACTIVE' : 'SYSTEM NORMAL'}
         </span>
       </div>
 
       {/* Panel Body */}
       <div className="incident-panel-body">
-        {/* Scenario Specification */}
+        {/* Scenario Specification Box */}
         <div className="incident-spec-box">
           <div className="incident-scenario-name">
-            <ShieldAlert size={14} style={{ color: isActive ? 'var(--status-critical)' : 'var(--accent-cyan)' }} />
+            <ShieldAlert size={15} style={{ color: isActive ? 'var(--status-critical)' : 'var(--accent-cyan)' }} />
             <span>Catastrophic Main Grid Outage</span>
           </div>
 
           <div className="incident-meta-grid">
             <div className="incident-meta-cell">
               <span className="incident-meta-key">Target Asset</span>
-              <span className="incident-meta-val">{targetAsset}</span>
+              <span className="incident-meta-val font-mono">{targetAsset}</span>
             </div>
             <div className="incident-meta-cell">
               <span className="incident-meta-key">Failure Type</span>
@@ -53,7 +55,7 @@ export default function IncidentPanel({
             </div>
             <div className="incident-meta-cell">
               <span className="incident-meta-key">Severity</span>
-              <span className="incident-meta-val" style={{ color: 'var(--status-critical)' }}>
+              <span className="incident-meta-val font-mono" style={{ color: 'var(--status-critical)', fontWeight: 700 }}>
                 {severity.toUpperCase()}
               </span>
             </div>
@@ -62,40 +64,52 @@ export default function IncidentPanel({
 
         {/* Affected Infrastructure Badges */}
         <div className="affected-group">
-          <span className="affected-group-title">
-            Affected Infrastructure Nodes ({isActive ? affectedAssets.length : 0})
-          </span>
+          <div className="affected-group-header">
+            <span className="affected-group-title">
+              Affected Infrastructure Nodes
+            </span>
+            <span className="badge badge-subtle font-mono">
+              {isActive ? affectedAssets.length : 0} / 11
+            </span>
+          </div>
           <div className="affected-badges-wrap">
             {isActive ? (
               affectedAssets.map((assetId) => (
-                <span key={assetId} className="affected-badge affected-badge-asset">
+                <span key={assetId} className="affected-badge affected-badge-asset font-mono">
                   {assetId}
                 </span>
               ))
             ) : (
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                None — All 11 assets operating at nominal capacity
-              </span>
+              <div className="affected-empty-hint">
+                <CheckCircle2 size={12} style={{ color: 'var(--status-normal)' }} />
+                <span>All 11 assets operating within nominal boundaries</span>
+              </div>
             )}
           </div>
         </div>
 
-        {/* Affected Services Badges */}
+        {/* Affected Hospital Services Badges */}
         <div className="affected-group">
-          <span className="affected-group-title">
-            Degraded Hospital Services ({isActive ? affectedServices.length : 0})
-          </span>
+          <div className="affected-group-header">
+            <span className="affected-group-title">
+              Degraded Hospital Services
+            </span>
+            <span className="badge badge-subtle font-mono">
+              {isActive ? affectedServices.length : 0} / 5
+            </span>
+          </div>
           <div className="affected-badges-wrap">
             {isActive ? (
               affectedServices.map((svcId) => (
-                <span key={svcId} className="affected-badge affected-badge-service">
+                <span key={svcId} className="affected-badge affected-badge-service font-mono">
                   {svcId.replace('SERVICE_', '')}
                 </span>
               ))
             ) : (
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-                None — All 5 care services delivering 100% continuity
-              </span>
+              <div className="affected-empty-hint">
+                <CheckCircle2 size={12} style={{ color: 'var(--status-normal)' }} />
+                <span>All 5 care units delivering 100% continuous care</span>
+              </div>
             )}
           </div>
         </div>
@@ -115,9 +129,8 @@ export default function IncidentPanel({
               </button>
               <button
                 type="button"
-                className="btn btn-secondary"
+                className="btn btn-secondary action-explain-btn"
                 onClick={onOpenExplainability}
-                style={{ height: '34px', fontWeight: 600, width: '100%' }}
                 title="Inspect simulated causal dependency paths"
               >
                 <Workflow size={14} style={{ color: 'var(--accent-cyan)' }} />
@@ -129,34 +142,34 @@ export default function IncidentPanel({
               {activeCheckpointIndex < 3 && (
                 <button
                   type="button"
-                  className="btn btn-cyan"
+                  className="btn btn-cyan action-advance-btn"
                   onClick={onNextCheckpoint}
-                  style={{ height: '36px', fontWeight: 700, width: '100%' }}
                   title="Step timeline forward to next cascade milestone"
                 >
                   <span>Advance Cascade Step</span>
                   <ArrowRight size={14} />
                 </button>
               )}
-              <button
-                type="button"
-                className="btn btn-secondary"
-                onClick={onOpenExplainability}
-                style={{ height: '34px', fontWeight: 600, width: '100%' }}
-                title="Inspect causal graph traversal and dependency explanation"
-              >
-                <Workflow size={14} style={{ color: 'var(--accent-cyan)' }} />
-                <span>Explain This Cascade</span>
-              </button>
-              <button
-                type="button"
-                className="btn-reset-baseline"
-                onClick={onReset}
-                title="Restore normal hospital baseline"
-              >
-                <RotateCcw size={14} />
-                <span>Reset Baseline</span>
-              </button>
+              <div className="incident-active-btn-row">
+                <button
+                  type="button"
+                  className="btn btn-secondary action-explain-btn"
+                  onClick={onOpenExplainability}
+                  title="Inspect causal graph traversal and dependency explanation"
+                >
+                  <Workflow size={14} style={{ color: 'var(--accent-cyan)' }} />
+                  <span>Explain This Cascade</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-secondary action-reset-btn"
+                  onClick={onReset}
+                  title="Restore normal hospital baseline"
+                >
+                  <RotateCcw size={14} />
+                  <span>Reset Baseline</span>
+                </button>
+              </div>
             </>
           )}
         </div>

@@ -6,8 +6,8 @@
 .causal-drawer-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(5, 8, 15, 0.75);
-  backdrop-filter: blur(4px);
+  background-color: rgba(4, 7, 15, 0.8);
+  backdrop-filter: blur(6px);
   z-index: 100;
   display: flex;
   justify-content: flex-end;
@@ -26,7 +26,7 @@
   height: 100vh;
   background-color: var(--bg-panel);
   border-left: 1px solid var(--border-bright);
-  box-shadow: -10px 0 25px rgba(0, 0, 0, 0.6);
+  box-shadow: -12px 0 30px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
   z-index: 101;
@@ -41,23 +41,23 @@
 
 /* Drawer Header */
 .causal-drawer-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   background-color: var(--bg-panel-elevated);
   border-bottom: 1px solid var(--border-subtle);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 14px;
+  gap: 12px;
 }
 
 .causal-header-titles {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .causal-main-title {
-  font-size: 15px;
+  font-size: 14px;
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -73,12 +73,12 @@
 }
 
 .causal-close-btn {
-  background: transparent;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  width: 32px;
-  height: 32px;
+  border-radius: var(--radius-xs);
+  width: 28px;
+  height: 28px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -90,7 +90,7 @@
 .causal-close-btn:hover {
   background-color: var(--bg-hover);
   color: var(--text-primary);
-  border-color: var(--border-bright);
+  border-color: var(--accent-cyan);
 }
 
 /* View Selector Tabs */
@@ -99,7 +99,7 @@
   background-color: var(--bg-base);
   border-bottom: 1px solid var(--border-subtle);
   padding: 6px 16px;
-  gap: 8px;
+  gap: 6px;
 }
 
 .causal-tab-btn {
@@ -109,7 +109,7 @@
   font-size: 11px;
   font-weight: 600;
   padding: 5px 12px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   cursor: pointer;
   transition: all 0.15s ease;
   font-family: inherit;
@@ -123,18 +123,18 @@
 .causal-tab-btn.is-active-tab {
   color: var(--accent-cyan);
   background-color: var(--accent-cyan-dim);
-  border-color: rgba(6, 182, 212, 0.35);
+  border-color: var(--border-cyan-glow);
   font-weight: 700;
 }
 
 /* Scrollable Drawer Body */
 .causal-drawer-body {
-  padding: 20px;
+  padding: 18px 20px;
   flex: 1;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: 18px;
 }
 
 /* Summary Box */
@@ -142,8 +142,8 @@
   background: var(--bg-panel-elevated);
   border: 1px solid var(--border-default);
   border-left: 3px solid var(--accent-cyan);
-  border-radius: var(--radius-sm);
-  padding: 14px 16px;
+  border-radius: var(--radius-xs);
+  padding: 12px 16px;
   display: flex;
   flex-direction: column;
   gap: 6px;
@@ -161,20 +161,20 @@
 }
 
 .causal-summary-text {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-primary);
-  line-height: 1.45;
+  line-height: 1.5;
 }
 
 /* Dependency Path Section */
 .causal-path-section {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .causal-section-heading {
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -188,19 +188,18 @@
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 8px;
-  background: var(--bg-subtle);
+  gap: 6px;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   padding: 12px 14px;
 }
 
 .path-node-chip {
-  font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
-  padding: 4px 10px;
-  border-radius: var(--radius-sm);
+  padding: 3px 8px;
+  border-radius: var(--radius-xs);
   border: 1px solid transparent;
 }
 
@@ -219,7 +218,7 @@
 .path-node-target {
   color: var(--accent-cyan);
   background-color: var(--accent-cyan-dim);
-  border-color: rgba(6, 182, 212, 0.4);
+  border-color: var(--border-cyan-glow);
 }
 
 .path-arrow-icon {
@@ -230,39 +229,38 @@
 .causal-chain-section {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
 }
 
 .causal-chain-list {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 8px;
 }
 
 .causal-step-item {
   display: flex;
-  gap: 12px;
-  background: var(--bg-subtle);
+  gap: 10px;
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 12px 14px;
-  transition: border-color 0.15s ease;
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  transition: all 0.15s ease;
 }
 
 .causal-step-item:hover {
   border-color: var(--border-default);
-  background: var(--bg-hover);
+  background: var(--bg-panel-elevated);
 }
 
 .causal-step-badge {
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 800;
   color: var(--accent-cyan);
   background: var(--accent-cyan-dim);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  padding: 2px 7px;
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-cyan-glow);
+  padding: 2px 6px;
+  border-radius: var(--radius-xs);
   height: fit-content;
   flex-shrink: 0;
   margin-top: 1px;
@@ -274,34 +272,34 @@
   line-height: 1.45;
 }
 
-/* Decision Factors (Strategy Rationale) */
+/* Decision Factors */
 .decision-factors-list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .decision-factor-item {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  font-size: 12px;
+  font-size: 11px;
   color: var(--text-secondary);
-  background: var(--bg-subtle);
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
-  padding: 10px 12px;
+  border-radius: var(--radius-xs);
+  padding: 8px 12px;
 }
 
 /* Footer Source Metadata */
 .causal-drawer-footer {
-  padding: 12px 20px;
+  padding: 10px 20px;
   background-color: var(--bg-panel-elevated);
   border-top: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
 }
 
@@ -309,18 +307,4 @@
   display: flex;
   align-items: center;
   gap: 6px;
-  font-family: var(--font-mono);
-}
-
-/* Empty State */
-.causal-empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  height: 240px;
-  text-align: center;
-  gap: 10px;
-  color: var(--text-muted);
-  font-size: 12px;
 }

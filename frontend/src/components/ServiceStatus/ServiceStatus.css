@@ -5,33 +5,37 @@
 .service-list-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  background-color: var(--bg-panel);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
 .service-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 14px;
 }
 
 /* --------------------------------------------------------------------------
    Service Card
    -------------------------------------------------------------------------- */
 .service-card {
-  background-color: var(--bg-panel);
+  background-color: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 16px;
+  border-radius: var(--radius-sm);
+  padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
-  transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+  gap: 12px;
+  transition: all 0.15s ease;
   cursor: pointer;
   position: relative;
 }
 
 .service-card:hover {
-  border-color: var(--border-bright);
+  border-color: var(--border-default);
   background-color: var(--bg-panel-elevated);
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
@@ -39,7 +43,8 @@
 
 .service-card.is-selected {
   border-color: var(--accent-cyan);
-  box-shadow: 0 0 0 1px var(--accent-cyan);
+  box-shadow: 0 0 0 1px var(--accent-cyan), 0 0 12px rgba(6, 182, 212, 0.15);
+  background-color: var(--bg-panel-elevated);
 }
 
 /* Distinguishable border for Critical Life-Support (Level 5) */
@@ -49,6 +54,7 @@
 
 .service-card.is-at-risk {
   border-left: 3px solid var(--status-critical);
+  box-shadow: 0 0 12px -3px rgba(239, 68, 68, 0.25);
 }
 
 /* Top Identity */
@@ -56,7 +62,7 @@
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 10px;
+  gap: 8px;
 }
 
 .service-title-group {
@@ -66,35 +72,32 @@
 }
 
 .service-name {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--text-primary);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .service-location {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-muted);
-  font-family: var(--font-mono);
 }
 
 /* Criticality & Priority Badges */
 .service-badges-row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   flex-wrap: wrap;
 }
 
 .criticality-badge {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  font-family: var(--font-mono);
-  letter-spacing: 0.05em;
-  padding: 2px 6px;
-  border-radius: var(--radius-sm);
+  padding: 2px 5px;
+  border-radius: var(--radius-xs);
   border: 1px solid transparent;
 }
 
@@ -112,7 +115,7 @@
 
 .crit-1 {
   color: var(--text-muted);
-  background: var(--bg-subtle);
+  background: var(--bg-base);
   border-color: var(--border-subtle);
 }
 
@@ -120,26 +123,28 @@
 .service-continuity-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .service-continuity-header {
   display: flex;
   justify-content: space-between;
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .continuity-title {
-  color: var(--text-secondary);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  font-weight: 600;
+  letter-spacing: 0.04em;
 }
 
 .continuity-val {
-  font-family: var(--font-mono);
   font-weight: 700;
 }
 
 .service-meter-track {
-  height: 6px;
+  height: 5px;
   background-color: var(--border-subtle);
   border-radius: 3px;
   overflow: hidden;
@@ -155,12 +160,12 @@
 .service-risk-alert {
   background-color: var(--status-critical-bg);
   border: 1px solid var(--status-critical-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-xs);
   padding: 8px 10px;
   display: flex;
   align-items: flex-start;
-  gap: 8px;
-  font-size: 11px;
+  gap: 6px;
+  font-size: 10px;
   color: var(--status-critical);
   line-height: 1.4;
 }
@@ -170,22 +175,21 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 10px;
+  padding-top: 8px;
   border-top: 1px solid var(--border-subtle);
-  font-size: 11px;
+  font-size: 10px;
 }
 
 .service-demands-pills {
   display: flex;
-  gap: 6px;
+  gap: 4px;
 }
 
 .demand-pill {
-  font-size: 10px;
+  font-size: 9px;
   color: var(--text-muted);
-  background: var(--bg-subtle);
+  background: var(--bg-base);
   border: 1px solid var(--border-subtle);
   padding: 1px 5px;
-  border-radius: var(--radius-sm);
-  font-family: var(--font-mono);
+  border-radius: var(--radius-xs);
 }

@@ -1,11 +1,9 @@
 import {
-  Zap,
   BatteryCharging,
   Thermometer,
   Gauge,
   Clock,
   ShieldAlert,
-  Server,
   Layers,
   Fuel
 } from 'lucide-react'
@@ -16,7 +14,6 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
   const {
     id,
     name,
-    type,
     status = 'normal',
     health_score = 100,
     current_load = 0,
@@ -32,22 +29,22 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
 
   const loadPct = nominal_capacity > 0 ? Math.min(100, (current_load / nominal_capacity) * 100) : 0
 
-  // Status color mapper
-  const getStatusClass = (st) => {
+  // Status badge styling
+  const getStatusBadgeClass = (st) => {
     switch (st) {
-      case 'normal': return 'asset-status-normal'
-      case 'degraded': return 'asset-status-degraded'
-      case 'critical': return 'asset-status-critical'
-      case 'failed': return 'asset-status-failed'
-      case 'offline': return 'asset-status-offline'
-      case 'starting': return 'asset-status-starting'
-      default: return 'asset-status-normal'
+      case 'normal': return 'badge-normal'
+      case 'degraded': return 'badge-warning'
+      case 'critical': return 'badge-critical'
+      case 'failed': return 'badge-critical'
+      case 'offline': return 'badge-offline'
+      case 'starting': return 'badge-warning'
+      default: return 'badge-normal'
     }
   }
 
   // Load bar fill color
   const getLoadBarColor = () => {
-    if (status === 'failed') return 'var(--status-critical)'
+    if (status === 'failed' || status === 'critical') return 'var(--status-critical)'
     if (status === 'offline') return 'var(--status-offline)'
     if (loadPct >= 90) return 'var(--status-warning)'
     return 'var(--accent-cyan)'
@@ -63,12 +60,13 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
       {/* Top Identity & Status */}
       <div className="asset-card-top">
         <div className="asset-card-identity">
-          <div className="asset-card-id">
+          <div className="asset-card-id font-mono">
             <span>{id}</span>
           </div>
           <span className="asset-card-name">{name}</span>
         </div>
-        <span className={`asset-status-pill ${getStatusClass(status)}`}>
+        <span className={`badge ${getStatusBadgeClass(status)} font-mono`} style={{ fontSize: '9px' }}>
+          <span className="status-dot" style={{ width: 6, height: 6 }} />
           {status}
         </span>
       </div>
@@ -77,7 +75,7 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
       <div className="asset-load-section">
         <div className="asset-load-labels">
           <span className="asset-load-title">Load / Nominal</span>
-          <span className="asset-load-val">
+          <span className="asset-load-val font-mono">
             {current_load.toFixed(0)} / {nominal_capacity.toFixed(0)} {capacity_unit} ({loadPct.toFixed(0)}%)
           </span>
         </div>
@@ -86,16 +84,17 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
             className="asset-meter-fill"
             style={{
               width: `${loadPct}%`,
-              backgroundColor: getLoadBarColor()
+              backgroundColor: getLoadBarColor(),
+              boxShadow: loadPct > 0 ? `0 0 6px ${getLoadBarColor()}80` : 'none'
             }}
           />
         </div>
       </div>
 
-      {/* Meta & Reserve Attributes (only non-null fields displayed) */}
+      {/* Meta & Reserve Attributes (only non-null telemetry displayed) */}
       <div className="asset-meta-row">
         {/* Health Score */}
-        <span className="asset-meta-badge" title="Asset Health Index">
+        <span className="asset-meta-badge" title="Asset Health Score">
           <ShieldAlert size={11} style={{ color: health_score >= 80 ? 'var(--status-normal)' : 'var(--status-warning)' }} />
           <span>Health {health_score.toFixed(0)}%</span>
         </span>
@@ -127,7 +126,7 @@ export default function AssetCard({ asset, isSelected, onSelect }) {
         {/* Temperature */}
         {temperature_c != null && (
           <span className="asset-meta-badge" title="Core Operating Temperature">
-            <Thermometer size={11} style={{ color: 'var(--text-muted)' }} />
+            <Thermometer size={11} style={{ color: 'var(--status-critical)' }} />
             <span>{temperature_c.toFixed(1)}°C</span>
           </span>
         )}

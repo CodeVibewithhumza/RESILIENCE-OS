@@ -1,4 +1,4 @@
-import { CheckCircle2, Clock, Zap, HeartPulse, AlertCircle, Award } from 'lucide-react'
+import { Clock, Award } from 'lucide-react'
 
 export default function StrategyCard({ strategy, isSelected, onSelect }) {
   if (!strategy) return null
@@ -14,8 +14,6 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
     estimated_recovery_time_min = 0,
     risk_level = 'Medium',
     recommendation_rank,
-    pros = [],
-    cons = [],
     is_recommended = false
   } = strategy
 
@@ -45,13 +43,21 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
       role="button"
       tabIndex={0}
     >
+      {/* Recommended banner on top if applicable */}
+      {is_recommended && (
+        <div className="recommended-banner">
+          <Award size={12} />
+          <span>Recommended Response</span>
+        </div>
+      )}
+
       {/* Card Header */}
       <div className="strategy-card-header">
-        <div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span className="strategy-card-code">{strategy_code}</span>
+        <div className="strategy-card-header-left">
+          <div className="strategy-card-identity">
+            <span className="strategy-card-code font-mono">{strategy_code}</span>
             {recommendation_rank && (
-              <span className="badge badge-offline font-mono" style={{ fontSize: '10px' }}>
+              <span className="badge badge-subtle font-mono" style={{ fontSize: '9px' }}>
                 Rank #{recommendation_rank}
               </span>
             )}
@@ -61,7 +67,7 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
 
         <div className="strategy-score-pill">
           <span
-            className="strategy-score-val"
+            className="strategy-score-val font-mono"
             style={{ color: getScoreColor(projected_resilience_score) }}
           >
             {projected_resilience_score.toFixed(1)}
@@ -70,20 +76,12 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
         </div>
       </div>
 
-      {/* Recommended simulated response tag (driven strictly by fixture is_recommended) */}
-      {is_recommended && (
-        <div className="recommended-banner">
-          <Award size={13} />
-          <span>Recommended simulated response</span>
-        </div>
-      )}
-
       {/* Primary Comparison Metrics Row */}
       <div className="strategy-card-metrics">
         <div className="card-metric-cell">
-          <span className="card-metric-label">ICU Cont.</span>
+          <span className="card-metric-label">ICU Continuity</span>
           <span
-            className="card-metric-val"
+            className="card-metric-val font-mono"
             style={{
               color: icu_continuity_pct >= 90 ? 'var(--status-normal)' : 'var(--status-warning)'
             }}
@@ -93,24 +91,26 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
         </div>
 
         <div className="card-metric-cell">
-          <span className="card-metric-label">Backup Run</span>
-          <span className="card-metric-val">
+          <span className="card-metric-label">Backup Runtime</span>
+          <span className="card-metric-val font-mono">
             {backup_runtime_remaining_hours.toFixed(1)}h
           </span>
         </div>
 
         <div className="card-metric-cell">
           <span className="card-metric-label">Load Shed</span>
-          <span className="card-metric-val">
+          <span className="card-metric-val font-mono">
             {non_critical_load_shed_kw.toFixed(0)} kW
           </span>
         </div>
       </div>
 
-      {/* Trade-offs summary */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '11px' }}>
-        <span style={{ color: 'var(--text-muted)' }}>
-          Est. Recovery: <span className="font-mono" style={{ color: 'var(--text-secondary)' }}>{estimated_recovery_time_min}m</span>
+      {/* Footer Details: Recovery & Risk */}
+      <div className="strategy-card-footer">
+        <span className="strategy-footer-recovery">
+          <Clock size={11} style={{ color: 'var(--text-muted)' }} />
+          <span>Est. Recovery: </span>
+          <strong className="font-mono" style={{ color: 'var(--text-secondary)' }}>{estimated_recovery_time_min}m</strong>
         </span>
         <span className={`badge ${getRiskBadgeClass(risk_level)} font-mono`}>
           {risk_level} Risk
