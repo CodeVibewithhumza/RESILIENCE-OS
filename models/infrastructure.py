@@ -22,6 +22,7 @@ class OperationalStatus(str, Enum):
     FAILED = "failed"          # Active outage or tripped
     OFFLINE = "offline"        # Idle standby or planned shutdown
     STARTING = "starting"      # Transitioning online (e.g. generator warmup)
+    RECOVERING = "recovering"  # Restoring after failure / reconnecting
 
 class InfrastructureAsset(BaseModel):
     id: str = Field(..., description="Unique asset identifier, e.g. TRANSFORMER-01")
