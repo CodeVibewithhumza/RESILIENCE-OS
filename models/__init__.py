@@ -5,6 +5,15 @@ from .telemetry import TelemetryPoint, HospitalTelemetrySnapshot
 from .incident import FailureInjectionRequest, IncidentState, IncidentSeverity
 from .strategy import StrategyType, StrategyDefinition, StrategyResult, WhatIfComparison
 from .resilience import ResilienceIndexBreakdown, SubScores
+from .risk import (
+    RiskLevel,
+    ViolationType,
+    ThresholdViolation,
+    TimeToThresholdEstimate,
+    AssetRiskAssessment,
+    ServiceRiskAssessment,
+    IncidentRiskSummary,
+)
 
 __all__ = [
     "InfrastructureAsset",
@@ -24,4 +33,12 @@ __all__ = [
     "WhatIfComparison",
     "ResilienceIndexBreakdown",
     "SubScores",
+    "RiskLevel",
+    "ViolationType",
+    "ThresholdViolation",
+    "TimeToThresholdEstimate",
+    "AssetRiskAssessment",
+    "ServiceRiskAssessment",
+    "IncidentRiskSummary",
 ]
+

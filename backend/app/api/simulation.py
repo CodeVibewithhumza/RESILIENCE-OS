@@ -25,6 +25,12 @@ from models.strategy import (
     SimulationRunRequest,
     WhatIfComparison,
 )
+from models.risk import (
+    AssetRiskAssessment,
+    ServiceRiskAssessment,
+    IncidentRiskSummary,
+)
+
 
 
 router = APIRouter(tags=["Simulation & What-If"])
@@ -149,3 +155,51 @@ def apply_strategy(
 
     result = engine.apply_strategy(request.strategy_id)
     return result
+
+
+@router.get(
+    "/risk/summary",
+    response_model=IncidentRiskSummary,
+)
+def get_risk_summary(
+    engine: HospitalStateEngine = Depends(get_state_engine),
+):
+    """Returns campus-wide risk summary, threshold violations, and service vulnerabilities."""
+    return engine.get_incident_risk()
+
+
+@router.get(
+    "/risk/assets/{asset_id}",
+    response_model=AssetRiskAssessment,
+)
+def get_asset_risk(
+    asset_id: str,
+    engine: HospitalStateEngine = Depends(get_state_engine),
+):
+    """Returns risk assessment for an individual asset."""
+    assessment = engine.get_asset_risk(asset_id)
+    if assessment is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Asset '{asset_id}' not found in hospital topology.",
+        )
+    return assessment
+
+
+@router.get(
+    "/risk/services/{service_id}",
+    response_model=ServiceRiskAssessment,
+)
+def get_service_risk(
+    service_id: str,
+    engine: HospitalStateEngine = Depends(get_state_engine),
+):
+    """Returns risk assessment for an individual healthcare service."""
+    assessment = engine.get_service_risk(service_id)
+    if assessment is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Service '{service_id}' not found in hospital catalog.",
+        )
+    return assessment
+

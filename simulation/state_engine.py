@@ -11,12 +11,14 @@ from models.telemetry import HospitalTelemetrySnapshot
 from models.incident import FailureInjectionRequest, IncidentState, IncidentSeverity
 from models.resilience import ResilienceIndexBreakdown
 from models.strategy import WhatIfComparison
+from models.risk import IncidentRiskSummary, AssetRiskAssessment, ServiceRiskAssessment
 
 from graph.topology_builder import HospitalTopologyBuilder
 from .cascade_engine import CascadePropagationEngine
 from .resilience_index import ResilienceIndexCalculator
 from .what_if_engine import WhatIfSimulationEngine
 from .explanation_engine import CausalExplanationEngine
+from .risk_engine import RiskEstimationEngine
 
 
 # Explicit allowed state transitions map
@@ -79,6 +81,7 @@ class HospitalStateEngine:
         self.cascade_engine = CascadePropagationEngine(self.graph)
         self.what_if_engine = WhatIfSimulationEngine(self.calculator)
         self.explanation_engine = CausalExplanationEngine(self.graph)
+        self.risk_engine = RiskEstimationEngine(self.graph)
 
         self.assets: Dict[str, InfrastructureAsset] = {}
         self.services: Dict[str, HospitalService] = {}
@@ -168,6 +171,7 @@ class HospitalStateEngine:
         self.graph = self.topology_builder.build_default_topology()
         self.cascade_engine = CascadePropagationEngine(self.graph)
         self.explanation_engine = CausalExplanationEngine(self.graph)
+        self.risk_engine.set_graph(self.graph)
 
         self.assets, self.services = self._load_assets_and_services_from_config()
         self.active_incident = None
@@ -615,4 +619,26 @@ class HospitalStateEngine:
             critical_load_kw=emer_bus.current_load if emer_bus else 0.0,
             non_critical_load_kw=main_bus.current_load if main_bus else 0.0
         )
+
+    def get_incident_risk(self) -> IncidentRiskSummary:
+        """Evaluates and returns comprehensive risk assessment across all campus assets and services."""
+        return self.risk_engine.evaluate_incident_risk(
+            assets=self.assets,
+            services=self.services,
+            incident=self.active_incident,
+        )
+
+    def get_asset_risk(self, asset_id: str) -> Optional[AssetRiskAssessment]:
+        """Evaluates risk for a single asset."""
+        asset = self.assets.get(asset_id)
+        if not asset:
+            return None
+        return self.risk_engine.assess_asset_risk(asset)
+
+    def get_service_risk(self, service_id: str) -> Optional[ServiceRiskAssessment]:
+        """Evaluates risk for a single service."""
+        service = self.services.get(service_id)
+        if not service:
+            return None
+        return self.risk_engine.assess_service_risk(service, self.assets)
 
