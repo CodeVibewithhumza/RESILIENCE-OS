@@ -6,7 +6,7 @@ class Settings(BaseSettings):
     PORT: int = 8000
     DEBUG: bool = True
     ENVIRONMENT: str = "development"
-    DATABASE_URL: str = ""
+    DATABASE_URL: str = "sqlite+aiosqlite:///./resilience.db"
     
     # Simulation
     SIMULATION_TICK_RATE_MS: int = 1000
