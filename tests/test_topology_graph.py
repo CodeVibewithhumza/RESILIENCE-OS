@@ -3,6 +3,7 @@ import pytest
 import networkx as nx
 from graph.topology_builder import HospitalTopologyBuilder
 from graph.traversals import GraphTraversalEngine
+from models.infrastructure import InfrastructureAsset
 
 def test_graph_initialization():
     builder = HospitalTopologyBuilder()
@@ -119,3 +120,58 @@ def test_dependency_behavior_configuration():
     assert builder.graph.has_edge("EMERGENCY_BUS", "SERVICE_OT")
     assert builder.graph.has_edge("OXYGEN_MANIFOLD", "SERVICE_ICU")
     assert builder.graph.has_edge("CHILLER_PLANT", "SERVICE_ICU")
+
+def test_asset_configuration_integrity():
+    builder = HospitalTopologyBuilder()
+
+    assets = builder.config["infrastructure_assets"]
+
+    for asset in assets:
+        # Common asset configuration
+        assert asset["id"]
+        assert asset["name"]
+        assert asset["type"]
+
+        assert asset["nominal_capacity"] > 0
+        assert 0 <= asset["available_capacity"] <= asset["nominal_capacity"]
+        assert 0 <= asset["current_load"] <= asset["available_capacity"]
+
+        assert 0.0 <= asset["threshold"] <= 1.0
+        assert 0 <= asset["health_score"] <= 100
+        assert asset["redundancy_level"] >= 1
+
+    # Asset-specific configuration
+    for asset in assets:
+        asset_type = asset["type"]
+
+        if asset_type == "generator":
+            assert "fuel_level_pct" in asset
+            assert 0 <= asset["fuel_level_pct"] <= 100
+
+        elif asset_type == "ups":
+            assert "battery_level_pct" in asset
+            assert 0 <= asset["battery_level_pct"] <= 100
+            assert "runtime_remaining_min" in asset
+            assert asset["runtime_remaining_min"] >= 0
+
+        elif asset_type == "oxygen_system":
+            assert "pressure_psi" in asset
+            assert asset["pressure_psi"] > 0
+
+        elif asset_type == "water_pump":
+            assert "pressure_psi" in asset
+            assert asset["pressure_psi"] > 0
+
+        elif asset_type == "chiller_hvac":
+            assert "temperature_c" in asset
+            assert asset["temperature_c"] >= 0
+
+def test_assets_match_infrastructure_model():
+    builder = HospitalTopologyBuilder()
+
+    for asset_config in builder.config["infrastructure_assets"]:
+        asset = InfrastructureAsset(**asset_config)
+
+        assert asset.id == asset_config["id"]
+        assert asset.type.value == asset_config["type"]
+        assert asset.threshold == asset_config["threshold"]

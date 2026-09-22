@@ -40,6 +40,7 @@ class InfrastructureAsset(BaseModel):
     status: OperationalStatus = Field(default=OperationalStatus.NORMAL)
     health_score: float = Field(default=100.0, ge=0.0, le=100.0, description="0-100 asset health index")
     redundancy_level: int = Field(default=1, description="Number of redundant backups (N+1, 2N)")
+    threshold: float = Field(default=0.70,ge=0.0,le=1.0,description="Operational threshold as a fraction of nominal capacity")
     
     # Resource metrics (Optional depending on asset type)
     fuel_level_pct: Optional[float] = Field(default=None, ge=0.0, le=100.0)
