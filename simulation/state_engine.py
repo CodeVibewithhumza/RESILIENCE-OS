@@ -569,12 +569,38 @@ class HospitalStateEngine:
 
     def get_resilience_breakdown(self) -> ResilienceIndexBreakdown:
         """Calculates current Resilience Index breakdown."""
+        service_risks = None
+        recovery_time_min = None
+        load_shed_kw = None
+        if self.active_incident and self.active_incident.is_active:
+            try:
+                incident_risk = self.risk_engine.evaluate_incident_risk(
+                    assets=self.assets,
+                    services=self.services,
+                    incident=self.active_incident,
+                )
+                service_risks = {sid: s.risk_score for sid, s in incident_risk.service_risks.items()}
+            except Exception:
+                service_risks = None
+            if self.active_incident.active_mitigation_strategy:
+                recovery_time_min = 5.0
+                if self.active_incident.active_mitigation_strategy in ("strat_c", "C_dynamic_rebalance_hvac_throttle"):
+                    load_shed_kw = 120.0
+                elif self.active_incident.active_mitigation_strategy in ("strat_b", "B_start_all_generators"):
+                    load_shed_kw = 380.0
+            else:
+                recovery_time_min = self.active_incident.estimated_unmitigated_blackout_min
+
         return self.calculator.compute_resilience_breakdown(
             services=list(self.services.values()),
             assets=list(self.assets.values()),
-            is_incident_active=(self.active_incident is not None),
-            baseline_score=self.baseline_resilience
+            is_incident_active=(self.active_incident is not None and self.active_incident.is_active),
+            baseline_score=self.baseline_resilience,
+            service_risks=service_risks,
+            recovery_time_min=recovery_time_min,
+            load_shed_kw=load_shed_kw,
         )
+
 
     def get_what_if_comparison(self) -> WhatIfComparison:
         """Runs What-If analysis on current incident."""

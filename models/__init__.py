@@ -4,7 +4,7 @@ from .service import HospitalService, ServiceType, ServiceStatus
 from .telemetry import TelemetryPoint, HospitalTelemetrySnapshot
 from .incident import FailureInjectionRequest, IncidentState, IncidentSeverity
 from .strategy import StrategyType, StrategyDefinition, StrategyResult, WhatIfComparison
-from .resilience import ResilienceIndexBreakdown, SubScores
+from .resilience import ResilienceIndexBreakdown, SubScores, CanonicalComponents
 from .risk import (
     RiskLevel,
     ViolationType,
@@ -33,6 +33,7 @@ __all__ = [
     "WhatIfComparison",
     "ResilienceIndexBreakdown",
     "SubScores",
+    "CanonicalComponents",
     "RiskLevel",
     "ViolationType",
     "ThresholdViolation",

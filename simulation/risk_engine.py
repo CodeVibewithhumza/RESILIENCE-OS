@@ -322,13 +322,28 @@ class RiskEstimationEngine:
             if aid in asset_risks:
                 upstream_risk_map[aid] = asset_risks[aid].risk_score
 
-        # 2.2 Subsystem Vulnerability Breakdown
         # Power Vulnerability
         power_assets = [aid for aid in upstream_asset_ids if aid in assets and assets[aid].type in (
             AssetType.GRID, AssetType.TRANSFORMER, AssetType.MAIN_BUS,
             AssetType.EMERGENCY_BUS, AssetType.UPS, AssetType.GENERATOR
         )]
-        max_power_risk = max([asset_risks[a].risk_score for a in power_assets if a in asset_risks], default=0.0)
+        feeding_bus_id = "EMERGENCY_BUS" if service.id in ("SERVICE_ICU", "SERVICE_OT", "SERVICE_ER") else "MAIN_BUS"
+        bus_asset = assets.get(feeding_bus_id)
+        bus_risk = asset_risks[feeding_bus_id].risk_score if (feeding_bus_id in asset_risks) else 0.0
+
+        gens_online = any(
+            assets[g].status == OperationalStatus.NORMAL and assets[g].current_load > 0
+            for g in ("GEN_01", "GEN_02") if g in assets
+        )
+        grid_online = bool(assets.get("GRID_MAIN") and assets["GRID_MAIN"].status == OperationalStatus.NORMAL)
+
+        if bus_asset and bus_asset.status == OperationalStatus.NORMAL and (gens_online or grid_online):
+            max_power_risk = min(0.15, bus_risk + (0.05 if gens_online and not grid_online else 0.0))
+        elif bus_asset and bus_asset.status == OperationalStatus.DEGRADED:
+            max_power_risk = max(0.50, bus_risk)
+        else:
+            max_power_risk = max(bus_risk, max([asset_risks[a].risk_score for a in power_assets if a in asset_risks], default=0.0))
+
 
         # Cooling Vulnerability
         cooling_risk = 0.0
@@ -354,7 +369,7 @@ class RiskEstimationEngine:
         if continuity_deficit > 0.0:
             reasons.append(f"Service continuity curtailed to {service.service_continuity_pct:.1f}%")
 
-        # 2.3 Check UPS / Power Exhaustion Timeline (only active if upstream grid/buses are impaired or UPS discharging)
+        # 2.3 Check UPS / Power Exhaustion Timeline (only active if upstream grid/buses are impaired and no generator online, or UPS discharging)
         upstream_impaired = any(
             assets[aid].status in (OperationalStatus.FAILED, OperationalStatus.CRITICAL, OperationalStatus.DEGRADED)
             for aid in power_assets if aid in assets and assets[aid].type in (AssetType.GRID, AssetType.TRANSFORMER, AssetType.MAIN_BUS)
@@ -365,7 +380,7 @@ class RiskEstimationEngine:
             for aid in power_assets if aid in assets and assets[aid].type == AssetType.UPS
         )
         blackout_time_min: Optional[float] = None
-        if upstream_impaired or ups_discharging:
+        if (upstream_impaired and not gens_online) or ups_discharging:
             for aid in power_assets:
                 a = assets.get(aid)
                 if a and a.runtime_remaining_min is not None:

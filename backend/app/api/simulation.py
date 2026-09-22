@@ -30,6 +30,8 @@ from models.risk import (
     ServiceRiskAssessment,
     IncidentRiskSummary,
 )
+from models.resilience import ResilienceIndexBreakdown
+
 
 
 
@@ -202,4 +204,16 @@ def get_service_risk(
             detail=f"Service '{service_id}' not found in hospital catalog.",
         )
     return assessment
+
+
+@router.get(
+    "/resilience/breakdown",
+    response_model=ResilienceIndexBreakdown,
+)
+def get_resilience_breakdown(
+    engine: HospitalStateEngine = Depends(get_state_engine),
+):
+    """Returns canonical composite Resilience Index breakdown and normalized subcomponents."""
+    return engine.get_resilience_breakdown()
+
 
