@@ -6,7 +6,9 @@ from models.incident import FailureInjectionRequest, IncidentState, IncidentSeve
 from models.infrastructure import InfrastructureAsset, OperationalStatus, AssetType
 from models.service import HospitalService, ServiceStatus
 from graph.traversals import GraphTraversalEngine
+import logging
 
+logger = logging.getLogger(__name__)
 
 class CascadePropagationEngine:
     """Dynamic graph-driven cascade propagation engine that traverses infrastructure dependencies,
@@ -25,6 +27,14 @@ class CascadePropagationEngine:
     ) -> Tuple[Dict[str, InfrastructureAsset], Dict[str, HospitalService], IncidentState]:
         """Propagates failure from source asset downstream through the dependency graph."""
         source_id = request.asset_id
+
+        logger.info(
+            "Cascade simulation started | event=failure_injection | "
+            "source_asset_id=%s | severity=%s | failure_type=%s",
+            source_id,
+            request.severity,
+            request.failure_type,
+        )
 
         # Deep copy state dictionaries to avoid mutating baseline in-place
         sim_assets = {k: v.model_copy(deep=True) for k, v in assets.items()}
@@ -50,6 +60,16 @@ class CascadePropagationEngine:
                 "path": entry["path"],
                 "category": entry["category"]
             })
+
+            logger.info(
+                "Cascade propagation step | source_asset_id=%s | "
+                "target_node_id=%s | depth=%s | category=%s | path=%s",
+                source_id,
+                entry["node_id"],
+                entry["depth"],
+                entry["category"],
+                entry["path"],
+            )
 
         # 3. Domain-Specific Dynamic Cascading Logic
 
@@ -391,6 +411,16 @@ class CascadePropagationEngine:
             cascade_path=cascade_paths,
             timeline=timeline,
             estimated_unmitigated_blackout_min=blackout_horizon
+        )
+
+        logger.info(
+            "Cascade simulation completed | incident_id=%s | "
+            "source_asset_id=%s | affected_asset_count=%d | "
+            "affected_service_count=%d",
+            incident_state.incident_id,
+            source_id,
+            len(affected_assets),
+            len(affected_services),
         )
 
         return sim_assets, sim_services, incident_state

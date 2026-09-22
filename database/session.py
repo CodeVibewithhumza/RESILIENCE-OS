@@ -1,4 +1,10 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
+from sqlalchemy.pool import NullPool
+
 from backend.app.config import settings
 from database.base import Base
 
@@ -8,6 +14,7 @@ import database.models  # noqa: F401
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=False,
+    poolclass=NullPool,
 )
 
 AsyncSessionLocal = async_sessionmaker(

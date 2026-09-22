@@ -3,6 +3,9 @@ from typing import Dict, Any, List, Optional
 from models.resilience import ResilienceIndexBreakdown, SubScores, CanonicalComponents
 from models.service import HospitalService
 from models.infrastructure import InfrastructureAsset, OperationalStatus, AssetType
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class ResilienceIndexCalculator:
@@ -291,6 +294,16 @@ class ResilienceIndexCalculator:
             t_recovery_penalty=t_norm,
             u_resource_penalty=u_norm,
             raw_score=round(raw_score, 2),
+        )
+        logger.info(
+            "Resilience Index computed | service_count=%d | "
+            "asset_count=%d | incident_active=%s | "
+            "score=%.1f | delta=%.1f",
+            len(services),
+            len(assets),
+            is_incident_active,
+            overall,
+            round(overall - baseline_score, 1),
         )
 
         return ResilienceIndexBreakdown(

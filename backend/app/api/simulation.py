@@ -1,3 +1,4 @@
+
 """Simulation and Failure Injection API endpoints."""
 
 from typing import Any, Dict
@@ -5,6 +6,7 @@ from typing import Any, Dict
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.services.event_bus import event_bus
 from backend.app.services.hospital_service import (
     HospitalStateEngine,
     get_state_engine,
@@ -34,7 +36,6 @@ from models.resilience import ResilienceIndexBreakdown
 
 
 
-
 router = APIRouter(tags=["Simulation & What-If"])
 
 
@@ -42,7 +43,7 @@ router = APIRouter(tags=["Simulation & What-If"])
     "/failures/inject",
     response_model=FailureInjectionResponse,
 )
-def inject_failure(
+async def inject_failure(
     request: FailureInjectionRequest,
     engine: HospitalStateEngine = Depends(get_state_engine),
 ) -> Dict[str, Any]:
@@ -56,6 +57,21 @@ def inject_failure(
 
     incident = engine.inject_failure(request)
     resilience = engine.get_resilience_breakdown()
+
+    await event_bus.publish(
+        "twin",
+        {
+            "type": "failure_injected",
+            "target_node_id": request.asset_id,
+            "payload": {
+                "incident": incident.model_dump(mode="json"),
+                "resilience_index": resilience.model_dump(mode="json"),
+                "source_asset_id": request.asset_id,
+                "affected_asset_ids": incident.affected_asset_ids,
+                "affected_service_ids": incident.affected_service_ids,
+            },
+        },
+    )
 
     return {
         "status": "failure_injected",
@@ -149,13 +165,33 @@ async def retrieve_simulation_run(
     "/simulation/apply-strategy",
     response_model=ApplyStrategyResponse,
 )
-def apply_strategy(
+async def apply_strategy(
     request: ApplyStrategyRequest,
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
-    """Applies selected response strategy."""
+    """Applies selected response strategy and publishes a twin event."""
 
     result = engine.apply_strategy(request.strategy_id)
+
+    # Publish event only when the strategy is successfully applied.
+    if result.get("status") == "applied":
+        await event_bus.publish(
+            "twin",
+            {
+                "type": "strategy_applied",
+                "target_node_id": None,
+                "payload": {
+                    "strategy_id": request.strategy_id,
+                    "strategy": result.get("strategy"),
+                    "message": result.get("message"),
+                    "new_resilience_score": result.get(
+                        "new_resilience_score"
+                    ),
+                    "status": result.get("status"),
+                },
+            },
+        )
+
     return result
 
 
@@ -167,6 +203,7 @@ def get_risk_summary(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Returns campus-wide risk summary, threshold violations, and service vulnerabilities."""
+
     return engine.get_incident_risk()
 
 
@@ -179,12 +216,15 @@ def get_asset_risk(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Returns risk assessment for an individual asset."""
+
     assessment = engine.get_asset_risk(asset_id)
+
     if assessment is None:
         raise HTTPException(
             status_code=404,
             detail=f"Asset '{asset_id}' not found in hospital topology.",
         )
+
     return assessment
 
 
@@ -197,12 +237,15 @@ def get_service_risk(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Returns risk assessment for an individual healthcare service."""
+
     assessment = engine.get_service_risk(service_id)
+
     if assessment is None:
         raise HTTPException(
             status_code=404,
             detail=f"Service '{service_id}' not found in hospital catalog.",
         )
+
     return assessment
 
 
@@ -215,5 +258,3 @@ def get_resilience_breakdown(
 ):
     """Returns canonical composite Resilience Index breakdown and normalized subcomponents."""
     return engine.get_resilience_breakdown()
-
-

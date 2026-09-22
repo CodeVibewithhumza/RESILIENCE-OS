@@ -1,7 +1,7 @@
 """FastAPI Application Entrypoint for ResilienceOS."""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-
+from backend.app.core.logging_config import configure_logging
 from backend.app.config import settings
 from backend.app.api.hospital import router as hospital_router
 from backend.app.api.simulation import router as simulation_router
@@ -23,6 +23,7 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+configure_logging()
 
 # Enable CORS for frontend dashboard and 3D canvas
 app.add_middleware(

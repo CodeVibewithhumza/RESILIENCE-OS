@@ -1,3 +1,4 @@
+
 """Hospital Core Endpoints: State, Assets, Services, Telemetry, and Reset."""
 
 from typing import Dict, Any, List
@@ -5,6 +6,7 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from backend.app.services.event_bus import event_bus
 from backend.app.services.hospital_service import (
     get_state_engine,
     HospitalStateEngine,
@@ -54,26 +56,31 @@ def get_hospital_state(
         "assets_summary": {
             "total": len(engine.assets),
             "normal": sum(
-                1 for a in engine.assets.values()
+                1
+                for a in engine.assets.values()
                 if a.status.value == "normal"
             ),
             "degraded": sum(
-                1 for a in engine.assets.values()
+                1
+                for a in engine.assets.values()
                 if a.status.value == "degraded"
             ),
             "failed": sum(
-                1 for a in engine.assets.values()
+                1
+                for a in engine.assets.values()
                 if a.status.value == "failed"
             ),
         },
         "services_summary": {
             "total": len(engine.services),
             "full_operation": sum(
-                1 for s in engine.services.values()
+                1
+                for s in engine.services.values()
                 if s.status.value == "full_operation"
             ),
             "compromised": sum(
-                1 for s in engine.services.values()
+                1
+                for s in engine.services.values()
                 if s.status.value in ("compromised", "reduced_capacity")
             ),
         },
@@ -173,15 +180,32 @@ async def telemetry_history(
     "/hospital/reset",
     response_model=ResetHospitalResponse,
 )
-def reset_hospital(
+async def reset_hospital(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Resets digital twin back to baseline normal operation."""
 
     engine.reset_to_baseline()
 
+    resilience = engine.get_resilience_breakdown()
+    telemetry = engine.get_telemetry_snapshot()
+
+    await event_bus.publish(
+        "twin",
+        {
+            "type": "hospital_reset",
+            "target_node_id": None,
+            "payload": {
+                "resilience_index": resilience.overall_score,
+                "telemetry": telemetry.model_dump(mode="json"),
+                "status": "success",
+                "message": "Hospital digital twin reset to baseline.",
+            },
+        },
+    )
+
     return {
         "status": "success",
         "message": "Hospital digital twin reset to 100% normal baseline.",
-        "resilience_index": engine.get_resilience_breakdown().overall_score,
+        "resilience_index": resilience.overall_score,
     }

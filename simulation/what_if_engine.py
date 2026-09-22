@@ -5,6 +5,9 @@ from models.infrastructure import InfrastructureAsset, OperationalStatus
 from models.service import HospitalService, ServiceStatus
 from models.incident import IncidentState
 from .resilience_index import ResilienceIndexCalculator
+import logging
+
+logger = logging.getLogger(__name__)
 
 class WhatIfSimulationEngine:
     def __init__(self, calculator: ResilienceIndexCalculator):
@@ -17,34 +20,76 @@ class WhatIfSimulationEngine:
         current_services: Dict[str, HospitalService]
     ) -> WhatIfComparison:
         """Runs simulations for all 6 response strategies and ranks outcomes."""
-        
-        # 1. Strategy A: Do Nothing / Baseline
-        strat_a = self._simulate_strategy_a(current_assets, current_services)
-        
-        # 2. Strategy B: Priority ICU + Full Non-Critical Shedding
-        strat_b = self._simulate_strategy_b(current_assets, current_services)
-        
-        # 3. Strategy C: Dynamic Rebalance + HVAC Throttling (Recommended Hero Strategy)
-        strat_c = self._simulate_strategy_c(current_assets, current_services)
-        
-        # 4. Strategy D: Mobile Auxiliary Generator Dispatch
-        strat_d = self._simulate_strategy_d(current_assets, current_services)
-        
-        # 5. Strategy E: Medical Gas / O2 Conservation
-        strat_e = self._simulate_strategy_e(current_assets, current_services)
-        
-        # 6. Strategy F: Partial Ward Evacuation Protocol
-        strat_f = self._simulate_strategy_f(current_assets, current_services)
 
-        all_strats = [strat_c, strat_b, strat_d, strat_e, strat_f, strat_a]
+        logger.info(
+            "What-if evaluation started | incident_id=%s | "
+            "source_asset_id=%s | strategy_count=6",
+            incident.incident_id,
+            incident.source_asset_id,
+        )
+
+        # 1. Strategy A: Do Nothing / Baseline
+        strat_a = self._simulate_strategy_a(
+            current_assets, current_services
+        )
+
+        # 2. Strategy B: Priority ICU + Full Non-Critical Shedding
+        strat_b = self._simulate_strategy_b(
+            current_assets, current_services
+        )
+
+        # 3. Strategy C: Dynamic Rebalance + HVAC Throttling
+        strat_c = self._simulate_strategy_c(
+            current_assets, current_services
+        )
+
+        # 4. Strategy D: Mobile Auxiliary Generator Dispatch
+        strat_d = self._simulate_strategy_d(
+            current_assets, current_services
+        )
+
+        # 5. Strategy E: Medical Gas / O2 Conservation
+        strat_e = self._simulate_strategy_e(
+            current_assets, current_services
+        )
+
+        # 6. Strategy F: Partial Ward Evacuation Protocol
+        strat_f = self._simulate_strategy_f(
+            current_assets, current_services
+        )
+
+        all_strats = [
+            strat_c,
+            strat_b,
+            strat_d,
+            strat_e,
+            strat_f,
+            strat_a,
+        ]
+
         # Sort by projected resilience score descending
-        all_strats.sort(key=lambda x: x.projected_resilience_score, reverse=True)
-        
-        for rank, s in enumerate(all_strats, 1):
-            s.recommendation_rank = rank
-            s.is_recommended = (rank == 1)
+        all_strats.sort(
+            key=lambda x: x.projected_resilience_score,
+            reverse=True,
+        )
+
+        for rank, strategy in enumerate(all_strats, 1):
+            strategy.recommendation_rank = rank
+            strategy.is_recommended = (rank == 1)
 
         recommended = all_strats[0]
+
+        logger.info(
+            "What-if evaluation completed | incident_id=%s | "
+            "recommended_strategy_id=%s | strategy_scores=%s",
+            incident.incident_id,
+            recommended.strategy_id,
+            {
+                strategy.strategy_id:
+                strategy.projected_resilience_score
+                for strategy in all_strats
+            },
+        )
 
         explanation = (
             f"Strategy '{recommended.strategy_name}' achieves the highest resilience score ({recommended.projected_resilience_score}/100) "

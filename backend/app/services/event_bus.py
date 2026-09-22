@@ -1,0 +1,77 @@
+"""In-memory event bus for ResilienceOS WebSocket updates."""
+
+import asyncio
+import logging
+from collections import defaultdict
+from typing import Any
+
+logger = logging.getLogger(__name__)
+
+
+class EventBus:
+    """Publish events to subscribers by logical channel."""
+
+    def __init__(self) -> None:
+        self._subscribers: dict[str, set[asyncio.Queue]] = defaultdict(set)
+
+    def subscribe(self, channel: str) -> asyncio.Queue:
+        """Subscribe a client to a logical channel."""
+        queue: asyncio.Queue = asyncio.Queue()
+        self._subscribers[channel].add(queue)
+
+        logger.info(
+            "Event subscriber connected | channel=%s | total=%d",
+            channel,
+            len(self._subscribers[channel]),
+        )
+
+        return queue
+
+    def unsubscribe(
+        self,
+        channel: str,
+        queue: asyncio.Queue,
+    ) -> None:
+        """Remove a client subscription."""
+        self._subscribers[channel].discard(queue)
+
+        logger.info(
+            "Event subscriber disconnected | channel=%s | total=%d",
+            channel,
+            len(self._subscribers[channel]),
+        )
+
+    async def publish(
+        self,
+        channel: str,
+        event: dict[str, Any],
+    ) -> None:
+        """Publish an event asynchronously to channel subscribers."""
+        for queue in list(self._subscribers[channel]):
+            await queue.put(event)
+
+        logger.info(
+            "Event published | channel=%s | event_type=%s | subscribers=%d",
+            channel,
+            event.get("type", "unknown"),
+            len(self._subscribers[channel]),
+        )
+
+    def publish_nowait(
+        self,
+        channel: str,
+        event: dict[str, Any],
+    ) -> None:
+        """Publish an event synchronously without awaiting subscribers."""
+        for queue in list(self._subscribers[channel]):
+            queue.put_nowait(event)
+
+        logger.info(
+            "Event published | channel=%s | event_type=%s | subscribers=%d",
+            channel,
+            event.get("type", "unknown"),
+            len(self._subscribers[channel]),
+        )
+
+
+event_bus = EventBus()

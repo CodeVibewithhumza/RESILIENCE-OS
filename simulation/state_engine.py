@@ -19,7 +19,7 @@ from .resilience_index import ResilienceIndexCalculator
 from .what_if_engine import WhatIfSimulationEngine
 from .explanation_engine import CausalExplanationEngine
 from .risk_engine import RiskEstimationEngine
-
+from backend.app.services.event_bus import event_bus
 
 # Explicit allowed state transitions map
 VALID_STATE_TRANSITIONS: Dict[OperationalStatus, Set[OperationalStatus]] = {
@@ -248,6 +248,23 @@ class HospitalStateEngine:
 
         # Re-evaluate dependent hospital services
         self.evaluate_services_health()
+
+        # Publish real-time state change event to WebSocket clients
+        event_bus.publish_nowait(
+            "twin",
+            {
+                "type": "asset_state_changed",
+                "target_node_id": asset_id,
+                "payload": {
+                    "asset_id": asset_id,
+                    "old_status": old_status.value,
+                    "new_status": new_status.value,
+                    "reason": reason or "Operational state update",
+                    "timestamp": timestamp_str,
+                },
+            },
+        )
+
         return True
 
     def update_asset_telemetry(self, asset_id: str, metrics: Dict[str, Any]) -> List[Dict[str, Any]]:
@@ -447,6 +464,23 @@ class HospitalStateEngine:
         self.assets = new_assets
         self.services = new_services
         self.active_incident = incident_state
+
+        # Publish failure injection event to WebSocket clients
+        event_bus.publish_nowait(
+            "twin",
+            {
+                "type": "failure_injected",
+                "target_node_id": request.asset_id,
+                "payload": {
+                    "asset_id": request.asset_id,
+                    "failure_type": request.failure_type,
+                    "severity": request.severity.value,
+                    "incident_id": incident_state.incident_id,
+                    "incident": incident_state.model_dump(mode="json"),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            },
+        )
 
         # Log primary failure
         self.transition_history.append({
