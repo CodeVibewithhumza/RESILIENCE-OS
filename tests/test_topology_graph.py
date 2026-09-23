@@ -25,6 +25,61 @@ def test_graph_initialization():
     assert "SERVICE_OT" in graph
     assert "SERVICE_ER" in graph
 
+    # Every graph node must contain the required GraphNode structure.
+    required_node_fields = {
+        "id",
+        "label",
+        "category",
+        "name",
+        "criticality",
+        "capacity",
+        "current_load",
+        "health_score",
+        "status",
+        "floor",
+        "properties",
+    }
+
+    for node_id, data in graph.nodes(data=True):
+        assert required_node_fields.issubset(data.keys())
+        assert data["id"] == node_id
+        assert data["category"] in {"infrastructure", "service"}
+        assert data["capacity"] >= 0
+        assert data["current_load"] >= 0
+        assert 0 <= data["health_score"] <= 100
+        assert isinstance(data["properties"], dict)
+
+    # Every graph edge must contain the required dependency structure.
+    required_edge_fields = {
+        "relationship",
+        "dependency_strength",
+        "threshold",
+        "is_active",
+        "is_redundant",
+        "failure_propagation_rule",
+        "recovery_behavior",
+        "priority",
+    }
+
+    for source, target, data in graph.edges(data=True):
+        assert source in graph
+        assert target in graph
+        assert required_edge_fields.issubset(data.keys())
+        assert data["relationship"] in {
+            "SUPPLIES",
+            "FEEDS",
+            "POWERS",
+            "BACKS_UP",
+            "COOLS",
+            "PROVIDES_WATER",
+            "PROVIDES_GAS",
+            "DEPENDS_ON",
+        }
+        assert 0.0 <= data["dependency_strength"] <= 1.0
+        assert 0.0 <= data["threshold"] <= 1.0
+        assert isinstance(data["is_active"], bool)
+        assert isinstance(data["is_redundant"], bool)
+
 def test_reachability_from_grid():
     builder = HospitalTopologyBuilder()
     graph = builder.graph
@@ -175,3 +230,53 @@ def test_assets_match_infrastructure_model():
         assert asset.id == asset_config["id"]
         assert asset.type.value == asset_config["type"]
         assert asset.threshold == asset_config["threshold"]
+
+def test_dependency_graph_is_directed():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    assert isinstance(graph, nx.DiGraph)
+    assert not graph.is_directed() is False
+
+    # Dependency direction must be preserved.
+    assert graph.has_edge("GRID_MAIN", "TRANSFORMER_01")
+    assert not graph.has_edge("TRANSFORMER_01", "GRID_MAIN")
+
+    assert graph.has_edge("EMERGENCY_BUS", "SERVICE_ICU")
+    assert not graph.has_edge("SERVICE_ICU", "EMERGENCY_BUS")
+
+def test_dependency_graph_connectivity():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    # Critical services must be reachable from the primary grid path.
+    critical_services = {
+        "SERVICE_ICU",
+        "SERVICE_OT",
+        "SERVICE_ER",
+        "SERVICE_WARD",
+    }
+
+    for service_id in critical_services:
+        assert nx.has_path(graph, "GRID_MAIN", service_id)
+
+    # Critical infrastructure should have downstream dependencies.
+    assert graph.out_degree("GRID_MAIN") > 0
+    assert graph.out_degree("EMERGENCY_BUS") > 0
+    assert graph.out_degree("UPS_CRITICAL") > 0
+
+def test_graph_traversal_preserves_dependency_direction():
+    builder = HospitalTopologyBuilder()
+    traversal = GraphTraversalEngine(builder.graph)
+
+    downstream = traversal.get_downstream_subgraph("EMERGENCY_BUS")
+    downstream_ids = {item["node_id"] for item in downstream}
+
+    assert "SERVICE_ICU" in downstream_ids
+    assert "SERVICE_OT" in downstream_ids
+    assert "SERVICE_ER" in downstream_ids
+
+    # Reverse direction must not appear in downstream traversal.
+    assert "GRID_MAIN" not in downstream_ids
+    assert "TRANSFORMER_02" not in downstream_ids
+
