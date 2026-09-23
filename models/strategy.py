@@ -49,6 +49,16 @@ class StrategyResult(BaseModel):
     recommendation_rank: int = Field(default=1) # 1 = Top recommended
     is_recommended: bool = Field(default=False)
 
+    # Comparative Trade-off Metrics (Member 4 - Evaluation Engine)
+    clinical_safety_score: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Clinical safety preservation index (0-100)")
+    infrastructure_stability_score: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Physical asset operational integrity (0-100)")
+    resource_efficiency_score: Optional[float] = Field(default=None, ge=0.0, le=100.0, description="Conservation factor of critical reserves (0-100)")
+    implementation_latency_min: Optional[float] = Field(default=None, ge=0.0, description="Time lag required to execute intervention (minutes)")
+    delta_resilience: Optional[float] = Field(default=None, description="Score delta relative to unmitigated Strategy A")
+    delta_icu: Optional[float] = Field(default=None, description="ICU continuity delta relative to Strategy A (%)")
+    delta_runtime_hours: Optional[float] = Field(default=None, description="Runtime gain in hours relative to Strategy A")
+    pareto_optimal: Optional[bool] = Field(default=None, description="Whether this strategy is on the Pareto frontier")
+
 class WhatIfComparison(BaseModel):
     incident_id: str
     incident_source: str
@@ -57,6 +67,11 @@ class WhatIfComparison(BaseModel):
     strategies: List[StrategyResult]
     recommended_strategy_id: str
     causal_explanation: str
+
+    # Comparative Evaluation Metadata (Member 4 - Evaluation Engine)
+    incident_type: Optional[str] = Field(default=None, description="Classified incident type (e.g. electrical_outage, hvac_failure, o2_depletion)")
+    decision_summary: Optional[Dict[str, Any]] = Field(default=None, description="Multi-attribute decision analysis and Pareto ranking summary")
+    ranking_criteria: Optional[Dict[str, float]] = Field(default=None, description="Weighting criteria used for strategy ranking")
 
 class ApplyStrategyRequest(BaseModel):
     strategy_id: str = Field(
