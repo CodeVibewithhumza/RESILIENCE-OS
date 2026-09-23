@@ -34,4 +34,18 @@ class GraphEdge(BaseModel):
     threshold: float = Field(default=0.70, description="Fraction below which target degrades")
     is_active: bool = Field(default=True)
     is_redundant: bool = Field(default=False)
+
+    failure_propagation_rule: Optional[str] = Field(
+        default=None,
+        description="Rule used to propagate upstream failure to the dependent target",
+    )
+    recovery_behavior: Optional[str] = Field(
+        default=None,
+        description="Rule used to recover the dependent target",
+    )
+    priority: Optional[int] = Field(
+        default=None,
+        description="Operational priority of this dependency",
+    )
+
     properties: Dict[str, Any] = Field(default_factory=dict)

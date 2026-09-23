@@ -159,16 +159,15 @@ class HospitalTopologyBuilder:
                 is_redundant=bool(
                     dependency.get("is_redundant", False)
                 ),
-                properties={
-                    "failure_propagation_rule": dependency.get(
-                        "failure_propagation_rule"
-                    ),
-                    "recovery_behavior": dependency.get(
-                        "recovery_behavior"
-                    ),
-                    "priority": dependency.get("priority"),
-                },
-            )
+                failure_propagation_rule=dependency.get(
+                    "failure_propagation_rule"
+                ),
+                recovery_behavior=dependency.get(
+                    "recovery_behavior"
+                ),
+                priority=dependency.get("priority"),
+                properties={},
+                )
 
             if edge.source not in self.graph:
                 raise ValueError(
@@ -188,6 +187,9 @@ class HospitalTopologyBuilder:
                 threshold=edge.threshold,
                 is_active=edge.is_active,
                 is_redundant=edge.is_redundant,
+                failure_propagation_rule=edge.failure_propagation_rule,
+                recovery_behavior=edge.recovery_behavior,
+                priority=edge.priority,
                 **edge.properties,
             )
 

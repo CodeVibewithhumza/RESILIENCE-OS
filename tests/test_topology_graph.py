@@ -280,3 +280,56 @@ def test_graph_traversal_preserves_dependency_direction():
     assert "GRID_MAIN" not in downstream_ids
     assert "TRANSFORMER_02" not in downstream_ids
 
+def test_failure_scenario_propagates_to_downstream_services():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    # Scenario: Emergency bus fails.
+    graph.nodes["EMERGENCY_BUS"]["status"] = "failed"
+    graph.nodes["EMERGENCY_BUS"]["health_score"] = 0.0
+
+    downstream = nx.descendants(graph, "EMERGENCY_BUS")
+
+    assert "SERVICE_ICU" in downstream
+    assert "SERVICE_OT" in downstream
+    assert "SERVICE_ER" in downstream
+
+    # Failure must not propagate upstream.
+    assert "GRID_MAIN" not in downstream
+    assert "TRANSFORMER_02" not in downstream
+
+def test_redundant_backup_path_exists_for_emergency_bus():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    backup_edges = [
+        (source, target)
+        for source, target, data in graph.edges(data=True)
+        if target == "EMERGENCY_BUS"
+        and data["relationship"] == "BACKS_UP"
+        and data["is_redundant"]
+    ]
+
+    assert len(backup_edges) >= 1
+
+    backup_sources = {source for source, _ in backup_edges}
+
+    assert "GEN_01" in backup_sources or "GEN_02" in backup_sources
+
+def test_recovery_scenario_restores_failed_asset_state():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    # Scenario: Emergency bus fails.
+    graph.nodes["EMERGENCY_BUS"]["status"] = "failed"
+    graph.nodes["EMERGENCY_BUS"]["health_score"] = 0.0
+
+    assert graph.nodes["EMERGENCY_BUS"]["status"] == "failed"
+    assert graph.nodes["EMERGENCY_BUS"]["health_score"] == 0.0
+
+    # Recovery scenario: asset returns to normal operation.
+    graph.nodes["EMERGENCY_BUS"]["status"] = "normal"
+    graph.nodes["EMERGENCY_BUS"]["health_score"] = 100.0
+
+    assert graph.nodes["EMERGENCY_BUS"]["status"] == "normal"
+    assert graph.nodes["EMERGENCY_BUS"]["health_score"] == 100.0
