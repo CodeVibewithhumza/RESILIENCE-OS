@@ -12,7 +12,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Radio,
-  Activity
+  Building2
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -96,17 +96,17 @@ export default function Sidebar({
 
   return (
     <aside className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''}`}>
-      {/* Sidebar Header with Facility Indicator */}
+      {/* 1. Sidebar Top Domain Identity Card (No duplicated product logo) */}
       <div className="sidebar-top">
-        <div className="sidebar-facility-info">
-          <div className="sidebar-pulse-indicator">
-            <span className="sidebar-pulse-dot" />
-            <Activity size={16} className="sidebar-pulse-icon" />
+        <div className="sidebar-domain-info">
+          <div className="sidebar-domain-badge">
+            <Building2 size={16} className="sidebar-domain-icon" />
           </div>
           {!isCollapsed && (
-            <div className="facility-meta">
-              <span className="facility-title">CENTRAL MEDICAL</span>
-              <span className="facility-sub">Level 1 Trauma Facility</span>
+            <div className="domain-meta">
+              <span className="domain-title">Hospital Infrastructure</span>
+              <span className="domain-sub">Digital Twin</span>
+              <span className="domain-tagline">Predict • Prepare • Protect</span>
             </div>
           )}
         </div>
@@ -122,8 +122,9 @@ export default function Sidebar({
         </button>
       </div>
 
-      {/* Main Navigation Section */}
+      {/* 2. Main Navigation Section */}
       <nav className="sidebar-nav">
+        {/* CORE OPERATIONS */}
         <div className="sidebar-nav-group">
           {!isCollapsed && (
             <span className="sidebar-group-label">Core Operations</span>
@@ -165,7 +166,7 @@ export default function Sidebar({
           </ul>
         </div>
 
-        {/* System & Support Group (Visual Placeholders without fake actions) */}
+        {/* SYSTEM VIEWS */}
         <div className="sidebar-nav-group">
           {!isCollapsed && (
             <span className="sidebar-group-label">System Views</span>
@@ -197,27 +198,45 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* Sidebar Footer Live Telemetry Snapshot */}
+      {/* 3. Bottom Digital Twin Engine Status Panel */}
       {!isCollapsed && (
         <div className="sidebar-footer">
           <div className="sidebar-telemetry-box">
             <div className="telemetry-header">
               <Radio size={12} className="telemetry-icon" />
-              <span>Digital Twin Engine</span>
+              <span>DIGITAL TWIN ENGINE</span>
             </div>
             <div className="telemetry-row">
               <span className="telemetry-key">State:</span>
-              <span className="telemetry-val font-mono" style={{ color: 'var(--status-normal)' }}>
+              <span
+                className="telemetry-val font-mono"
+                style={{
+                  color: 'var(--status-normal)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 5
+                }}
+              >
+                <span
+                  className="status-dot status-dot-pulse"
+                  style={{ backgroundColor: 'var(--status-normal)', width: 6, height: 6 }}
+                />
                 SYNCHRONIZED
               </span>
             </div>
             <div className="telemetry-row">
               <span className="telemetry-key">Nodes:</span>
-              <span className="telemetry-val font-mono">11 Active Topo</span>
+              <span className="telemetry-val font-mono">11 Active</span>
             </div>
             <div className="telemetry-row">
-              <span className="telemetry-key">Subsystems:</span>
+              <span className="telemetry-key">Systems:</span>
               <span className="telemetry-val font-mono">5 Monitored</span>
+            </div>
+            <div className="telemetry-row">
+              <span className="telemetry-key">Last Sync:</span>
+              <span className="telemetry-val font-mono" style={{ color: 'var(--text-muted)' }}>
+                Real-time Live
+              </span>
             </div>
           </div>
         </div>

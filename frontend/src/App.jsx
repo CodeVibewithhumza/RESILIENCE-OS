@@ -149,6 +149,10 @@ export default function App() {
 
 
 
+  const activeAlertsCount =
+    (incident.is_active ? incident.affected_asset_ids?.length || 0 : 0) +
+    services.filter((s) => s.at_risk).length
+
   return (
     <div className="dashboard-shell">
       {/* 1. Top Global Command Header */}
@@ -159,6 +163,9 @@ export default function App() {
             ? 'Catastrophic Main Grid Outage (Active Cascade)'
             : 'Baseline 100% Operational'
         }
+        assetsCount={assets.length}
+        servicesCount={services.length}
+        alertsCount={activeAlertsCount}
         onReset={handleReset}
       />
 

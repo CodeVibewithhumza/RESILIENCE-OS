@@ -174,6 +174,24 @@ export default function Home({
     }
   ]
 
+  // Recent operational events list linked to canonical state
+  const recentEvents = useMemo(() => {
+    if (incident?.is_active) {
+      return [
+        { id: 'e1', text: 'Main grid outage injected at Substation A', time: 'Just now', type: 'critical' },
+        { id: 'e2', text: 'Emergency Bus switched to backup feeder', time: 'T+0 min', type: 'critical' },
+        { id: 'e3', text: 'GEN_01 diesel generator warmup initialized', time: 'T+5 min', type: 'warning' },
+        { id: 'e4', text: 'Critical care care units switched to UPS reserve', time: 'T+10 min', type: 'warning' }
+      ]
+    }
+    return [
+      { id: 'e1', text: 'System status nominal', time: '2 min ago', type: 'normal' },
+      { id: 'e2', text: 'Telemetry sync completed', time: '6 min ago', type: 'normal' },
+      { id: 'e3', text: 'Simulation module ready', time: '12 min ago', type: 'normal' },
+      { id: 'e4', text: 'All critical services online', time: '18 min ago', type: 'normal' }
+    ]
+  }, [incident?.is_active])
+
   const handleScrollTo = (anchorId) => {
     if (onNavigate) {
       onNavigate(anchorId)
@@ -207,9 +225,10 @@ export default function Home({
 
   return (
     <section className="home-screen" id="overview">
-      {/* 1. Full-Width Premium Hero */}
-      <div className="home-hero-container">
-        <div className="home-hero-header">
+      {/* 1. Command Center Two-Column Hero: Headline + CTAs (Left) and Real-Time Monitoring Card (Right) */}
+      <div className="home-hero-two-col">
+        {/* Left Column: Headline & Action CTAs */}
+        <div className="home-hero-left">
           <div className="home-eyebrow">
             <Radio size={12} className="home-eyebrow-icon" />
             <span>MONITOR · SIMULATE · PREDICT · PREPARE</span>
@@ -258,7 +277,74 @@ export default function Home({
           </div>
         </div>
 
-        {/* 2. Visual Centerpiece: Hospital Campus Twin with Real-Time HUD Overlay */}
+        {/* Right Column: Premium Real-Time Monitoring Promotional Card */}
+        <div className="home-hero-right">
+          <div className="hero-promo-card">
+            <div className="promo-badge-row">
+              <span className="promo-badge">
+                <Activity size={12} className="promo-badge-icon" />
+                REAL-TIME MONITORING
+              </span>
+              <span className="promo-live-dot-wrap">
+                <span className="status-dot status-dot-pulse" style={{ backgroundColor: 'var(--accent-cyan)' }} />
+                <span className="promo-live-text font-mono">TELEMETRY LIVE</span>
+              </span>
+            </div>
+
+            <div className="promo-content">
+              <h2 className="promo-headline">
+                A MORE RESILIENT<br />
+                <span className="promo-headline-accent">HEALTHCARE TOMORROW</span>
+              </h2>
+              <p className="promo-tagline">
+                Predict. Prepare. Protect Lives.
+              </p>
+            </div>
+
+            {/* Subtle Animated Cyan Heartbeat / ECG Waveform Visual */}
+            <div className="promo-ecg-canvas">
+              <svg viewBox="0 0 380 90" className="promo-ecg-svg" preserveAspectRatio="none">
+                <defs>
+                  <linearGradient id="ecgGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.15" />
+                    <stop offset="25%" stopColor="#06b6d4" stopOpacity="0.75" />
+                    <stop offset="50%" stopColor="#22d3ee" stopOpacity="1" />
+                    <stop offset="75%" stopColor="#14b8a6" stopOpacity="0.8" />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.2" />
+                  </linearGradient>
+                  <filter id="ecgGlowFilter" x="-10%" y="-20%" width="120%" height="140%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                    <feMerge>
+                      <feMergeNode in="blur" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
+                </defs>
+                <line x1="0" y1="45" x2="380" y2="45" stroke="rgba(6, 182, 212, 0.12)" strokeWidth="1" strokeDasharray="3 3" />
+                <path
+                  d="M0,45 L50,45 L62,45 L70,36 L78,54 L86,10 L96,80 L104,38 L112,48 L120,45 L170,45 L182,45 L190,36 L198,54 L206,10 L216,80 L224,38 L232,48 L240,45 L290,45 L302,45 L310,36 L318,54 L326,10 L336,80 L344,38 L352,48 L360,45 L380,45"
+                  fill="none"
+                  stroke="url(#ecgGrad)"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  filter="url(#ecgGlowFilter)"
+                  className="ecg-animated-path"
+                />
+              </svg>
+            </div>
+
+            <div className="promo-card-footer">
+              <span className="font-mono">Central Metropolitan Hospital Campus</span>
+              <span className="promo-sep">•</span>
+              <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>Active Decision Support</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. Visual Centerpiece: Hospital Campus Twin with Real-Time HUD Overlay & Recent Events Panel */}
+      <div className="home-visual-section">
         <div className="home-visual-wrapper">
           <div className="home-visual-canvas">
             <img
@@ -389,6 +475,46 @@ export default function Home({
                 <span className="font-mono">Central Metropolitan Trauma Center</span>
                 <span style={{ color: 'var(--text-muted)' }}>•</span>
                 <span className="font-mono">Digital Twin Mode</span>
+              </div>
+            </div>
+
+            {/* Floating Recent Events Panel below Live System Overview */}
+            <div className="home-hud-events-panel">
+              <div className="hud-events-top">
+                <div className="hud-events-title-group">
+                  <span className="hud-events-dot" />
+                  <span className="hud-events-title">RECENT EVENTS</span>
+                </div>
+                <button
+                  type="button"
+                  className="hud-events-link font-mono"
+                  onClick={() => handleScrollTo('resilience-cascade')}
+                  title="View complete cascade timeline"
+                >
+                  View All →
+                </button>
+              </div>
+
+              <div className="hud-events-list">
+                {recentEvents.map((evt) => (
+                  <div key={evt.id} className="hud-event-row">
+                    <div className="hud-event-left">
+                      <span
+                        className="hud-event-status-dot"
+                        style={{
+                          backgroundColor:
+                            evt.type === 'critical'
+                              ? 'var(--status-critical)'
+                              : evt.type === 'warning'
+                              ? 'var(--status-warning)'
+                              : 'var(--status-normal)'
+                        }}
+                      />
+                      <span className="hud-event-text">{evt.text}</span>
+                    </div>
+                    <span className="hud-event-time font-mono">{evt.time}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
