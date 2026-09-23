@@ -19,6 +19,7 @@ from .resilience_index import ResilienceIndexCalculator
 from .what_if_engine import WhatIfSimulationEngine
 from .explanation_engine import CausalExplanationEngine
 from .risk_engine import RiskEstimationEngine
+from .report_generator import SimulationReportGenerator
 from backend.app.services.event_bus import event_bus
 
 # Explicit allowed state transitions map
@@ -701,4 +702,28 @@ class HospitalStateEngine:
         if not service:
             return None
         return self.risk_engine.assess_service_risk(service, self.assets)
+
+    def generate_simulation_report(
+        self, format: str = "markdown", scenario_title: Optional[str] = None
+    ) -> Any:
+        """Generates a comprehensive simulation report in Markdown or structured JSON/Dict format."""
+        resilience = self.get_resilience_breakdown()
+        risk_summary = self.get_incident_risk()
+        what_if = self.get_what_if_comparison() if self.active_incident else None
+
+        if format.lower() == "json":
+            return SimulationReportGenerator.generate_json_report(
+                incident=self.active_incident,
+                resilience=resilience,
+                risk_summary=risk_summary,
+                what_if=what_if,
+                scenario_title=scenario_title,
+            )
+        return SimulationReportGenerator.generate_markdown_report(
+            incident=self.active_incident,
+            resilience=resilience,
+            risk_summary=risk_summary,
+            what_if=what_if,
+            scenario_title=scenario_title,
+        )
 

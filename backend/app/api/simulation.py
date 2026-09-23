@@ -1,7 +1,7 @@
 
 """Simulation and Failure Injection API endpoints."""
 
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -141,6 +141,22 @@ async def run_simulation(
 
 
 @router.get(
+    "/simulation/report",
+)
+def get_simulation_report(
+    format: str = "markdown",
+    scenario_title: Optional[str] = None,
+    engine: HospitalStateEngine = Depends(get_state_engine),
+):
+    """Generates and returns comprehensive incident audit and What-If comparison report in Markdown or JSON."""
+    report = engine.generate_simulation_report(format=format, scenario_title=scenario_title)
+    if format.lower() == "markdown":
+        from fastapi.responses import PlainTextResponse
+        return PlainTextResponse(content=report, media_type="text/markdown")
+    return report
+
+
+@router.get(
     "/simulation/{simulation_id}",
     response_model=SimulationRunResponse,
 )
@@ -258,3 +274,22 @@ def get_resilience_breakdown(
 ):
     """Returns canonical composite Resilience Index breakdown and normalized subcomponents."""
     return engine.get_resilience_breakdown()
+
+
+@router.get(
+    "/scenarios",
+)
+def list_available_scenarios():
+    """Lists all available disaster and stress scenarios in the catalog."""
+    import json
+    from pathlib import Path
+    scenarios_dir = Path(__file__).resolve().parent.parent.parent.parent / "scenarios"
+    scenarios = []
+    if scenarios_dir.exists():
+        for file in sorted(scenarios_dir.glob("*.json")):
+            try:
+                with open(file, "r", encoding="utf-8") as f:
+                    scenarios.append(json.load(f))
+            except Exception:
+                continue
+    return {"total": len(scenarios), "scenarios": scenarios}

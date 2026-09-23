@@ -1,0 +1,15 @@
+{
+  "scenario_id": "scenario_transformer_thermal_overload",
+  "name": "Main Transformer 01 High-Temperature Thermal Trip",
+  "description": "Transformer 01 trips on thermal over-temperature relay due to summer peak load, de-energizing Main Switchboard (MSB) and necessitating immediate non-critical circuit shedding.",
+  "target_asset": "TRANSFORMER_01",
+  "failure_type": "transformer_thermal_trip",
+  "severity": "high",
+  "duration_minutes": 45,
+  "modifiers": {
+    "peak_load_pct": 115.0,
+    "msb_isolated": true
+  },
+  "expected_critical_service_risk": ["SERVICE_DIAGNOSTICS", "SERVICE_GENERAL_WARD"],
+  "recommended_strategy": "strat_c"
+}

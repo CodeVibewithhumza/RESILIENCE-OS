@@ -1,0 +1,16 @@
+{
+  "scenario_id": "scenario_compound_grid_generator_lockout",
+  "name": "Compound Grid Blackout + Emergency Generator Starter Lockout",
+  "description": "Grid power trips simultaneously with an ignition starter lockout on Emergency Generator 01. The entire campus falls onto UPS battery reserves with an accelerated 35-minute blackout countdown.",
+  "target_asset": "GRID_MAIN",
+  "failure_type": "compound_grid_and_generator_lockout",
+  "severity": "critical",
+  "duration_minutes": 90,
+  "modifiers": {
+    "compound_heatwave": true,
+    "generator_starter_fault": true,
+    "initial_ups_minutes": 35.0
+  },
+  "expected_critical_service_risk": ["SERVICE_ICU", "SERVICE_OT", "SERVICE_ER", "SERVICE_NEONATAL"],
+  "recommended_strategy": "strat_b"
+}

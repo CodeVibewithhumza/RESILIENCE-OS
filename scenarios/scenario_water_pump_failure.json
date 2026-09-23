@@ -1,0 +1,15 @@
+{
+  "scenario_id": "scenario_water_pump_failure",
+  "name": "Primary Water Booster Pump Cavitation & Loss of Header Pressure",
+  "description": "Main hospital domestic booster pump fails. Header pressure drops below 20 PSI, cutting off surgical scrub sinks, central sterilization autoclaves, and chiller secondary cooling loops.",
+  "target_asset": "WATER_PUMP_STATION",
+  "failure_type": "pump_cavitation",
+  "severity": "medium",
+  "duration_minutes": 60,
+  "modifiers": {
+    "pressure_drop_psi": 42.0,
+    "autoclave_cutoff": true
+  },
+  "expected_critical_service_risk": ["SERVICE_OT", "SERVICE_GENERAL_WARD"],
+  "recommended_strategy": "strat_b"
+}

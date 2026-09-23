@@ -1,0 +1,16 @@
+{
+  "scenario_id": "scenario_chiller_thermal_excursion",
+  "name": "Central Chiller Plant Compressor Failure",
+  "description": "Central Chiller Plant compressor trips during high ambient summer conditions (36°C). Operating Theater and ICU temperatures escalate towards 26°C within 40 minutes, violating sterile infection control thresholds.",
+  "target_asset": "CHILLER_PLANT",
+  "failure_type": "compressor_failure",
+  "severity": "high",
+  "duration_minutes": 45,
+  "modifiers": {
+    "compound_heatwave": true,
+    "ambient_temp_c": 36.0,
+    "cooling_rate_loss_pct": 80.0
+  },
+  "expected_critical_service_risk": ["SERVICE_OT", "SERVICE_ICU"],
+  "recommended_strategy": "strat_c"
+}
