@@ -1,6 +1,6 @@
-
 """Simulation and Failure Injection API endpoints."""
 
+from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -35,7 +35,6 @@ from models.risk import (
 from models.resilience import ResilienceIndexBreakdown
 
 
-
 router = APIRouter(tags=["Simulation & What-If"])
 
 
@@ -55,23 +54,10 @@ async def inject_failure(
             detail=f"Asset '{request.asset_id}' not found in hospital topology.",
         )
 
+    # The state engine is the canonical publisher of the
+    # failure_injected WebSocket event.
     incident = engine.inject_failure(request)
     resilience = engine.get_resilience_breakdown()
-
-    await event_bus.publish(
-        "twin",
-        {
-            "type": "failure_injected",
-            "target_node_id": request.asset_id,
-            "payload": {
-                "incident": incident.model_dump(mode="json"),
-                "resilience_index": resilience.model_dump(mode="json"),
-                "source_asset_id": request.asset_id,
-                "affected_asset_ids": incident.affected_asset_ids,
-                "affected_service_ids": incident.affected_service_ids,
-            },
-        },
-    )
 
     return {
         "status": "failure_injected",
@@ -126,6 +112,7 @@ async def run_simulation(
         )
 
     incident_id = comparison.incident_id
+    incident = engine.active_incident
 
     saved_run = await persist_simulation_run(
         session,
@@ -135,6 +122,45 @@ async def run_simulation(
             selected_strategy.projected_resilience_score
         ),
         result_data=selected_strategy.model_dump(mode="json"),
+    )
+
+    # Publish only after the simulation run has been successfully
+    # persisted in the database.
+    await event_bus.publish(
+        "twin",
+        {
+            "type": "simulation_run_persisted",
+            "target_node_id": (
+                incident.source_asset_id
+                if incident
+                else comparison.incident_source
+            ),
+            "payload": {
+                "simulation_id": saved_run.id,
+                "incident_id": comparison.incident_id,
+                "strategy_id": selected_strategy.strategy_id,
+                "projected_resilience_score": (
+                    selected_strategy.projected_resilience_score
+                ),
+                "source_asset_id": (
+                    incident.source_asset_id
+                    if incident
+                    else comparison.incident_source
+                ),
+                "affected_asset_ids": (
+                    incident.affected_asset_ids
+                    if incident
+                    else []
+                ),
+                "affected_service_ids": (
+                    incident.affected_service_ids
+                    if incident
+                    else []
+                ),
+                "status": saved_run.status,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+            },
+        },
     )
 
     return saved_run
@@ -149,10 +175,20 @@ def get_simulation_report(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Generates and returns comprehensive incident audit and What-If comparison report in Markdown or JSON."""
-    report = engine.generate_simulation_report(format=format, scenario_title=scenario_title)
+
+    report = engine.generate_simulation_report(
+        format=format,
+        scenario_title=scenario_title,
+    )
+
     if format.lower() == "markdown":
         from fastapi.responses import PlainTextResponse
-        return PlainTextResponse(content=report, media_type="text/markdown")
+
+        return PlainTextResponse(
+            content=report,
+            media_type="text/markdown",
+        )
+
     return report
 
 
@@ -191,12 +227,26 @@ async def apply_strategy(
 
     # Publish event only when the strategy is successfully applied.
     if result.get("status") == "applied":
+        incident = engine.active_incident
+
+        source_asset_id = (
+            incident.source_asset_id
+            if incident
+            else None
+        )
+
         await event_bus.publish(
             "twin",
             {
                 "type": "strategy_applied",
-                "target_node_id": None,
+                "target_node_id": source_asset_id,
                 "payload": {
+                    "incident_id": (
+                        incident.incident_id
+                        if incident
+                        else None
+                    ),
+                    "source_asset_id": source_asset_id,
                     "strategy_id": request.strategy_id,
                     "strategy": result.get("strategy"),
                     "message": result.get("message"),
@@ -204,6 +254,17 @@ async def apply_strategy(
                         "new_resilience_score"
                     ),
                     "status": result.get("status"),
+                    "affected_asset_ids": (
+                        incident.affected_asset_ids
+                        if incident
+                        else []
+                    ),
+                    "affected_service_ids": (
+                        incident.affected_service_ids
+                        if incident
+                        else []
+                    ),
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
                 },
             },
         )
@@ -273,6 +334,7 @@ def get_resilience_breakdown(
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Returns canonical composite Resilience Index breakdown and normalized subcomponents."""
+
     return engine.get_resilience_breakdown()
 
 
@@ -281,10 +343,17 @@ def get_resilience_breakdown(
 )
 def list_available_scenarios():
     """Lists all available disaster and stress scenarios in the catalog."""
+
     import json
     from pathlib import Path
-    scenarios_dir = Path(__file__).resolve().parent.parent.parent.parent / "scenarios"
+
+    scenarios_dir = (
+        Path(__file__).resolve().parent.parent.parent.parent
+        / "scenarios"
+    )
+
     scenarios = []
+
     if scenarios_dir.exists():
         for file in sorted(scenarios_dir.glob("*.json")):
             try:
@@ -292,4 +361,8 @@ def list_available_scenarios():
                     scenarios.append(json.load(f))
             except Exception:
                 continue
-    return {"total": len(scenarios), "scenarios": scenarios}
+
+    return {
+        "total": len(scenarios),
+        "scenarios": scenarios,
+    }

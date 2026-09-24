@@ -638,17 +638,55 @@ class HospitalStateEngine:
 
 
     def get_what_if_comparison(self) -> WhatIfComparison:
-        """Runs What-If analysis on current incident."""
+        """Runs What-If analysis and publishes a completion event."""
         incident = self.active_incident or IncidentState(
             incident_id="INC-PREVIEW",
             is_active=False,
             source_asset_id="GRID_MAIN"
         )
-        return self.what_if_engine.evaluate_strategies(
+
+        comparison = self.what_if_engine.evaluate_strategies(
             incident=incident,
             current_assets=self.assets,
-            current_services=self.services
+            current_services=self.services,
         )
+
+        # Strategy A is the baseline / no-action scenario.
+        baseline_strategy = next(
+            (
+                strategy
+                for strategy in comparison.strategies
+                if strategy.strategy_id == "strat_a"
+            ),
+            None,
+        )
+
+        baseline_resilience_score = (
+            baseline_strategy.projected_resilience_score
+            if baseline_strategy
+            else None
+        )
+
+        event_bus.publish_nowait(
+            "twin",
+            {
+                "type": "what_if_simulation_completed",
+                "target_node_id": incident.source_asset_id,
+                "payload": {
+                    "incident_id": comparison.incident_id,
+                    "incident_type": comparison.incident_type,
+                    "source_asset_id": incident.source_asset_id,
+                    "affected_asset_ids": incident.affected_asset_ids,
+                    "affected_service_ids": incident.affected_service_ids,
+                    "strategy_count": len(comparison.strategies),
+                    "recommended_strategy": comparison.recommended_strategy_id,
+                    "baseline_resilience_score": baseline_resilience_score,
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                },
+            },
+        )
+
+        return comparison
 
     def get_telemetry_snapshot(self) -> HospitalTelemetrySnapshot:
         """Returns live telemetry snapshot corresponding to current digital twin state."""

@@ -43,11 +43,25 @@ class WhatIfSimulationEngine:
         source_id = incident.source_asset_id or "GRID_MAIN"
         incident_type = self._classify_incident_type(source_id)
 
+        evaluation_timestamp = datetime.now(timezone.utc).isoformat()
+
         logger.info(
-            "What-if evaluation started | incident_id=%s | source=%s | type=%s | strategy_count=6",
+            "What-if evaluation started | timestamp=%s | incident_id=%s | source=%s | "
+            "type=%s | severity=%s | affected_asset_ids=%s | affected_service_ids=%s | "
+            "triggering_event=%s | strategy_count=6",
+            evaluation_timestamp,
             incident.incident_id,
             source_id,
             incident_type,
+            incident.severity.value,
+            incident.affected_asset_ids,
+            incident.affected_service_ids,
+            {
+                "incident_id": incident.incident_id,
+                "source_asset_id": source_id,
+                "incident_type": incident_type,
+                "severity": incident.severity.value,
+            },
         )
 
         # 1. Simulate Strategy A: Do Nothing / Baseline
@@ -112,7 +126,22 @@ class WhatIfSimulationEngine:
         recommended = candidate_strategies[0]
 
         logger.info(
-            "What-if evaluation completed | recommended=%s | score=%.1f | ranks=%s",
+            "What-if evaluation completed | timestamp=%s | incident_id=%s | source=%s | "
+            "type=%s | severity=%s | affected_asset_ids=%s | affected_service_ids=%s | "
+            "triggering_event=%s | recommended=%s | score=%.1f | ranks=%s",
+            datetime.now(timezone.utc).isoformat(),
+            incident.incident_id,
+            source_id,
+            incident_type,
+            incident.severity.value,
+            incident.affected_asset_ids,
+            incident.affected_service_ids,
+            {
+                "incident_id": incident.incident_id,
+                "source_asset_id": source_id,
+                "incident_type": incident_type,
+                "severity": incident.severity.value,
+            },
             recommended.strategy_id,
             recommended.projected_resilience_score,
             {s.strategy_id: s.recommendation_rank for s in candidate_strategies},
