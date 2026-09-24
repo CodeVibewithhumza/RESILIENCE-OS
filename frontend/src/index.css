@@ -1,79 +1,88 @@
 /* ==========================================================================
-   ResilienceOS — Infrastructure Command Center Design System Tokens
+   ResilienceOS — Infrastructure Command Center Design System Tokens (index.css)
+   Ultra-High-End Futuristic Cyber Command Aesthetic
    ========================================================================== */
 
-:root {
-  /* Canvas & Dark Navy Obsidian Surfaces */
-  --bg-base: #040711;
-  --bg-surface: #070d1a;
-  --bg-panel: #0a1122;
-  --bg-panel-elevated: #0f1930;
-  --bg-panel-glass: rgba(10, 17, 34, 0.82);
-  --bg-card-glass: rgba(12, 21, 41, 0.68);
-  --bg-subtle: rgba(255, 255, 255, 0.03);
-  --bg-hover: rgba(6, 182, 212, 0.08);
-  --bg-active: rgba(6, 182, 212, 0.16);
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
-  /* Precise Border Hierarchy */
-  --border-subtle: rgba(26, 42, 74, 0.7);
-  --border-default: rgba(35, 56, 96, 0.85);
-  --border-bright: rgba(56, 88, 148, 0.8);
-  --border-focus: #06b6d4;
-  --border-cyan-glow: rgba(6, 182, 212, 0.35);
-  --border-cyan-bright: rgba(34, 211, 238, 0.65);
+:root {
+  /* Canvas & Obsidian Surfaces */
+  --bg-base: #030712;
+  --bg-surface: #060b18;
+  --bg-panel: #091024;
+  --bg-panel-elevated: #0e1732;
+  --bg-panel-glass: rgba(9, 16, 36, 0.85);
+  --bg-card-glass: rgba(14, 23, 50, 0.72);
+  --bg-subtle: rgba(255, 255, 255, 0.03);
+  --bg-hover: rgba(0, 240, 255, 0.08);
+  --bg-active: rgba(0, 240, 255, 0.16);
+
+  /* Luminous Border Hierarchy */
+  --border-subtle: rgba(30, 58, 102, 0.5);
+  --border-default: rgba(45, 80, 138, 0.65);
+  --border-bright: rgba(56, 189, 248, 0.45);
+  --border-focus: #00f0ff;
+  --border-cyan-glow: rgba(0, 240, 255, 0.4);
+  --border-cyan-bright: rgba(34, 211, 238, 0.8);
 
   /* Primary Brand & Cyber Accents */
-  --accent-cyan: #06b6d4;
-  --accent-cyan-light: #22d3ee;
-  --accent-cyan-dim: rgba(6, 182, 212, 0.12);
+  --accent-cyan: #00f0ff;
+  --accent-cyan-light: #38bdf8;
+  --accent-cyan-dim: rgba(0, 240, 255, 0.12);
   --accent-cyan-hover: #0891b2;
-  --accent-cyan-glow: rgba(6, 182, 212, 0.28);
+  --accent-cyan-glow: rgba(0, 240, 255, 0.35);
   --accent-teal: #14b8a6;
   --accent-blue: #3b82f6;
+  --accent-indigo: #6366f1;
 
   /* Operational Status Tokens */
   --status-normal: #10b981;
-  --status-normal-bg: rgba(16, 185, 129, 0.12);
-  --status-normal-border: rgba(16, 185, 129, 0.35);
-  --status-normal-glow: rgba(16, 185, 129, 0.35);
+  --status-normal-bg: rgba(16, 185, 129, 0.14);
+  --status-normal-border: rgba(16, 185, 129, 0.45);
+  --status-normal-glow: rgba(16, 185, 129, 0.4);
 
-  --status-stable: #3b82f6;
-  --status-stable-bg: rgba(59, 130, 246, 0.12);
-  --status-stable-border: rgba(59, 130, 246, 0.35);
+  --status-stable: #38bdf8;
+  --status-stable-bg: rgba(56, 189, 248, 0.14);
+  --status-stable-border: rgba(56, 189, 248, 0.45);
 
   --status-warning: #f59e0b;
-  --status-warning-bg: rgba(245, 158, 11, 0.12);
-  --status-warning-border: rgba(245, 158, 11, 0.35);
-  --status-warning-glow: rgba(245, 158, 11, 0.35);
+  --status-warning-bg: rgba(245, 158, 11, 0.14);
+  --status-warning-border: rgba(245, 158, 11, 0.45);
+  --status-warning-glow: rgba(245, 158, 11, 0.4);
 
   --status-critical: #ef4444;
-  --status-critical-bg: rgba(239, 68, 68, 0.14);
-  --status-critical-border: rgba(239, 68, 68, 0.45);
-  --status-critical-glow: rgba(239, 68, 68, 0.4);
+  --status-critical-bg: rgba(239, 68, 68, 0.18);
+  --status-critical-border: rgba(239, 68, 68, 0.55);
+  --status-critical-glow: rgba(239, 68, 68, 0.45);
+
+  --status-failed: #dc2626;
+  --status-failed-bg: rgba(220, 38, 38, 0.22);
+  --status-failed-border: rgba(220, 38, 38, 0.65);
+  --status-failed-glow: rgba(220, 38, 38, 0.55);
 
   --status-offline: #64748b;
-  --status-offline-bg: rgba(100, 116, 139, 0.12);
-  --status-offline-border: rgba(100, 116, 139, 0.3);
+  --status-offline-bg: rgba(100, 116, 139, 0.14);
+  --status-offline-border: rgba(100, 116, 139, 0.35);
 
   /* Typography */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-dim: #475569;
-  --text-inverse: #040711;
+  --text-inverse: #030712;
 
-  --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Inter", "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+  --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Shadows & Depth */
-  --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.4);
-  --shadow-md: 0 4px 14px -2px rgba(0, 0, 0, 0.55), 0 2px 6px -2px rgba(0, 0, 0, 0.4);
-  --shadow-panel: 0 14px 34px -4px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(6, 182, 212, 0.08);
-  --shadow-cyan: 0 0 20px rgba(6, 182, 212, 0.22);
-  --shadow-critical: 0 0 22px rgba(239, 68, 68, 0.28);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.65), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 16px 40px -4px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 240, 255, 0.08);
+  --shadow-cyan: 0 0 25px rgba(0, 240, 255, 0.25);
+  --shadow-critical: 0 0 26px rgba(239, 68, 68, 0.35);
 
   /* Radii */
-  --radius-xs: 3px;
+  --radius-xs: 4px;
   --radius-sm: 6px;
   --radius-md: 10px;
   --radius-lg: 14px;
@@ -109,6 +118,10 @@ html, body {
   display: flex;
   flex-direction: column;
   background-color: var(--bg-base);
+  background-image: 
+    radial-gradient(circle at 50% 0%, rgba(0, 240, 255, 0.04) 0%, transparent 60%),
+    radial-gradient(circle at 90% 40%, rgba(99, 102, 241, 0.03) 0%, transparent 50%);
+  background-attachment: fixed;
 }
 
 /* Custom Sleek Scrollbar */
@@ -118,147 +131,117 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-base);
+  background: #040711;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--border-default);
-  border-radius: var(--radius-sm);
+  background: #1e293b;
+  border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--border-bright);
+  background: var(--accent-cyan-hover);
 }
 
-/* Monospace Utilities */
+::selection {
+  background: rgba(0, 240, 255, 0.25);
+  color: #ffffff;
+}
+
+/* Monospace Utility */
 .font-mono {
   font-family: var(--font-mono);
-  letter-spacing: -0.01em;
 }
 
-/* Operational Badge Tokens */
+/* Reusable Badges */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  padding: 2px 7px;
+  padding: 3px 8px;
   font-size: 10px;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
   border-radius: var(--radius-xs);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  user-select: none;
   border: 1px solid transparent;
-  line-height: 1.4;
-  white-space: nowrap;
+  transition: all 0.15s ease;
 }
 
 .badge-normal {
-  color: var(--status-normal);
-  background-color: var(--status-normal-bg);
+  background: var(--status-normal-bg);
   border-color: var(--status-normal-border);
+  color: var(--status-normal);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.15);
 }
 
 .badge-stable {
-  color: var(--status-stable);
-  background-color: var(--status-stable-bg);
+  background: var(--status-stable-bg);
   border-color: var(--status-stable-border);
+  color: var(--status-stable);
 }
 
 .badge-warning {
-  color: var(--status-warning);
-  background-color: var(--status-warning-bg);
+  background: var(--status-warning-bg);
   border-color: var(--status-warning-border);
+  color: var(--status-warning);
+  box-shadow: 0 0 10px rgba(245, 158, 11, 0.15);
 }
 
 .badge-critical {
-  color: var(--status-critical);
-  background-color: var(--status-critical-bg);
+  background: var(--status-critical-bg);
   border-color: var(--status-critical-border);
+  color: var(--status-critical);
+  box-shadow: 0 0 12px rgba(239, 68, 68, 0.25);
+}
+
+.badge-failed {
+  background: var(--status-failed-bg);
+  border-color: var(--status-failed-border);
+  color: var(--status-failed);
+  box-shadow: 0 0 14px rgba(220, 38, 38, 0.35);
 }
 
 .badge-offline {
-  color: var(--status-offline);
-  background-color: var(--status-offline-bg);
+  background: var(--status-offline-bg);
   border-color: var(--status-offline-border);
+  color: var(--text-secondary);
 }
 
 .badge-cyan {
+  background: rgba(0, 240, 255, 0.12);
+  border-color: rgba(0, 240, 255, 0.4);
   color: var(--accent-cyan);
-  background-color: var(--accent-cyan-dim);
-  border-color: var(--border-cyan-glow);
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.2);
 }
 
-/* Operational Dot Indicators */
-.status-dot {
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  display: inline-block;
-  flex-shrink: 0;
+.badge-subtle {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
+  color: var(--text-secondary);
 }
 
-.status-dot-pulse {
-  animation: pulseGlow 2s infinite ease-in-out;
-}
-
+/* Keyframe Animations */
 @keyframes pulseGlow {
-  0%, 100% {
-    transform: scale(1);
-    opacity: 1;
-  }
-  50% {
-    transform: scale(1.25);
-    opacity: 0.75;
-  }
+  0% { transform: scale(1); opacity: 0.8; }
+  50% { transform: scale(1.05); opacity: 1; filter: drop-shadow(0 0 8px currentColor); }
+  100% { transform: scale(1); opacity: 0.8; }
 }
 
-.status-dot-normal {
-  background-color: var(--status-normal);
-  box-shadow: 0 0 6px var(--status-normal-glow);
+@keyframes pulseRedAlert {
+  0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(239, 68, 68, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
 }
 
-.status-dot-stable {
-  background-color: var(--status-stable);
+@keyframes pulseCyanAlert {
+  0% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0.6); }
+  70% { box-shadow: 0 0 0 12px rgba(0, 240, 255, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(0, 240, 255, 0); }
 }
 
-.status-dot-warning {
-  background-color: var(--status-warning);
-  box-shadow: 0 0 6px var(--status-warning-glow);
-}
-
-.status-dot-critical {
-  background-color: var(--status-critical);
-  box-shadow: 0 0 8px var(--status-critical-glow);
-}
-
-.status-dot-offline {
-  background-color: var(--status-offline);
-}
-
-/* Command Center Cyber Animations */
-@keyframes ecgPulse {
-  0% {
-    stroke-dashoffset: 600;
-  }
-  100% {
-    stroke-dashoffset: 0;
-  }
-}
-
-@keyframes scanlineMove {
-  0% {
-    background-position: 0 0;
-  }
-  100% {
-    background-position: 0 100%;
-  }
-}
-
-@keyframes subtleFloat {
-  0%, 100% {
-    transform: translateY(0);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
+@keyframes radarSweep {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
 }

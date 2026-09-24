@@ -1,5 +1,6 @@
 /* ==========================================================================
    ResilienceOS — Command Center Dashboard Layout & Styling (App.css)
+   Ultra-High-End Sci-Fi Futuristic Dashboard Layout
    ========================================================================== */
 
 .dashboard-shell {
@@ -8,6 +9,7 @@
   min-height: 100vh;
   background-color: var(--bg-base);
   color: var(--text-primary);
+  position: relative;
 }
 
 .dashboard-layout-body {
@@ -19,106 +21,116 @@
 
 .dashboard-main-content {
   flex: 1;
-  padding: 24px 28px 48px;
+  padding: 24px 32px 64px;
   display: flex;
   flex-direction: column;
-  gap: 32px;
+  gap: 36px;
   overflow-y: auto;
-  max-width: 1720px;
+  max-width: 1760px;
   margin: 0 auto;
   width: 100%;
 }
 
 /* ==========================================================================
-   Hero Overview Section
+   Section Title & Headers (Cyber Tagged Layout)
    ========================================================================== */
 
-.hero-overview-section {
+.dashboard-section-block {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-}
-
-.hero-banner {
-  background: radial-gradient(circle at 10% 20%, rgba(6, 182, 212, 0.08) 0%, transparent 45%),
-              linear-gradient(135deg, rgba(17, 26, 46, 0.7) 0%, rgba(12, 19, 34, 0.9) 100%);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  padding: 20px 24px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
   gap: 16px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
-  position: relative;
-  overflow: hidden;
+  scroll-margin-top: 80px;
 }
 
-.hero-banner::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  right: 0;
-  width: 320px;
-  height: 100%;
-  background: radial-gradient(circle at 80% 50%, rgba(6, 182, 212, 0.06) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.hero-headline-group {
+.section-title-row {
   display: flex;
   flex-direction: column;
   gap: 4px;
   position: relative;
-  z-index: 2;
+  padding-left: 14px;
+  border-left: 3px solid var(--accent-cyan);
 }
 
-.hero-subtitle-tag {
+.section-title-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent-cyan);
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--accent-cyan);
 }
 
-.hero-headline {
-  font-size: 24px;
+.section-main-heading {
+  font-size: 18px;
   font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
-}
-
-.hero-supporting-text {
-  font-size: 12px;
-  color: var(--text-secondary);
-  letter-spacing: 0.04em;
-  font-weight: 500;
-}
-
-.hero-facility-badge {
+  color: #f8fafc;
+  letter-spacing: -0.01em;
+  text-transform: uppercase;
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 11px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  padding: 6px 12px;
-  border-radius: var(--radius-xs);
-  color: var(--text-secondary);
-  position: relative;
-  z-index: 2;
 }
 
-/* 4-Column KPI Cards Grid */
+/* ==========================================================================
+   Two-Column Primary Focal Grids
+   ========================================================================== */
+
+/* 1. Digital Twin 3D (Left) + Incident Control (Right) */
+.twin-incident-split-grid {
+  display: grid;
+  grid-template-columns: 1.55fr 1fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 1300px) {
+  .twin-incident-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.twin-col {
+  min-height: 520px;
+  display: flex;
+}
+
+.incident-col {
+  display: flex;
+}
+
+/* 2. Resilience Gauge (Left) + Cascade Timeline (Right) */
+.resilience-cascade-split-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 20px;
+  align-items: stretch;
+}
+
+@media (max-width: 1180px) {
+  .resilience-cascade-split-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.resilience-col {
+  display: flex;
+}
+
+.cascade-col {
+  display: flex;
+}
+
+/* ==========================================================================
+   4-Column KPI Cards Grid
+   ========================================================================== */
+
 .kpi-cards-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
+  gap: 16px;
 }
 
 @media (max-width: 1200px) {
@@ -134,32 +146,58 @@
 }
 
 .kpi-card {
-  background-color: var(--bg-panel);
+  background: linear-gradient(180deg, var(--bg-panel-elevated) 0%, var(--bg-panel) 100%);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
-  padding: 16px 18px;
+  padding: 18px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   box-shadow: var(--shadow-sm);
-  transition: all 0.2s ease;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
 }
 
+.kpi-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(56, 189, 248, 0.6), transparent);
+  opacity: 0.6;
+  transition: opacity 0.2s ease;
+}
+
 .kpi-card:hover {
-  transform: translateY(-2px);
-  border-color: var(--border-bright);
-  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+  border-color: var(--accent-cyan);
+  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 240, 255, 0.2);
+}
+
+.kpi-card:hover::before {
+  opacity: 1;
+  background: linear-gradient(90deg, transparent, var(--accent-cyan), transparent);
 }
 
 .kpi-card.is-alert-card {
   border-color: var(--status-critical-border);
-  box-shadow: 0 0 16px -4px rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+}
+
+.kpi-card.is-alert-card::before {
+  background: var(--status-critical);
+  opacity: 1;
 }
 
 .kpi-card.is-warning-card {
   border-color: var(--status-warning-border);
+}
+
+.kpi-card.is-warning-card::before {
+  background: var(--status-warning);
 }
 
 .kpi-card-header {
@@ -173,7 +211,7 @@
   font-size: 11px;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
@@ -184,202 +222,76 @@
 }
 
 .kpi-main-num {
-  font-size: 28px;
+  font-size: 32px;
   font-weight: 800;
   line-height: 1;
-  color: var(--text-primary);
+  color: #f8fafc;
   letter-spacing: -0.02em;
 }
 
 .kpi-main-denom {
   font-size: 12px;
   color: var(--text-muted);
+  font-weight: 600;
 }
 
 .kpi-card-footer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding-top: 8px;
+  padding-top: 10px;
   border-top: 1px solid var(--border-subtle);
   font-size: 11px;
 }
 
 .kpi-card-sub {
   color: var(--text-muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* ==========================================================================
-   Section Title & Headers
-   ========================================================================== */
-
-.dashboard-section-block {
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-
-.section-title-row {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.section-title-tag {
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--accent-cyan);
-}
-
-.section-main-heading {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-}
-
-/* ==========================================================================
-   Two-Column Focal Grids
-   ========================================================================== */
-
-/* 1. Digital Twin (Left) + Incident Control (Right) */
-.twin-incident-split-grid {
-  display: grid;
-  grid-template-columns: 1.4fr 1fr;
-  gap: 18px;
-  align-items: stretch;
-}
-
-@media (max-width: 1200px) {
-  .twin-incident-split-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.twin-col {
-  min-height: 480px;
-  display: flex;
-}
-
-.incident-col {
-  display: flex;
-}
-
-/* 2. Resilience Index (Left) + Cascade Timeline (Right) */
-.resilience-cascade-split-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  align-items: stretch;
-}
-
-@media (max-width: 1080px) {
-  .resilience-cascade-split-grid {
-    grid-template-columns: 1fr;
-  }
-}
-
-.resilience-col {
-  display: flex;
-}
-
-.cascade-col {
-  display: flex;
-}
-
-/* ==========================================================================
-   Footer Bar
+   Dashboard Footer Bar
    ========================================================================== */
 
 .dashboard-footer {
-  margin-top: 20px;
-  padding: 16px 20px;
-  background-color: var(--bg-panel);
+  margin-top: 24px;
+  padding: 18px 24px;
+  background: linear-gradient(90deg, #091024 0%, #060b18 100%);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md);
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
-  gap: 12px;
-  font-size: 11px;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
 }
 
-.footer-left {
+.footer-left-info {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 14px;
 }
 
 .footer-brand {
-  font-weight: 800;
-  letter-spacing: 0.06em;
   font-size: 12px;
+  font-weight: 800;
+  color: #f8fafc;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
 }
 
-.footer-copy {
-  color: var(--text-muted);
-}
-
-.footer-right {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text-muted);
+.footer-badge {
   font-size: 10px;
-}
-
-.footer-sep {
-  color: var(--text-dim);
-}
-
-/* Buttons utility */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  height: 32px;
-  padding: 0 12px;
-  font-size: 11px;
-  font-weight: 600;
+  font-family: var(--font-mono);
+  padding: 2px 7px;
+  background: rgba(0, 240, 255, 0.1);
+  border: 1px solid rgba(0, 240, 255, 0.3);
   border-radius: var(--radius-xs);
-  border: 1px solid transparent;
-  cursor: pointer;
-  transition: all 0.15s ease;
-  font-family: inherit;
-}
-
-.btn-secondary {
-  background-color: var(--bg-surface);
-  border-color: var(--border-default);
-  color: var(--text-secondary);
-}
-
-.btn-secondary:hover {
-  background-color: var(--bg-hover);
-  color: var(--text-primary);
-  border-color: var(--border-bright);
-}
-
-.btn-cyan {
-  background-color: var(--accent-cyan-dim);
-  border-color: var(--border-cyan-glow);
   color: var(--accent-cyan);
 }
 
-.btn-cyan:hover {
-  background-color: rgba(6, 182, 212, 0.22);
-  border-color: var(--accent-cyan);
-  box-shadow: 0 0 12px rgba(6, 182, 212, 0.25);
-}
-
-@media (max-width: 768px) {
-  .dashboard-main-content {
-    padding: 16px 14px 32px;
-    gap: 20px;
-  }
+.footer-disclaimer {
+  font-size: 11px;
+  color: var(--text-muted);
 }
