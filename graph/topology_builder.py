@@ -166,7 +166,9 @@ class HospitalTopologyBuilder:
                     "recovery_behavior"
                 ),
                 priority=dependency.get("priority"),
-                properties={},
+                properties={
+                    "backup_type": dependency.get("backup_type"),
+                },
                 )
 
             if edge.source not in self.graph:

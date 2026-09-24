@@ -333,3 +333,54 @@ def test_recovery_scenario_restores_failed_asset_state():
 
     assert graph.nodes["EMERGENCY_BUS"]["status"] == "normal"
     assert graph.nodes["EMERGENCY_BUS"]["health_score"] == 100.0
+
+def test_backup_type_is_preserved_in_graph():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    assert graph["GEN_01"]["EMERGENCY_BUS"]["backup_type"] == "generator"
+    assert graph["GEN_02"]["MAIN_BUS"]["backup_type"] == "generator"
+    assert graph["UPS_CRITICAL"]["EMERGENCY_BUS"]["backup_type"] == "ups"
+
+def test_redundancy_information_is_consistent():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    redundant_edges = [
+        (source, target, data)
+        for source, target, data in graph.edges(data=True)
+        if data["is_redundant"]
+    ]
+
+    assert len(redundant_edges) >= 3
+
+    for source, target, data in redundant_edges:
+        assert data["relationship"] == "BACKS_UP"
+        assert data["backup_type"] in {"generator", "ups"}
+        assert data["dependency_strength"] > 0
+        assert data["priority"] >= 1
+
+def test_backup_scenario_preserves_redundancy_path():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    generator_backups = [
+        source
+        for source, target, data in graph.edges(data=True)
+        if target == "EMERGENCY_BUS"
+        and data["relationship"] == "BACKS_UP"
+        and data["is_redundant"]
+        and data["backup_type"] == "generator"
+    ]
+
+    ups_backups = [
+        source
+        for source, target, data in graph.edges(data=True)
+        if target == "EMERGENCY_BUS"
+        and data["relationship"] == "BACKS_UP"
+        and data["is_redundant"]
+        and data["backup_type"] == "ups"
+    ]
+
+    assert "GEN_01" in generator_backups
+    assert "UPS_CRITICAL" in ups_backups

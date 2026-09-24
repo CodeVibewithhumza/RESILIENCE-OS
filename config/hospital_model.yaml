@@ -325,6 +325,7 @@ dependencies:
     threshold: 0.70
     is_active: false
     is_redundant: true
+    backup_type: generator
     failure_propagation_rule: backup_loss
     recovery_behavior: generator_startup
     priority: 1
@@ -336,6 +337,7 @@ dependencies:
     threshold: 0.70
     is_active: false
     is_redundant: true
+    backup_type: generator
     failure_propagation_rule: backup_loss
     recovery_behavior: generator_startup
     priority: 2
@@ -347,6 +349,7 @@ dependencies:
     threshold: 0.70
     is_active: true
     is_redundant: true
+    backup_type: ups
     failure_propagation_rule: backup_loss
     recovery_behavior: battery_runtime
     priority: 1
