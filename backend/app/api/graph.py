@@ -43,24 +43,24 @@ def get_bottlenecks(
 
 
 @router.get(
-    "/explanations/{service_id}",
+    "/explanations/{id}",
     response_model=CausalExplanationResponse,
 )
 def get_service_explanation(
-    service_id: str,
+    id: str,
     failed_asset_id: str = "GRID_MAIN",
     engine: HospitalStateEngine = Depends(get_state_engine),
 ):
     """Returns causal dependency explanation for why a service is at risk."""
 
-    if service_id not in engine.services:
+    if id not in engine.services:
         raise HTTPException(
             status_code=404,
-            detail=f"Service '{service_id}' not found.",
+            detail=f"Service '{id}' not found.",
         )
 
     explanation = engine.explanation_engine.explain_service_risk(
-        service_id=service_id,
+        service_id=id,
         failed_asset_id=failed_asset_id,
     )
 

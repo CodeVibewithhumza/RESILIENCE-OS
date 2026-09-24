@@ -370,6 +370,10 @@ class HospitalStateEngine:
 
         # Check for active incident overrides or direct cascade engine impacts
         for service_id, service in self.services.items():
+            old_continuity = service.service_continuity_pct
+            old_at_risk = service.at_risk
+            old_status = service.status
+
             continuity = 100.0
             at_risk = False
             risk_reasons = []
@@ -424,11 +428,6 @@ class HospitalStateEngine:
                     continuity = 20.0
                     risk_reasons.append("Administrative circuit restricted")
 
-            # Update service state
-            service.service_continuity_pct = round(continuity, 1)
-            service.at_risk = at_risk
-            service.risk_reason = "; ".join(risk_reasons) if risk_reasons else None
-
             # Map continuity percentage to ServiceStatus
             if continuity >= 95.0:
                 service.status = ServiceStatus.FULL_OPERATION
@@ -440,6 +439,30 @@ class HospitalStateEngine:
                 service.status = ServiceStatus.COMPROMISED
             else:
                 service.status = ServiceStatus.EVACUATING
+
+            # Update service state
+            service.service_continuity_pct = round(continuity, 1)
+            service.at_risk = at_risk
+            service.risk_reason = "; ".join(risk_reasons) if risk_reasons else None
+
+            if (old_continuity != service.service_continuity_pct or
+                old_at_risk != service.at_risk or
+                old_status != service.status):
+                event_bus.publish_nowait(
+                    "twin",
+                    {
+                        "type": "service_health_changed",
+                        "target_node_id": service_id,
+                        "payload": {
+                            "service_id": service_id,
+                            "service_continuity_pct": service.service_continuity_pct,
+                            "at_risk": service.at_risk,
+                            "status": service.status.value,
+                            "risk_reason": service.risk_reason,
+                            "timestamp": datetime.now(timezone.utc).isoformat()
+                        }
+                    }
+                )
 
     def recover_asset(self, asset_id: str) -> bool:
         """Restores an asset from failed/degraded back to normal through the recovering state."""
@@ -457,6 +480,9 @@ class HospitalStateEngine:
 
     def inject_failure(self, request: FailureInjectionRequest) -> IncidentState:
         """Executes a simulated failure injection and propagates cascading impact."""
+        old_assets_dict = {k: v.status for k, v in self.assets.items()}
+        old_services_dict = {k: (v.service_continuity_pct, v.at_risk, v.status) for k, v in self.services.items()}
+
         new_assets, new_services, incident_state = self.cascade_engine.simulate_failure_cascade(
             request=request,
             assets=self.assets,
@@ -465,6 +491,60 @@ class HospitalStateEngine:
         self.assets = new_assets
         self.services = new_services
         self.active_incident = incident_state
+
+        # Emit asset_state_changed for changed assets
+        timestamp_str = datetime.now(timezone.utc).isoformat()
+        for asset_id, asset in self.assets.items():
+            if asset_id in old_assets_dict and old_assets_dict[asset_id] != asset.status:
+                event_bus.publish_nowait(
+                    "twin",
+                    {
+                        "type": "asset_state_changed",
+                        "target_node_id": asset_id,
+                        "payload": {
+                            "asset_id": asset_id,
+                            "old_status": old_assets_dict[asset_id].value,
+                            "new_status": asset.status.value,
+                            "reason": "Cascading failure propagation",
+                            "timestamp": timestamp_str,
+                        },
+                    },
+                )
+
+        # Emit service_health_changed for changed services
+        for service_id, service in self.services.items():
+            if service_id in old_services_dict:
+                old_pct, old_risk, old_status = old_services_dict[service_id]
+                if old_pct != service.service_continuity_pct or old_risk != service.at_risk or old_status != service.status:
+                    event_bus.publish_nowait(
+                        "twin",
+                        {
+                            "type": "service_health_changed",
+                            "target_node_id": service_id,
+                            "payload": {
+                                "service_id": service_id,
+                                "service_continuity_pct": service.service_continuity_pct,
+                                "at_risk": service.at_risk,
+                                "status": service.status.value,
+                                "risk_reason": service.risk_reason,
+                                "timestamp": timestamp_str
+                            }
+                        }
+                    )
+
+        # Emit cascade_triggered event
+        event_bus.publish_nowait(
+            "twin",
+            {
+                "type": "cascade_triggered",
+                "target_node_id": request.asset_id,
+                "payload": {
+                    "incident_id": incident_state.incident_id,
+                    "cascade_path": incident_state.model_dump(mode="json").get("cascade_path", []),
+                    "timestamp": timestamp_str,
+                },
+            },
+        )
 
         # Publish failure injection event to WebSocket clients
         event_bus.publish_nowait(
@@ -764,4 +844,3 @@ class HospitalStateEngine:
             what_if=what_if,
             scenario_title=scenario_title,
         )
-

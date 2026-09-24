@@ -200,6 +200,7 @@ async def reset_hospital(
                 "telemetry": telemetry.model_dump(mode="json"),
                 "status": "success",
                 "message": "Hospital digital twin reset to baseline.",
+                "timestamp": telemetry.timestamp.isoformat(),
             },
         },
     )

@@ -47,19 +47,18 @@ class ConnectionManager:
 manager = ConnectionManager()
 
 
-async def stream_telemetry(websocket: WebSocket):
-    """Stream telemetry snapshots every second."""
 
+async def _telemetry_broadcaster():
+    """Single application-level background task to broadcast telemetry to all clients."""
     engine = get_state_engine()
+    while True:
+        try:
+            # Only perform duplicate CPU work if there are actual subscribers!
+            if len(event_bus._subscribers.get("telemetry", set())) > 0:
+                telemetry = engine.get_telemetry_snapshot()
+                resilience = engine.get_resilience_breakdown()
 
-    try:
-        while True:
-            telemetry = engine.get_telemetry_snapshot()
-            resilience = engine.get_resilience_breakdown()
-
-            await manager.send_message(
-                websocket,
-                {
+                payload = {
                     "type": "telemetry_tick",
                     "target_node_id": None,
                     "payload": {
@@ -67,22 +66,40 @@ async def stream_telemetry(websocket: WebSocket):
                         "resilience_score": resilience.overall_score,
                         "status_label": resilience.status_label,
                     },
-                    # Legacy fields preserved for existing clients/tests.
                     "telemetry": telemetry.model_dump(mode="json"),
                     "resilience_score": resilience.overall_score,
                     "status_label": resilience.status_label,
-                },
-            )
+                }
+                await event_bus.publish("telemetry", payload)
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.exception("Telemetry broadcaster error")
 
-            await asyncio.sleep(1.0)
+        await asyncio.sleep(1.0)
 
-    except WebSocketDisconnect:
-        logger.info("Telemetry WebSocket client disconnected")
-
+async def stream_telemetry(websocket: WebSocket):
+    """Stream telemetry snapshots every second."""
+    queue = event_bus.subscribe("telemetry")
+    try:
+        while True:
+            event = await queue.get()
+            await manager.send_message(websocket, event)
+    except WebSocketDisconnect as e:
+        logger.info("Telemetry WebSocket client disconnected | code=%s", e.code)
+    except asyncio.CancelledError:
+        logger.info("Telemetry WebSocket task cancelled")
+        raise
+    except RuntimeError as e:
+        if "Unexpected ASGI message" in str(e) or "Cannot call" in str(e):
+            logger.info("Telemetry WebSocket client disconnected abruptly (RuntimeError)")
+        else:
+            logger.exception("Telemetry WebSocket error")
+            raise
     except Exception:
         logger.exception("Telemetry WebSocket error")
-
     finally:
+        event_bus.unsubscribe("telemetry", queue)
         manager.disconnect(websocket)
 
 
@@ -126,16 +143,23 @@ async def websocket_twin_endpoint(websocket: WebSocket):
         while True:
             event = await queue.get()
             await manager.send_message(websocket, event)
-
-    except WebSocketDisconnect:
-        logger.info("Twin WebSocket client disconnected")
+    except WebSocketDisconnect as e:
+        logger.info("Twin WebSocket client disconnected | code=%s", e.code)
 
     except asyncio.CancelledError:
         logger.info("Twin WebSocket task cancelled")
         raise
 
+    except RuntimeError as e:
+        if "Unexpected ASGI message" in str(e) or "Cannot call" in str(e):
+            logger.info("Twin WebSocket client disconnected abruptly (RuntimeError)")
+        else:
+            logger.exception("Twin WebSocket error")
+            raise
+
     except Exception:
         logger.exception("Twin WebSocket error")
+
 
     finally:
         event_bus.unsubscribe("twin", queue)

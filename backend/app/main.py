@@ -8,6 +8,8 @@ from backend.app.api.simulation import router as simulation_router
 from backend.app.api.graph import router as graph_router
 from backend.app.api.websocket import router as websocket_router
 
+from backend.app.core.errors import setup_exception_handlers
+
 from contextlib import asynccontextmanager
 
 from database.session import init_db
@@ -15,7 +17,15 @@ from database.session import init_db
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_db()
+    import asyncio
+    from backend.app.api.websocket import _telemetry_broadcaster
+    bg_task = asyncio.create_task(_telemetry_broadcaster())
     yield
+    bg_task.cancel()
+    try:
+        await bg_task
+    except asyncio.CancelledError:
+        pass
 
 app = FastAPI(
     title="ResilienceOS API",
@@ -24,6 +34,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 configure_logging()
+setup_exception_handlers(app)
+
 
 # Enable CORS for frontend dashboard and 3D canvas
 app.add_middleware(

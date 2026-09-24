@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 from typing import Any, Dict, Optional
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.concurrency import run_in_threadpool
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from backend.app.services.event_bus import event_bus
@@ -56,8 +57,8 @@ async def inject_failure(
 
     # The state engine is the canonical publisher of the
     # failure_injected WebSocket event.
-    incident = engine.inject_failure(request)
-    resilience = engine.get_resilience_breakdown()
+    incident = await run_in_threadpool(engine.inject_failure, request)
+    resilience = await run_in_threadpool(engine.get_resilience_breakdown)
 
     return {
         "status": "failure_injected",
@@ -94,7 +95,7 @@ async def run_simulation(
 ):
     """Evaluates and persists one selected simulation strategy."""
 
-    comparison = engine.get_what_if_comparison()
+    comparison = await run_in_threadpool(engine.get_what_if_comparison)
 
     selected_strategy = next(
         (
@@ -223,7 +224,7 @@ async def apply_strategy(
 ):
     """Applies selected response strategy and publishes a twin event."""
 
-    result = engine.apply_strategy(request.strategy_id)
+    result = await run_in_threadpool(engine.apply_strategy, request.strategy_id)
 
     # Publish event only when the strategy is successfully applied.
     if result.get("status") == "applied":
@@ -366,3 +367,68 @@ def list_available_scenarios():
         "total": len(scenarios),
         "scenarios": scenarios,
     }
+@router.post(
+    "/scenarios",
+    status_code=201,
+)
+def register_scenario(
+    scenario: Dict[str, Any],
+):
+    """Register/configure a new incident scenario."""
+    import json
+    from pathlib import Path
+    from datetime import datetime
+
+    scenarios_dir = (
+        Path(__file__).resolve().parent.parent.parent.parent
+        / "scenarios"
+    )
+    scenarios_dir.mkdir(parents=True, exist_ok=True)
+
+    scenario_id = scenario.get("scenario_id")
+    if not scenario_id:
+        scenario_id = f"scenario_{int(datetime.now().timestamp())}"
+        scenario["scenario_id"] = scenario_id
+    else:
+        import re
+        from fastapi import HTTPException
+        if not re.match(r'^[\w\-]+$', str(scenario_id)):
+            raise HTTPException(status_code=400, detail="Invalid scenario_id format")
+
+    file_path = scenarios_dir / f"{scenario_id}.json"
+    with open(file_path, "w", encoding="utf-8") as f:
+        json.dump(scenario, f, indent=2)
+
+    return {
+        "status": "success",
+        "message": f"Scenario '{scenario_id}' registered successfully.",
+        "scenario_id": scenario_id,
+        "scenario": scenario
+    }
+
+
+@router.get(
+    "/resilience/{id}",
+    response_model=ResilienceIndexBreakdown,
+)
+async def retrieve_resilience_breakdown_by_id(
+    id: int,
+    session: AsyncSession = Depends(get_db),
+):
+    """Retrieve the Resilience Index breakdown for a given state/simulation id."""
+    saved_run = await get_simulation_run(session, id)
+
+    if saved_run is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Simulation run '{id}' not found.",
+        )
+
+    breakdown_data = saved_run.result_data.get("resilience_breakdown")
+    if not breakdown_data:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Resilience breakdown not found for simulation '{id}'.",
+        )
+
+    return ResilienceIndexBreakdown(**breakdown_data)

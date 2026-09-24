@@ -13,9 +13,14 @@ class EventBus:
 
     def __init__(self) -> None:
         self._subscribers: dict[str, set[asyncio.Queue]] = defaultdict(set)
+        self._main_loop = None
 
     def subscribe(self, channel: str) -> asyncio.Queue:
         """Subscribe a client to a logical channel."""
+        try:
+            self._main_loop = asyncio.get_running_loop()
+        except RuntimeError:
+            pass
         queue: asyncio.Queue = asyncio.Queue()
         self._subscribers[channel].add(queue)
 
@@ -63,15 +68,30 @@ class EventBus:
         event: dict[str, Any],
     ) -> None:
         """Publish an event synchronously without awaiting subscribers."""
-        for queue in list(self._subscribers[channel]):
-            queue.put_nowait(event)
+        if not self._subscribers[channel]:
+            return
 
-        logger.info(
-            "Event published | channel=%s | event_type=%s | subscribers=%d",
-            channel,
-            event.get("type", "unknown"),
-            len(self._subscribers[channel]),
-        )
+        def _put():
+            for queue in list(self._subscribers[channel]):
+                queue.put_nowait(event)
+            logger.info(
+                "Event published | channel=%s | event_type=%s | subscribers=%d",
+                channel,
+                event.get("type", "unknown"),
+                len(self._subscribers[channel]),
+            )
+
+        try:
+            current_loop = asyncio.get_running_loop()
+            if self._main_loop and current_loop is not self._main_loop:
+                self._main_loop.call_soon_threadsafe(_put)
+            else:
+                _put()
+        except RuntimeError:
+            if self._main_loop:
+                self._main_loop.call_soon_threadsafe(_put)
+            else:
+                _put()
 
 
 event_bus = EventBus()

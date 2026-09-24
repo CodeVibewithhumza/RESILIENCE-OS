@@ -66,6 +66,8 @@ def test_websocket_twin_receives_failure_event():
             assert response.status_code == 200
 
             event = websocket.receive_json()
+            while event["type"] != "failure_injected":
+                event = websocket.receive_json()
 
             assert event["type"] == "failure_injected"
             assert event["target_node_id"] == "GRID_MAIN"
@@ -209,3 +211,60 @@ def test_websocket_twin_receives_strategy_applied_event():
             assert "affected_service_ids" in payload
             assert "new_resilience_score" in payload
             assert "timestamp" in payload
+from starlette.websockets import WebSocketDisconnect
+
+def test_websocket_twin_receives_cascade_events():
+    """Verify twin WebSocket receives cascade and service health change events on failure injection."""
+    with TestClient(app) as client:
+        try:
+            with client.websocket_connect("/api/ws/twin") as websocket:
+                initial_event = websocket.receive_json()
+                assert initial_event["type"] == "twin_state_snapshot"
+
+                response = client.post(
+                    "/api/failures/inject",
+                    json={
+                        "asset_id": "GRID_MAIN",
+                        "failure_type": "electrical_outage",
+                        "severity": "high",
+                    },
+                )
+                assert response.status_code == 200
+
+                events = []
+                while True:
+                    event = websocket.receive_json()
+                    events.append(event)
+                    if event["type"] == "failure_injected":
+                        break
+
+                event_types = [e["type"] for e in events]
+                assert "asset_state_changed" in event_types
+                assert "service_health_changed" in event_types
+                assert "cascade_triggered" in event_types
+
+                cascade_event = next(e for e in events if e["type"] == "cascade_triggered")
+                assert cascade_event["target_node_id"] == "GRID_MAIN"
+                assert "payload" in cascade_event
+                assert "cascade_path" in cascade_event["payload"]
+                assert "timestamp" in cascade_event["payload"]
+
+                service_event = next(e for e in events if e["type"] == "service_health_changed")
+                assert "target_node_id" in service_event
+                assert "timestamp" in service_event["payload"]
+        except WebSocketDisconnect:
+            pass
+        except Exception as e:
+            raise e
+
+def test_websocket_clean_disconnect_and_cleanup():
+    """Verify that manager.disconnect is called and runtime errors are handled cleanly."""
+    with TestClient(app) as client:
+        try:
+            with client.websocket_connect("/api/ws/telemetry") as websocket:
+                websocket.receive_json()
+        except WebSocketDisconnect:
+            pass
+
+        from backend.app.api.websocket import manager
+        assert len(manager.active_connections) == 0
