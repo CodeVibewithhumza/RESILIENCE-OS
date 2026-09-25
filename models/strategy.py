@@ -58,6 +58,54 @@ class StrategyResult(BaseModel):
     delta_icu: Optional[float] = Field(default=None, description="ICU continuity delta relative to Strategy A (%)")
     delta_runtime_hours: Optional[float] = Field(default=None, description="Runtime gain in hours relative to Strategy A")
     pareto_optimal: Optional[bool] = Field(default=None, description="Whether this strategy is on the Pareto frontier")
+    topsis_score: Optional[float] = Field(default=None, ge=0.0, le=1.0, description="TOPSIS relative closeness to ideal solution (0.0 - 1.0)")
+    pareto_rank: Optional[int] = Field(default=None, ge=1, description="Pareto non-domination rank (1 = first frontier)")
+    dominated_by: Optional[List[str]] = Field(default=None, description="IDs of strategies that strictly dominate this strategy")
+    dominates: Optional[List[str]] = Field(default=None, description="IDs of strategies strictly dominated by this strategy")
+
+class MCDAProfile(str, Enum):
+    BALANCED = "balanced"
+    LIFE_SAFETY = "life_safety"
+    RESOURCE_CONSERVATION = "resource_conservation"
+    RAPID_STABILIZATION = "rapid_stabilization"
+
+class PairwiseComparison(BaseModel):
+    strategy_a_id: str
+    strategy_b_id: str
+    delta_resilience: float = Field(..., description="Resilience score diff (A - B)")
+    delta_icu_pct: float = Field(..., description="ICU continuity diff (A - B)")
+    delta_runtime_hours: float = Field(..., description="Runtime diff in hours (A - B)")
+    delta_recovery_min: float = Field(..., description="Recovery horizon diff (A - B)")
+    delta_load_shed_kw: float = Field(..., description="Load shed diff in kW (A - B)")
+    advantage_summary: str = Field(..., description="Traceable summary of key trade-offs")
+    winner_id: str = Field(..., description="Preferred strategy ID between the two")
+
+class MultiObjectiveRankingResult(BaseModel):
+    strategy_id: str
+    strategy_name: str
+    strategy_code: str
+    pareto_rank: int = Field(default=1, ge=1)
+    is_pareto_optimal: bool = Field(default=False)
+    topsis_score: float = Field(..., ge=0.0, le=1.0)
+    topsis_rank: int = Field(..., ge=1)
+    weighted_utility_score: float = Field(..., ge=0.0, le=100.0)
+    profile_scores: Dict[str, float] = Field(default_factory=dict)
+    final_rank: int = Field(..., ge=1)
+    trade_off_headline: str = Field(default="")
+
+class StrategyComparisonMatrix(BaseModel):
+    incident_id: str
+    evaluated_at: str
+    active_profile: MCDAProfile = Field(default=MCDAProfile.BALANCED)
+    ranking_results: List[MultiObjectiveRankingResult] = Field(default_factory=list)
+    pareto_frontier_ids: List[str] = Field(default_factory=list)
+    pairwise_comparisons: List[PairwiseComparison] = Field(default_factory=list)
+    top_recommended_strategy_id: str
+    recommendation_rationale: str
+    profile_sensitivity: Dict[str, str] = Field(
+        default_factory=dict,
+        description="Winning strategy mapped under each MCDA profile"
+    )
 
 class WhatIfComparison(BaseModel):
     incident_id: str
@@ -72,6 +120,7 @@ class WhatIfComparison(BaseModel):
     incident_type: Optional[str] = Field(default=None, description="Classified incident type (e.g. electrical_outage, hvac_failure, o2_depletion)")
     decision_summary: Optional[Dict[str, Any]] = Field(default=None, description="Multi-attribute decision analysis and Pareto ranking summary")
     ranking_criteria: Optional[Dict[str, float]] = Field(default=None, description="Weighting criteria used for strategy ranking")
+    comparison_matrix: Optional[StrategyComparisonMatrix] = Field(default=None, description="Full MCDA ranking and pairwise comparison matrix")
 
 class ApplyStrategyRequest(BaseModel):
     strategy_id: str = Field(

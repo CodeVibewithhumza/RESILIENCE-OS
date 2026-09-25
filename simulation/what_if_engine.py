@@ -8,12 +8,15 @@ from models.strategy import (
     StrategyResult,
     WhatIfComparison,
     StrategyDefinition,
+    MCDAProfile,
+    StrategyComparisonMatrix,
 )
 from models.infrastructure import InfrastructureAsset, OperationalStatus, AssetType
 from models.service import HospitalService, ServiceStatus, ServiceType
 from models.incident import IncidentState
 from .resilience_index import ResilienceIndexCalculator
 from .risk_engine import RiskEstimationEngine
+from .strategy_ranking import MultiObjectiveRankingEngine
 
 logger = logging.getLogger(__name__)
 
@@ -27,9 +30,11 @@ class WhatIfSimulationEngine:
         self,
         calculator: ResilienceIndexCalculator,
         risk_engine: Optional[RiskEstimationEngine] = None,
+        ranking_engine: Optional[MultiObjectiveRankingEngine] = None,
     ):
         self.calculator = calculator
         self.risk_engine = risk_engine or RiskEstimationEngine()
+        self.ranking_engine = ranking_engine or MultiObjectiveRankingEngine()
 
     def evaluate_strategies(
         self,
@@ -94,41 +99,19 @@ class WhatIfSimulationEngine:
             s.delta_icu = round(s.icu_continuity_pct - base_icu, 1)
             s.delta_runtime_hours = round(s.backup_runtime_remaining_hours - base_runtime, 1)
 
-        # Compute Pareto optimality across (Resilience, ICU Continuity, Backup Runtime)
-        self._compute_pareto_optimality(candidate_strategies)
-
-        # Multi-Attribute Utility Ranking:
-        # Utility weights: 45% Resilience Index, 35% ICU Life-Support, 15% Runtime Longevity, -5% Latency
-        def calculate_utility(s: StrategyResult) -> float:
-            runtime_score = min(100.0, s.backup_runtime_remaining_hours * 10.0)
-            latency_penalty = min(50.0, (s.implementation_latency_min or 0.0) * 0.5)
-            # Prioritize incident-specific champion if applicable
-            type_bonus = 0.0
-            if incident_type == "medical_gas_failure" and s.strategy_id == "strat_e":
-                type_bonus = 15.0
-            elif incident_type in ("electrical_outage", "hvac_thermal_failure") and s.strategy_id == "strat_c":
-                type_bonus = 10.0
-
-            return (
-                0.45 * s.projected_resilience_score
-                + 0.35 * s.icu_continuity_pct
-                + 0.15 * runtime_score
-                - 0.05 * latency_penalty
-                + type_bonus
-            )
-
-        candidate_strategies.sort(key=calculate_utility, reverse=True)
-
-        for rank, strategy in enumerate(candidate_strategies, 1):
-            strategy.recommendation_rank = rank
-            strategy.is_recommended = (rank == 1)
+        # Multi-Objective MCDA Ranking (TOPSIS, Pareto Sorting, MAUT, Pairwise Matrix)
+        comparison_matrix = self.ranking_engine.compare_and_rank_strategies(
+            strategies=candidate_strategies,
+            incident_id=incident.incident_id,
+            incident_type=incident_type,
+        )
 
         recommended = candidate_strategies[0]
 
         logger.info(
             "What-if evaluation completed | timestamp=%s | incident_id=%s | source=%s | "
             "type=%s | severity=%s | affected_asset_ids=%s | affected_service_ids=%s | "
-            "triggering_event=%s | recommended=%s | score=%.1f | ranks=%s",
+            "triggering_event=%s | recommended=%s | score=%.1f | ranks=%s | topsis=%.3f",
             datetime.now(timezone.utc).isoformat(),
             incident.incident_id,
             source_id,
@@ -145,16 +128,19 @@ class WhatIfSimulationEngine:
             recommended.strategy_id,
             recommended.projected_resilience_score,
             {s.strategy_id: s.recommendation_rank for s in candidate_strategies},
+            recommended.topsis_score or 0.0,
         )
 
-        explanation = self._generate_causal_explanation(recommended, strat_a, incident_type)
+        explanation = comparison_matrix.recommendation_rationale
 
         decision_summary = {
             "incident_type": incident_type,
             "recommended_strategy": recommended.strategy_id,
-            "pareto_frontier": [s.strategy_id for s in candidate_strategies if s.pareto_optimal],
+            "pareto_frontier": comparison_matrix.pareto_frontier_ids,
             "max_resilience_gain": max(s.delta_resilience or 0.0 for s in candidate_strategies),
             "max_runtime_hours": max(s.backup_runtime_remaining_hours for s in candidate_strategies),
+            "profile_sensitivity": comparison_matrix.profile_sensitivity,
+            "topsis_closeness": recommended.topsis_score,
             "trade_off_analysis": {
                 "clinical_preservation": f"ICU maintained at {recommended.icu_continuity_pct:.1f}%",
                 "fuel_endurance": f"Generator runtime extended to {recommended.backup_runtime_remaining_hours:.1f} hours",
@@ -174,11 +160,15 @@ class WhatIfSimulationEngine:
             incident_type=incident_type,
             decision_summary=decision_summary,
             ranking_criteria={
-                "resilience_weight": 0.45,
-                "icu_continuity_weight": 0.35,
-                "runtime_longevity_weight": 0.15,
-                "latency_penalty_weight": 0.05,
+                "resilience": 0.30,
+                "icu_continuity": 0.25,
+                "runtime_hours": 0.15,
+                "ot_continuity": 0.10,
+                "recovery_time": 0.10,
+                "load_shed": 0.05,
+                "latency": 0.05,
             },
+            comparison_matrix=comparison_matrix,
         )
 
     # =========================================================================
@@ -519,7 +509,7 @@ class WhatIfSimulationEngine:
             emergency_continuity_pct=90.0,
             operating_theatre_continuity_pct=85.0,
             general_ward_continuity_pct=ward_cont,
-            backup_runtime_remaining_hours=96.0,
+            backup_runtime_remaining_hours=96.0 if is_gas_incident else 5.0,
             non_critical_load_shed_kw=60.0,
             estimated_recovery_time_min=15.0,
             clinical_safety_score=breakdown.sub_scores.service_continuity,

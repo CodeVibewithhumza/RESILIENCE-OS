@@ -3,7 +3,16 @@ from .infrastructure import InfrastructureAsset, AssetType, OperationalStatus
 from .service import HospitalService, ServiceType, ServiceStatus
 from .telemetry import TelemetryPoint, HospitalTelemetrySnapshot
 from .incident import FailureInjectionRequest, IncidentState, IncidentSeverity
-from .strategy import StrategyType, StrategyDefinition, StrategyResult, WhatIfComparison
+from .strategy import (
+    StrategyType,
+    StrategyDefinition,
+    StrategyResult,
+    WhatIfComparison,
+    MCDAProfile,
+    PairwiseComparison,
+    MultiObjectiveRankingResult,
+    StrategyComparisonMatrix,
+)
 from .resilience import ResilienceIndexBreakdown, SubScores, CanonicalComponents
 from .risk import (
     RiskLevel,
@@ -31,6 +40,10 @@ __all__ = [
     "StrategyDefinition",
     "StrategyResult",
     "WhatIfComparison",
+    "MCDAProfile",
+    "PairwiseComparison",
+    "MultiObjectiveRankingResult",
+    "StrategyComparisonMatrix",
     "ResilienceIndexBreakdown",
     "SubScores",
     "CanonicalComponents",
