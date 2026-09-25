@@ -10,6 +10,10 @@ import StrategyMatrix from './components/StrategyLab/StrategyMatrix'
 import AssetGrid from './components/AssetCatalog/AssetGrid'
 import ServiceList from './components/ServiceStatus/ServiceList'
 import Home from './components/Home/Home'
+import RiskResilienceView from './components/RiskResilience/RiskResilienceView'
+import ReportsView from './components/Reports/ReportsView'
+import SettingsView from './components/Settings/SettingsView'
+import StartSimulationView from './components/StartSimulation/StartSimulationView'
 import {
   INITIAL_ASSETS,
   INITIAL_SERVICES,
@@ -93,8 +97,8 @@ export default function App() {
   // Explainability drawer open/close state
   const [isExplainDrawerOpen, setIsExplainDrawerOpen] = useState(false)
 
-  // Navigation state for sidebar active indicator
-  const [activeSection, setActiveSection] = useState('overview')
+  // Navigation state for sidebar active indicator (dashboard, digital-twin, start-simulation, what-if, incident-timeline, risk-resilience, reports, settings)
+  const [activeSection, setActiveSection] = useState('dashboard')
 
   // Shared asset and service selection state
   const [selectedStrategyId, setSelectedStrategyId] = useState(null)
@@ -147,8 +151,6 @@ export default function App() {
     setSelectedServiceId((prev) => (prev === id ? null : id))
   }
 
-
-
   const activeAlertsCount =
     (incident.is_active ? incident.affected_asset_ids?.length || 0 : 0) +
     services.filter((s) => s.at_risk).length
@@ -180,125 +182,218 @@ export default function App() {
 
         {/* Center Main Application Scroll View */}
         <main className="dashboard-main-content">
-          {/* A. Premium Home / Overview Landing Screen */}
-          <Home
-            resilience={resilience}
-            assets={assets}
-            services={services}
-            incident={incident}
-            onNavigate={(sec) => setActiveSection(sec)}
-            onSelectAsset={handleSelectAsset}
-          />
+          {/* VIEW ROUTING BASED ON ACTIVE SECTION */}
+          {activeSection === 'dashboard' && (
+            <>
+              {/* A. Premium Home / Overview Landing Screen */}
+              <Home
+                resilience={resilience}
+                assets={assets}
+                services={services}
+                incident={incident}
+                onNavigate={(sec) => setActiveSection(sec)}
+                onSelectAsset={handleSelectAsset}
+              />
 
-          {/* B. DIGITAL TWIN + INCIDENT CONTROL (Two-Column Primary Focal Area) */}
-          <section className="dashboard-section-block" id="digital-twin">
-            <div className="section-title-row">
-              <span className="section-title-tag">PRIMARY VISUALIZATION & CONTROL</span>
-              <h2 className="section-main-heading">Digital Twin Topology & Incident Injection</h2>
-            </div>
+              {/* B. DIGITAL TWIN + INCIDENT CONTROL */}
+              <section className="dashboard-section-block" id="digital-twin">
+                <div className="section-title-row">
+                  <span className="section-title-tag">PRIMARY VISUALIZATION & CONTROL</span>
+                  <h2 className="section-main-heading">Digital Twin Topology & Incident Injection</h2>
+                </div>
 
-            <div className="twin-incident-split-grid">
-              {/* Left Column: 3D Digital Twin */}
-              <div className="twin-col">
-                <TwinContainer
+                <div className="twin-incident-split-grid">
+                  <div className="twin-col">
+                    <TwinContainer
+                      assets={assets}
+                      services={services}
+                      selectedAssetId={selectedAssetId}
+                      onSelectAsset={handleSelectAsset}
+                    />
+                  </div>
+                  <div className="incident-col" id="incident-control">
+                    <IncidentPanel
+                      incident={incident}
+                      onTriggerFailure={handleTriggerGridFailure}
+                      onReset={handleReset}
+                      activeCheckpointIndex={activeCheckpointIndex}
+                      onNextCheckpoint={handleNextCheckpoint}
+                      onOpenExplainability={() => setIsExplainDrawerOpen(true)}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* C. RESILIENCE + CASCADE */}
+              <section className="dashboard-section-block" id="resilience-cascade">
+                <div className="section-title-row">
+                  <span className="section-title-tag">RESILIENCE ANALYTICS</span>
+                  <h2 className="section-main-heading">Resilience Index Synthesis & Cascade Timeline</h2>
+                </div>
+
+                <div className="resilience-cascade-split-grid">
+                  <div className="resilience-col">
+                    <ResilienceCard resilience={resilience} />
+                  </div>
+                  <div className="cascade-col">
+                    <TimelineView
+                      timeline={CASCADE_TIMELINE}
+                      isIncidentActive={incident.is_active}
+                      activeCheckpointIndex={activeCheckpointIndex}
+                      onSelectCheckpoint={handleSelectCheckpoint}
+                    />
+                  </div>
+                </div>
+              </section>
+
+              {/* D. WHAT-IF STRATEGY LAB */}
+              <section className="dashboard-section-block" id="strategy-lab">
+                <div className="section-title-row">
+                  <span className="section-title-tag">DECISION SUPPORT SYSTEM</span>
+                  <h2 className="section-main-heading">What-If Strategy Simulation Lab</h2>
+                </div>
+
+                <StrategyMatrix
+                  strategies={WHAT_IF_STRATEGIES}
+                  selectedStrategyId={selectedStrategyId}
+                  onSelectStrategy={setSelectedStrategyId}
+                />
+              </section>
+
+              {/* E. INFRASTRUCTURE ASSETS CATALOG */}
+              <section className="dashboard-section-block" id="assets">
+                <div className="section-title-row">
+                  <span className="section-title-tag">INFRASTRUCTURE TELEMETRY</span>
+                  <h2 className="section-main-heading">Subsystem Asset Monitoring Catalog</h2>
+                </div>
+
+                <AssetGrid
                   assets={assets}
-                  services={services}
                   selectedAssetId={selectedAssetId}
                   onSelectAsset={handleSelectAsset}
                 />
-              </div>
+              </section>
 
-              {/* Right Column: Incident Injection & Control */}
-              <div className="incident-col" id="incident-control">
-                <IncidentPanel
-                  incident={incident}
-                  onTriggerFailure={handleTriggerGridFailure}
-                  onReset={handleReset}
-                  activeCheckpointIndex={activeCheckpointIndex}
-                  onNextCheckpoint={handleNextCheckpoint}
-                  onOpenExplainability={() => setIsExplainDrawerOpen(true)}
+              {/* F. HOSPITAL CRITICAL SERVICES */}
+              <section className="dashboard-section-block" id="services">
+                <div className="section-title-row">
+                  <span className="section-title-tag">CLINICAL CONTINUITY</span>
+                  <h2 className="section-main-heading">Critical Care Services Impact</h2>
+                </div>
+
+                <ServiceList
+                  services={services}
+                  selectedServiceId={selectedServiceId}
+                  onSelectService={handleSelectService}
                 />
+              </section>
+            </>
+          )}
+
+          {activeSection === 'digital-twin' && (
+            <section className="dashboard-section-block">
+              <div className="section-title-row">
+                <span className="section-title-tag">3D SPATIAL RECONSTRUCTION</span>
+                <h2 className="section-main-heading">Hospital BIM Digital Twin & Subsystem Nodes</h2>
               </div>
-            </div>
-          </section>
+              <TwinContainer
+                assets={assets}
+                services={services}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={handleSelectAsset}
+              />
+              <AssetGrid
+                assets={assets}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={handleSelectAsset}
+              />
+            </section>
+          )}
 
-          {/* C. RESILIENCE + CASCADE (Two-Column Analytics Area) */}
-          <section className="dashboard-section-block" id="resilience-cascade">
-            <div className="section-title-row">
-              <span className="section-title-tag">RESILIENCE ANALYTICS</span>
-              <h2 className="section-main-heading">Resilience Index Synthesis & Cascade Timeline</h2>
-            </div>
-
-            <div className="resilience-cascade-split-grid">
-              {/* Left Column: Composite Resilience Card with Circular SVG Gauge */}
-              <div className="resilience-col">
-                <ResilienceCard resilience={resilience} />
-              </div>
-
-              {/* Right Column: Cascade Timeline Stepper */}
-              <div className="cascade-col">
-                <TimelineView
-                  timeline={CASCADE_TIMELINE}
-                  isIncidentActive={incident.is_active}
-                  activeCheckpointIndex={activeCheckpointIndex}
-                  onSelectCheckpoint={handleSelectCheckpoint}
-                />
-              </div>
-            </div>
-          </section>
-
-          {/* D. WHAT-IF STRATEGY LAB (Horizontal Overview & Matrix) */}
-          <section className="dashboard-section-block" id="strategy-lab">
-            <div className="section-title-row">
-              <span className="section-title-tag">DECISION SUPPORT SYSTEM</span>
-              <h2 className="section-main-heading">What-If Strategy Simulation Lab</h2>
-            </div>
-
-            <StrategyMatrix
-              strategies={WHAT_IF_STRATEGIES}
-              selectedStrategyId={selectedStrategyId}
-              onSelectStrategy={setSelectedStrategyId}
-            />
-          </section>
-
-          {/* E. INFRASTRUCTURE ASSETS CATALOG (Categorized Monitoring) */}
-          <section className="dashboard-section-block" id="assets">
-            <div className="section-title-row">
-              <span className="section-title-tag">INFRASTRUCTURE TELEMETRY</span>
-              <h2 className="section-main-heading">Subsystem Asset Monitoring Catalog</h2>
-            </div>
-
-            <AssetGrid
+          {activeSection === 'start-simulation' && (
+            <StartSimulationView
               assets={assets}
-              selectedAssetId={selectedAssetId}
-              onSelectAsset={handleSelectAsset}
-            />
-          </section>
-
-          {/* F. HOSPITAL CRITICAL SERVICES (Clinical Unit Continuity) */}
-          <section className="dashboard-section-block" id="services">
-            <div className="section-title-row">
-              <span className="section-title-tag">CLINICAL CONTINUITY</span>
-              <h2 className="section-main-heading">Critical Care Services Impact</h2>
-            </div>
-
-            <ServiceList
               services={services}
-              selectedServiceId={selectedServiceId}
-              onSelectService={handleSelectService}
+              incident={incident}
+              onTriggerFailure={handleTriggerGridFailure}
+              onReset={handleReset}
             />
-          </section>
+          )}
+
+          {activeSection === 'what-if' && (
+            <section className="dashboard-section-block">
+              <div className="section-title-row">
+                <span className="section-title-tag">MULTI-CRITERIA DECISION ANALYSIS</span>
+                <h2 className="section-main-heading">What-If Strategy Simulation & TOPSIS Ranking</h2>
+              </div>
+              <StrategyMatrix
+                strategies={WHAT_IF_STRATEGIES}
+                selectedStrategyId={selectedStrategyId}
+                onSelectStrategy={setSelectedStrategyId}
+              />
+            </section>
+          )}
+
+          {activeSection === 'incident-timeline' && (
+            <section className="dashboard-section-block">
+              <div className="section-title-row">
+                <span className="section-title-tag">CASCADE PROPAGATION</span>
+                <h2 className="section-main-heading">Incident Horizon & Cascade Timeline</h2>
+              </div>
+              <div className="twin-incident-split-grid">
+                <div className="twin-col">
+                  <TimelineView
+                    timeline={CASCADE_TIMELINE}
+                    isIncidentActive={incident.is_active}
+                    activeCheckpointIndex={activeCheckpointIndex}
+                    onSelectCheckpoint={handleSelectCheckpoint}
+                  />
+                </div>
+                <div className="incident-col">
+                  <IncidentPanel
+                    incident={incident}
+                    onTriggerFailure={handleTriggerGridFailure}
+                    onReset={handleReset}
+                    activeCheckpointIndex={activeCheckpointIndex}
+                    onNextCheckpoint={handleNextCheckpoint}
+                    onOpenExplainability={() => setIsExplainDrawerOpen(true)}
+                  />
+                </div>
+              </div>
+            </section>
+          )}
+
+          {activeSection === 'risk-resilience' && (
+            <RiskResilienceView
+              resilience={resilience}
+              assets={assets}
+              services={services}
+            />
+          )}
+
+          {activeSection === 'reports' && (
+            <ReportsView
+              resilience={resilience}
+              incident={incident}
+              assets={assets}
+            />
+          )}
+
+          {activeSection === 'settings' && (
+            <SettingsView onReset={handleReset} />
+          )}
 
           {/* Footer Bar */}
           <footer className="dashboard-footer">
-            <div className="footer-left">
+            <div className="footer-left-info">
               <span className="footer-brand">RESILIENCE<span style={{ color: 'var(--accent-cyan)' }}>OS</span></span>
-              <span className="footer-copy">Hospital Infrastructure Resilience Command & Decision Support System</span>
+              <span className="footer-badge font-mono">v1.0-PRODUCTION</span>
+              <span className="footer-disclaimer">Hospital Infrastructure Digital Twin & Resilience Decision Engine</span>
             </div>
-            <div className="footer-right font-mono">
-              <span>R3F 3D Engine: Online</span>
-              <span className="footer-sep">•</span>
-              <span>11 Canonical Nodes Synchronized</span>
+            <div className="footer-right font-mono" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+              <span>52 Monitored Graph Nodes</span>
+              <span style={{ margin: '0 8px' }}>•</span>
+              <span style={{ color: 'var(--accent-cyan)' }}>WebSocket Telemetry 1s Sync</span>
             </div>
           </footer>
         </main>

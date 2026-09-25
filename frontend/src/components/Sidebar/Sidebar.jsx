@@ -2,11 +2,10 @@ import { useState } from 'react'
 import {
   LayoutDashboard,
   Layers,
-  AlertOctagon,
-  ShieldCheck,
+  PlayCircle,
   Sliders,
-  Server,
-  HeartPulse,
+  Clock,
+  ShieldCheck,
   FileText,
   Settings,
   ChevronLeft,
@@ -17,7 +16,7 @@ import {
 import './Sidebar.css'
 
 export default function Sidebar({
-  activeSection = 'overview',
+  activeSection = 'dashboard',
   onNavigate,
   incidentActive = false
 }) {
@@ -25,7 +24,7 @@ export default function Sidebar({
 
   const navItems = [
     {
-      id: 'overview',
+      id: 'dashboard',
       label: 'Dashboard',
       icon: LayoutDashboard,
       badge: null
@@ -37,45 +36,39 @@ export default function Sidebar({
       badge: '3D'
     },
     {
-      id: 'incident-control',
-      label: 'Incident Simulation',
-      icon: AlertOctagon,
+      id: 'start-simulation',
+      label: 'Start Simulation',
+      icon: PlayCircle,
       badge: incidentActive ? 'ACTIVE' : null,
       badgeType: incidentActive ? 'critical' : 'normal'
     },
     {
-      id: 'resilience-cascade',
+      id: 'what-if',
+      label: 'What-If Analysis',
+      icon: Sliders,
+      badge: '6 Labs'
+    },
+    {
+      id: 'incident-timeline',
+      label: 'Incident Timeline',
+      icon: Clock,
+      badge: null
+    },
+    {
+      id: 'risk-resilience',
       label: 'Risk & Resilience',
       icon: ShieldCheck,
       badge: null
     },
     {
-      id: 'strategy-lab',
-      label: 'What-if Analysis',
-      icon: Sliders,
-      badge: '6 Labs'
-    },
-    {
-      id: 'assets',
-      label: 'Assets Catalog',
-      icon: Server,
-      badge: '11'
-    },
-    {
-      id: 'services',
-      label: 'Critical Services',
-      icon: HeartPulse,
-      badge: '5'
-    }
-  ]
-
-  const placeholderItems = [
-    {
       id: 'reports',
       label: 'Reports',
       icon: FileText,
-      badge: 'Read-only'
-    },
+      badge: null
+    }
+  ]
+
+  const systemItems = [
     {
       id: 'settings',
       label: 'Settings',
@@ -96,7 +89,7 @@ export default function Sidebar({
 
   return (
     <aside className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''}`}>
-      {/* 1. Sidebar Top Domain Identity Card (No duplicated product logo) */}
+      {/* 1. Sidebar Top Domain Identity Card */}
       <div className="sidebar-top">
         <div className="sidebar-domain-info">
           <div className="sidebar-domain-badge">
@@ -105,7 +98,7 @@ export default function Sidebar({
           {!isCollapsed && (
             <div className="domain-meta">
               <span className="domain-title">Hospital Infrastructure</span>
-              <span className="domain-sub">Digital Twin</span>
+              <span className="domain-sub">Digital Twin OS</span>
               <span className="domain-tagline">Predict • Prepare • Protect</span>
             </div>
           )}
@@ -169,17 +162,20 @@ export default function Sidebar({
         {/* SYSTEM VIEWS */}
         <div className="sidebar-nav-group">
           {!isCollapsed && (
-            <span className="sidebar-group-label">System Views</span>
+            <span className="sidebar-group-label">System</span>
           )}
           <ul className="sidebar-menu">
-            {placeholderItems.map((item) => {
+            {systemItems.map((item) => {
               const Icon = item.icon
+              const isActive = activeSection === item.id
 
               return (
                 <li key={item.id}>
-                  <div
-                    className="sidebar-nav-btn is-placeholder"
-                    title={isCollapsed ? `${item.label} (System)` : undefined}
+                  <button
+                    type="button"
+                    className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
+                    onClick={() => handleNavClick(item.id)}
+                    title={isCollapsed ? item.label : undefined}
                   >
                     <Icon size={16} className="nav-btn-icon" />
                     {!isCollapsed && (
@@ -190,7 +186,7 @@ export default function Sidebar({
                         </span>
                       </>
                     )}
-                  </div>
+                  </button>
                 </li>
               )
             })}
@@ -204,7 +200,7 @@ export default function Sidebar({
           <div className="sidebar-telemetry-box">
             <div className="telemetry-header">
               <Radio size={12} className="telemetry-icon" />
-              <span>DIGITAL TWIN ENGINE</span>
+              <span>SIMULATION ENGINE</span>
             </div>
             <div className="telemetry-row">
               <span className="telemetry-key">State:</span>
@@ -226,16 +222,16 @@ export default function Sidebar({
             </div>
             <div className="telemetry-row">
               <span className="telemetry-key">Nodes:</span>
-              <span className="telemetry-val font-mono">11 Active</span>
+              <span className="telemetry-val font-mono">52 Monitored</span>
             </div>
             <div className="telemetry-row">
-              <span className="telemetry-key">Systems:</span>
-              <span className="telemetry-val font-mono">5 Monitored</span>
+              <span className="telemetry-key">Subsystems:</span>
+              <span className="telemetry-val font-mono">6 Connected</span>
             </div>
             <div className="telemetry-row">
               <span className="telemetry-key">Last Sync:</span>
               <span className="telemetry-val font-mono" style={{ color: 'var(--text-muted)' }}>
-                Real-time Live
+                Real-time 1s
               </span>
             </div>
           </div>
