@@ -1,10 +1,11 @@
-# Multi-stage Dockerfile for ResilienceOS Frontend
+# Multi-stage Dockerfile for ResilienceOS Frontend (Multi-arch x86_64 & Apple Silicon ARM64)
 FROM node:20-alpine AS build
 
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm ci
+# Install dependencies including optional platform-native rollup/vite binaries
+RUN npm install --include=optional
 
 COPY . .
 RUN npm run build
