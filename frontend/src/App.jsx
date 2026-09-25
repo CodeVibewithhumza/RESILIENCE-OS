@@ -202,6 +202,7 @@ export default function App() {
               <div className="twin-col">
                 <TwinContainer
                   assets={assets}
+                  services={services}
                   selectedAssetId={selectedAssetId}
                   onSelectAsset={handleSelectAsset}
                 />

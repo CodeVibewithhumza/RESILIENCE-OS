@@ -1,8 +1,14 @@
-import { Zap, BatteryCharging, Wind, Flame, Droplets, Server } from 'lucide-react'
+import { Zap, BatteryCharging, Wind, Flame, Droplets, Server, HeartPulse } from 'lucide-react'
 import AssetCard from './AssetCard'
 import './AssetCatalog.css'
 
 const SUBSYSTEM_CONFIGS = [
+  {
+    key: 'clinical',
+    name: 'Clinical Life-Support & Patient Units (ICU / OT / ED / Wards)',
+    icon: HeartPulse,
+    types: ['icu_bed', 'operating_theatre', 'emergency_bay', 'ward_room', 'nurse_station', 'ambulance_bay', 'admin_hub']
+  },
   {
     key: 'power',
     name: 'Electrical Distribution & Grid',
