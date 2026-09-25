@@ -190,3 +190,35 @@ def test_global_error_handler_unexpected_exception():
         assert "This is a secret database failure detail that must not leak" not in response.text
     finally:
         app.router.routes = [r for r in app.router.routes if getattr(r, "path", None) != "/api/test-trigger-500"]
+
+def test_invalid_asset_id_failure_injection():
+    response = client.post(
+        "/api/failures/inject",
+        json={"asset_id": "FAKE_ASSET_123", "failure_type": "complete_outage"}
+    )
+    assert response.status_code == 404
+    data = response.json()
+    assert data["error"]["code"] == "http_404"
+    assert "not found" in data["error"]["message"].lower()
+
+def test_malformed_json_request():
+    response = client.post(
+        "/api/failures/inject",
+        content="this is not valid json",
+        headers={"Content-Type": "application/json"}
+    )
+    # FastAPI catches malformed JSON before validation handlers sometimes, or it drops to 400/422.
+    assert response.status_code in [400, 422]
+    data = response.json()
+    assert "error" in data
+
+def test_invalid_strategy_input():
+    with TestClient(app) as test_client:
+        response = test_client.post(
+            "/api/simulation/run",
+            json={"strategy_id": "UNKNOWN_STRAT_XYZ"},
+        )
+        assert response.status_code == 404
+        data = response.json()
+        assert data["error"]["code"] == "http_404"
+        assert "not found" in data["error"]["message"].lower()

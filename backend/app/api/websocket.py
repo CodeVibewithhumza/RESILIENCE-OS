@@ -51,12 +51,19 @@ manager = ConnectionManager()
 async def _telemetry_broadcaster():
     """Single application-level background task to broadcast telemetry to all clients."""
     engine = get_state_engine()
+    last_state_version = -1
+    cached_resilience = None
     while True:
         try:
             # Only perform duplicate CPU work if there are actual subscribers!
             if len(event_bus._subscribers.get("telemetry", set())) > 0:
+                current_version = getattr(engine, "state_version", 0)
+                if current_version > last_state_version or cached_resilience is None:
+                    cached_resilience = engine.get_resilience_breakdown()
+                    last_state_version = current_version
+
                 telemetry = engine.get_telemetry_snapshot()
-                resilience = engine.get_resilience_breakdown()
+                resilience = cached_resilience
 
                 payload = {
                     "type": "telemetry_tick",

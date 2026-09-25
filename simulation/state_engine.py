@@ -92,6 +92,7 @@ class HospitalStateEngine:
         # Audit and event log of state transitions
         self.transition_history: List[Dict[str, Any]] = []
 
+        self.state_version = 0
         self.reset_to_baseline()
 
     def _load_assets_and_services_from_config(self) -> Tuple[Dict[str, InfrastructureAsset], Dict[str, HospitalService]]:
@@ -251,6 +252,7 @@ class HospitalStateEngine:
         self.evaluate_services_health()
 
         # Publish real-time state change event to WebSocket clients
+        self.state_version += 1
         event_bus.publish_nowait(
             "twin",
             {
@@ -533,6 +535,7 @@ class HospitalStateEngine:
                     )
 
         # Emit cascade_triggered event
+        self.state_version += 1
         event_bus.publish_nowait(
             "twin",
             {
@@ -547,6 +550,7 @@ class HospitalStateEngine:
         )
 
         # Publish failure injection event to WebSocket clients
+        self.state_version += 1
         event_bus.publish_nowait(
             "twin",
             {
@@ -747,6 +751,7 @@ class HospitalStateEngine:
             else None
         )
 
+        self.state_version += 1
         event_bus.publish_nowait(
             "twin",
             {

@@ -1,6 +1,24 @@
 version: '3.8'
 
 services:
+  db:
+    image: postgres:15
+    container_name: resilienceos-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-resilience}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-resilience_secret}
+      POSTGRES_DB: ${POSTGRES_DB:-resilienceos}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-resilience} -d ${POSTGRES_DB:-resilienceos}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
   backend:
     build:
       context: .
@@ -12,7 +30,10 @@ services:
       - HOST=0.0.0.0
       - PORT=8000
       - DEBUG=False
-      - SQLALCHEMY_DATABASE_URI=sqlite+aiosqlite:///./resilience.db
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-resilience}:${POSTGRES_PASSWORD:-resilience_secret}@db:5432/${POSTGRES_DB:-resilienceos}
+    depends_on:
+      db:
+        condition: service_healthy
     volumes:
       - ./database:/app/database
       - ./logs:/app/logs
@@ -38,3 +59,6 @@ services:
 networks:
   default:
     name: resilienceos-network
+
+volumes:
+  postgres_data:
