@@ -16,6 +16,9 @@ export default function Header({
   assetsCount = 11,
   servicesCount = 5,
   alertsCount = 0,
+  connectionStatus = 'disconnected',
+  lastUpdated = null,
+  onReconnect,
   onReset
 }) {
   const [timeStr, setTimeStr] = useState(() => {
@@ -39,6 +42,32 @@ export default function Header({
     : alertsCount > 0
     ? `${alertsCount} Active Alerts`
     : 'All systems nominal'
+
+  const isLive = connectionStatus === 'connected'
+  const isConnecting = connectionStatus === 'connecting'
+  const isReconnecting = connectionStatus === 'reconnecting'
+
+  const connLabel = isLive
+    ? 'LIVE'
+    : isConnecting
+    ? 'CONNECTING'
+    : isReconnecting
+    ? 'RECONNECTING'
+    : 'OFFLINE'
+
+  const connColor = isLive
+    ? 'var(--status-normal)'
+    : isConnecting || isReconnecting
+    ? 'var(--status-warning)'
+    : 'var(--text-muted)'
+
+  const connSub = isLive
+    ? '1s Telemetry'
+    : isConnecting
+    ? 'Connecting...'
+    : isReconnecting
+    ? 'Auto-retrying'
+    : 'Demo Fallback'
 
   return (
     <header className="cmd-header">
@@ -94,6 +123,38 @@ export default function Header({
               </span>
             </div>
             <span className="cmd-sub-status font-mono">{statusSub}</span>
+          </div>
+        </div>
+
+        <div className="cmd-sep" />
+
+        {/* Real-Time WebSocket Telemetry Stream Indicator */}
+        <div
+          className={`cmd-telemetry-item cmd-connection-item is-conn-${connectionStatus}`}
+          title={
+            isLive
+              ? `Real-Time Telemetry Stream Connected (1s sync)${lastUpdated ? ` • Last updated: ${lastUpdated.toLocaleTimeString()}` : ''}`
+              : isConnecting
+              ? 'Connecting to ResilienceOS WebSocket Telemetry stream...'
+              : isReconnecting
+              ? 'Reconnecting to ResilienceOS WebSocket Telemetry stream (click to retry)...'
+              : 'WebSocket Telemetry Disconnected — Running in Demo Fallback Mode (click to retry)'
+          }
+          onClick={!isLive && onReconnect ? onReconnect : undefined}
+          style={{ cursor: !isLive && onReconnect ? 'pointer' : 'default' }}
+        >
+          <span
+            className={`status-dot ${isLive || isConnecting || isReconnecting ? 'status-dot-pulse' : ''}`}
+            style={{ backgroundColor: connColor }}
+          />
+          <div className="cmd-item-col">
+            <div className="cmd-status-headline-row">
+              <span className="cmd-label">Stream:</span>
+              <span className="cmd-status-bold font-mono" style={{ color: connColor }}>
+                {connLabel}
+              </span>
+            </div>
+            <span className="cmd-sub-status font-mono">{connSub}</span>
           </div>
         </div>
 

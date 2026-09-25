@@ -61,6 +61,11 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
                 Rank #{recommendation_rank}
               </span>
             )}
+            {(strategy.pareto_optimal || strategy.is_pareto_optimal) && (
+              <span className="badge badge-cyan font-mono" style={{ fontSize: '9px', padding: '1px 5px' }}>
+                Pareto
+              </span>
+            )}
           </div>
           <div className="strategy-card-name">{strategy_name}</div>
         </div>
@@ -105,16 +110,23 @@ export default function StrategyCard({ strategy, isSelected, onSelect }) {
         </div>
       </div>
 
-      {/* Footer Details: Recovery & Risk */}
+      {/* Footer Details: Recovery, TOPSIS & Risk */}
       <div className="strategy-card-footer">
         <span className="strategy-footer-recovery">
           <Clock size={11} style={{ color: 'var(--text-muted)' }} />
           <span>Est. Recovery: </span>
           <strong className="font-mono" style={{ color: 'var(--text-secondary)' }}>{estimated_recovery_time_min}m</strong>
         </span>
-        <span className={`badge ${getRiskBadgeClass(risk_level)} font-mono`}>
-          {risk_level} Risk
-        </span>
+        <div style={{ display: 'flex', gap: '5px', alignItems: 'center' }}>
+          {typeof strategy.topsis_score === 'number' && (
+            <span className="badge badge-subtle font-mono" style={{ fontSize: '9px', padding: '1px 5px' }}>
+              {(strategy.topsis_score * 100).toFixed(0)}% TOPSIS
+            </span>
+          )}
+          <span className={`badge ${getRiskBadgeClass(risk_level)} font-mono`}>
+            {risk_level} Risk
+          </span>
+        </div>
       </div>
     </div>
   )

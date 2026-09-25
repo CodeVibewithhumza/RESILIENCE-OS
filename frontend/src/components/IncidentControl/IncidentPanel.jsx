@@ -11,6 +11,7 @@ export default function IncidentPanel({
   const isActive = incident?.is_active || false
   const targetAsset = incident?.source_asset_id || 'GRID_MAIN'
   const severity = incident?.severity || 'HIGH'
+  const failureType = incident?.failure_type || 'complete_outage'
   const affectedAssets = incident?.affected_asset_ids || []
   const affectedServices = incident?.affected_service_ids || []
 
@@ -41,7 +42,7 @@ export default function IncidentPanel({
         <div className="incident-spec-box">
           <div className="incident-scenario-name">
             <ShieldAlert size={15} style={{ color: isActive ? 'var(--status-critical)' : 'var(--accent-cyan)' }} />
-            <span>Catastrophic Main Grid Outage</span>
+            <span>{incident?.is_active && targetAsset !== 'GRID_MAIN' ? `Active Incident (${targetAsset})` : 'Catastrophic Main Grid Outage'}</span>
           </div>
 
           <div className="incident-meta-grid">
@@ -51,7 +52,7 @@ export default function IncidentPanel({
             </div>
             <div className="incident-meta-cell">
               <span className="incident-meta-key">Failure Type</span>
-              <span className="incident-meta-val font-mono">complete_outage</span>
+              <span className="incident-meta-val font-mono">{failureType}</span>
             </div>
             <div className="incident-meta-cell">
               <span className="incident-meta-key">Severity</span>

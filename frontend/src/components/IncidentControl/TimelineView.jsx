@@ -22,7 +22,9 @@ export default function TimelineView({
           {isIncidentActive ? (
             <>
               <span className="status-dot status-dot-pulse" style={{ backgroundColor: 'var(--status-critical)' }} />
-              <span>Cascade Unfolding (T+0 → T+20)</span>
+              <span>
+                Cascade Unfolding (T+{timeline[0]?.t_offset_min ?? 0} → T+{timeline[timeline.length - 1]?.t_offset_min ?? 20})
+              </span>
             </>
           ) : (
             'Deterministic Standby'
@@ -42,15 +44,23 @@ export default function TimelineView({
           if (isActive) statusClass = 'is-active'
           else if (isCompleted) statusClass = 'is-completed'
 
-          const scoreColor = step.system_resilience_score >= 70
-            ? 'var(--status-stable)'
-            : step.system_resilience_score >= 50
-            ? 'var(--status-warning)'
-            : 'var(--status-critical)'
+          const rawScore = typeof step.system_resilience_score === 'number'
+            ? step.system_resilience_score
+            : typeof step.resilience_score === 'number'
+            ? step.resilience_score
+            : null
+
+          const scoreColor = rawScore !== null
+            ? rawScore >= 70
+              ? 'var(--status-stable)'
+              : rawScore >= 50
+              ? 'var(--status-warning)'
+              : 'var(--status-critical)'
+            : 'var(--status-warning)'
 
           return (
             <div
-              key={step.t_offset_min}
+              key={step.t_offset_min !== undefined ? `milestone-${step.t_offset_min}` : `step-${idx}`}
               className={`timeline-step ${statusClass} ${isSelected ? 'is-selected' : ''}`}
               onClick={() => isIncidentActive && onSelectCheckpoint && onSelectCheckpoint(idx)}
               role="button"
@@ -75,14 +85,14 @@ export default function TimelineView({
                 <div className="timeline-card-top">
                   <div className="timeline-time-badge">
                     <span className="badge badge-cyan font-mono">
-                      T+{step.t_offset_min} MIN
+                      T+{step.t_offset_min ?? 0} MIN
                     </span>
                     <span className="timeline-title">{step.title}</span>
                   </div>
 
                   <div className="timeline-resilience-badge font-mono" style={{ color: scoreColor }}>
                     <span style={{ fontSize: '10px', color: 'var(--text-muted)' }}>PREDICTED:</span>
-                    <span>{step.system_resilience_score.toFixed(1)}</span>
+                    <span>{rawScore !== null ? rawScore.toFixed(1) : '--'}</span>
                   </div>
                 </div>
 

@@ -22,6 +22,10 @@ export default function Home({
   assets = [],
   services = [],
   incident,
+  connectionStatus = 'disconnected',
+  lastUpdated = null,
+  telemetry = null,
+  latestTwinEvent = null,
   onNavigate,
   onSelectAsset
 }) {
@@ -133,6 +137,8 @@ export default function Home({
       statusType: powerDisrupted ? 'critical' : powerDegraded ? 'warning' : 'normal',
       metric: powerDisrupted
         ? 'Grid Outage / Gen Online'
+        : telemetry?.total_hospital_load_kw
+        ? `${telemetry.total_hospital_load_kw.toFixed(0)} kW Load • ${powerAssets.filter((a) => a.status === 'normal' || a.status === 'offline').length}/${powerAssets.length} Nominal`
         : `${powerAssets.filter((a) => a.status === 'normal' || a.status === 'offline').length}/${powerAssets.length} Assets Nominal`,
       targetAnchor: 'assets'
     },
@@ -174,23 +180,58 @@ export default function Home({
     }
   ]
 
-  // Recent operational events list linked to canonical state
+  // Recent operational events list linked to canonical state and live twin events
   const recentEvents = useMemo(() => {
+    const list = []
+    if (latestTwinEvent) {
+      if (latestTwinEvent.type === 'failure_injected') {
+        list.push({
+          id: 'live-evt-failure',
+          text: `Real-time fault on ${latestTwinEvent.target_node_id || 'node'} (${latestTwinEvent.payload?.failure_type || 'failure'})`,
+          time: 'Live',
+          type: 'critical'
+        })
+      } else if (latestTwinEvent.type === 'strategy_applied') {
+        list.push({
+          id: 'live-evt-strat',
+          text: `Strategy ${latestTwinEvent.payload?.strategy_name || latestTwinEvent.payload?.strategy_id || ''} applied`,
+          time: 'Live',
+          type: 'normal'
+        })
+      } else if (latestTwinEvent.type === 'hospital_reset') {
+        list.push({
+          id: 'live-evt-reset',
+          text: 'Twin state reset to 100% operational baseline',
+          time: 'Live',
+          type: 'normal'
+        })
+      } else if (latestTwinEvent.type === 'simulation_run_persisted') {
+        list.push({
+          id: 'live-evt-persist',
+          text: `Simulation run persisted (ID: ${String(latestTwinEvent.payload?.simulation_id || '').slice(0, 8)})`,
+          time: 'Live',
+          type: 'normal'
+        })
+      }
+    }
+
     if (incident?.is_active) {
-      return [
+      list.push(
         { id: 'e1', text: 'Main grid outage injected at Substation A', time: 'Just now', type: 'critical' },
         { id: 'e2', text: 'Emergency Bus switched to backup feeder', time: 'T+0 min', type: 'critical' },
         { id: 'e3', text: 'GEN_01 diesel generator warmup initialized', time: 'T+5 min', type: 'warning' },
         { id: 'e4', text: 'Critical care care units switched to UPS reserve', time: 'T+10 min', type: 'warning' }
-      ]
+      )
+    } else {
+      list.push(
+        { id: 'e1', text: 'System status nominal', time: '2 min ago', type: 'normal' },
+        { id: 'e2', text: 'Telemetry sync active', time: '1s interval', type: 'normal' },
+        { id: 'e3', text: 'Simulation module ready', time: '12 min ago', type: 'normal' },
+        { id: 'e4', text: 'All critical services online', time: '18 min ago', type: 'normal' }
+      )
     }
-    return [
-      { id: 'e1', text: 'System status nominal', time: '2 min ago', type: 'normal' },
-      { id: 'e2', text: 'Telemetry sync completed', time: '6 min ago', type: 'normal' },
-      { id: 'e3', text: 'Simulation module ready', time: '12 min ago', type: 'normal' },
-      { id: 'e4', text: 'All critical services online', time: '18 min ago', type: 'normal' }
-    ]
-  }, [incident?.is_active])
+    return list.slice(0, 4)
+  }, [incident?.is_active, latestTwinEvent])
 
   const handleScrollTo = (anchorId) => {
     if (onNavigate) {
@@ -286,8 +327,36 @@ export default function Home({
                 REAL-TIME MONITORING
               </span>
               <span className="promo-live-dot-wrap">
-                <span className="status-dot status-dot-pulse" style={{ backgroundColor: 'var(--accent-cyan)' }} />
-                <span className="promo-live-text font-mono">TELEMETRY LIVE</span>
+                <span
+                  className={`status-dot ${connectionStatus === 'connected' || connectionStatus === 'connecting' || connectionStatus === 'reconnecting' ? 'status-dot-pulse' : ''}`}
+                  style={{
+                    backgroundColor:
+                      connectionStatus === 'connected'
+                        ? 'var(--accent-cyan)'
+                        : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
+                        ? 'var(--status-warning)'
+                        : 'var(--text-muted)'
+                  }}
+                />
+                <span
+                  className="promo-live-text font-mono"
+                  style={{
+                    color:
+                      connectionStatus === 'connected'
+                        ? 'var(--accent-cyan)'
+                        : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
+                        ? 'var(--status-warning)'
+                        : 'var(--text-muted)'
+                  }}
+                >
+                  {connectionStatus === 'connected'
+                    ? 'TELEMETRY LIVE'
+                    : connectionStatus === 'reconnecting'
+                    ? 'RECONNECTING...'
+                    : connectionStatus === 'connecting'
+                    ? 'CONNECTING...'
+                    : 'DEMO STANDBY'}
+                </span>
               </span>
             </div>
 
@@ -474,7 +543,11 @@ export default function Home({
               <div className="hud-panel-footer">
                 <span className="font-mono">Central Metropolitan Trauma Center</span>
                 <span style={{ color: 'var(--text-muted)' }}>•</span>
-                <span className="font-mono">Digital Twin Mode</span>
+                <span className="font-mono">
+                  {connectionStatus === 'connected'
+                    ? `Live Telemetry Sync${lastUpdated ? ` (${lastUpdated.toLocaleTimeString()})` : ''}`
+                    : 'Demo Fallback Mode'}
+                </span>
               </div>
             </div>
 
