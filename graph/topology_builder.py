@@ -75,6 +75,11 @@ class HospitalTopologyBuilder:
                 health_score=float(asset.get("health_score", 100.0)),
                 status=asset.get("status", "normal"),
                 floor=int(asset.get("floor", 0)),
+                position_x=float(asset.get("position", {}).get("x", 0.0)),
+                position_y=float(asset.get("position", {}).get("y", 0.0)),
+                position_z=float(asset.get("position", {}).get("z", 0.0)),
+                rotation_y=float(asset.get("rotation_y", 0.0)),
+                scale=float(asset.get("scale", 1.0)),
                 properties={
                     "type": asset["type"],
                     "location": asset.get("location"),
@@ -111,6 +116,11 @@ class HospitalTopologyBuilder:
                 health_score=100.0,
                 status=service.get("status", "full_operation"),
                 floor=int(service.get("floor", 0)),
+                position_x=float(service.get("position", {}).get("x", 0.0)),
+                position_y=float(service.get("position", {}).get("y", 0.0)),
+                position_z=float(service.get("position", {}).get("z", 0.0)),
+                rotation_y=float(service.get("rotation_y", 0.0)),
+                scale=float(service.get("scale", 1.0)),
                 properties={
                     "type": service["type"],
                     "location": service.get("location"),

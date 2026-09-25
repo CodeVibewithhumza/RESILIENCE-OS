@@ -24,6 +24,11 @@ class GraphNode(BaseModel):
     health_score: float = Field(default=100.0)
     status: str = Field(default="normal")
     floor: int = Field(default=0)
+    position_x: float = Field(default=0.0, description="3D X position")
+    position_y: float = Field(default=0.0, description="3D Y position")
+    position_z: float = Field(default=0.0, description="3D Z position")
+    rotation_y: float = Field(default=0.0, description="3D Y-axis rotation in degrees")
+    scale: float = Field(default=1.0, gt=0.0, description="3D asset display scale")
     properties: Dict[str, Any] = Field(default_factory=dict)
 
 class GraphEdge(BaseModel):

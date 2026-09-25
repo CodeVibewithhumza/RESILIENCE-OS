@@ -384,3 +384,99 @@ def test_backup_scenario_preserves_redundancy_path():
 
     assert "GEN_01" in generator_backups
     assert "UPS_CRITICAL" in ups_backups
+
+def test_graph_nodes_include_3d_mapping():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    node = graph.nodes["GRID_MAIN"]
+
+    assert node["position_x"] == -30.0
+    assert node["position_y"] == 0.0
+    assert node["position_z"] == 0.0
+    assert node["rotation_y"] == 0.0
+    assert node["scale"] == 1.0
+
+def test_final_graph_data_serializes_with_3d_mapping():
+    builder = HospitalTopologyBuilder()
+
+    nodes = builder.get_nodes_dict()
+    edges = builder.get_edges_dict()
+
+    assert len(nodes) == 16
+    assert len(edges) == 23
+
+    grid = next(node for node in nodes if node["id"] == "GRID_MAIN")
+
+    assert grid["position_x"] == -30.0
+    assert grid["position_y"] == 0.0
+    assert grid["position_z"] == 0.0
+    assert grid["rotation_y"] == 0.0
+    assert grid["scale"] == 1.0
+
+    for edge in edges:
+        assert "source" in edge
+        assert "target" in edge
+        assert "relationship" in edge
+        assert "dependency_strength" in edge
+        assert "is_redundant" in edge
+
+def test_end_to_end_graph_flow():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    assert len(graph.nodes) == 16
+    assert len(graph.edges) == 23
+
+    traversal = GraphTraversalEngine(graph)
+
+    downstream = traversal.get_downstream_subgraph("GRID_MAIN")
+    downstream_ids = {item["node_id"] for item in downstream}
+
+    assert "TRANSFORMER_01" in downstream_ids
+    assert "MAIN_BUS" in downstream_ids
+
+    emergency_downstream = traversal.get_downstream_subgraph("EMERGENCY_BUS")
+    emergency_ids = {item["node_id"] for item in emergency_downstream}
+
+    assert "SERVICE_ICU" in emergency_ids
+    assert "SERVICE_OT" in emergency_ids
+    assert "SERVICE_ER" in emergency_ids
+
+def test_final_graph_validation():
+    builder = HospitalTopologyBuilder()
+    graph = builder.graph
+
+    assert graph.is_directed()
+    assert len(graph.nodes) == 16
+    assert len(graph.edges) == 23
+
+    for node_id, node in graph.nodes(data=True):
+        assert node["id"] == node_id
+        assert node["category"] in {"infrastructure", "service"}
+        assert 1 <= node["criticality"] <= 5
+        assert 0.0 <= node["health_score"] <= 100.0
+        assert node["scale"] > 0
+
+    for source, target, edge in graph.edges(data=True):
+        assert source in graph.nodes
+        assert target in graph.nodes
+        assert edge["relationship"] in {
+            "SUPPLIES",
+            "FEEDS",
+            "POWERS",
+            "BACKS_UP",
+            "COOLS",
+            "PROVIDES_WATER",
+            "PROVIDES_GAS",
+            "DEPENDS_ON",
+        }
+        assert 0.0 <= edge["dependency_strength"] <= 1.0
+        assert 0.0 <= edge["threshold"] <= 1.0
+
+        if edge["is_redundant"]:
+            assert edge["relationship"] == "BACKS_UP"
+            assert edge["backup_type"] in {"generator", "ups"}
+
+    assert graph.has_edge("GRID_MAIN", "TRANSFORMER_01")
+    assert not graph.has_edge("TRANSFORMER_01", "GRID_MAIN")
