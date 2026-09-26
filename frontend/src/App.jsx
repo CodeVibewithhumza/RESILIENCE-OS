@@ -1,19 +1,16 @@
 import { useState, useCallback, useEffect, useRef, useMemo } from 'react'
 import Header from './components/Header/Header'
 import Sidebar from './components/Sidebar/Sidebar'
-import ResilienceCard from './components/ResilienceGauge/ResilienceCard'
-import IncidentPanel from './components/IncidentControl/IncidentPanel'
-import TimelineView from './components/IncidentControl/TimelineView'
-import TwinContainer from './components/DigitalTwin3D/TwinContainer'
+import IncidentTimelineView from './components/IncidentControl/IncidentTimelineView'
 import CausalDrawer from './components/Explainability/CausalDrawer'
-import StrategyMatrix from './components/StrategyLab/StrategyMatrix'
-import AssetGrid from './components/AssetCatalog/AssetGrid'
-import ServiceList from './components/ServiceStatus/ServiceList'
+import WhatIfView from './components/StrategyLab/WhatIfView'
 import Home from './components/Home/Home'
+import DigitalTwinView from './components/DigitalTwin3D/DigitalTwinView'
 import RiskResilienceView from './components/RiskResilience/RiskResilienceView'
 import ReportsView from './components/Reports/ReportsView'
 import SettingsView from './components/Settings/SettingsView'
 import StartSimulationView from './components/StartSimulation/StartSimulationView'
+import Toast from './components/common/Toast'
 import { useResilienceRealtime } from './hooks/useResilienceRealtime'
 import { getApiBaseUrl } from './config/api'
 import { getWhatIfAnalysis, injectFailure } from './services/simulationApi'
@@ -205,8 +202,42 @@ export default function App() {
   // Explainability drawer open/close state
   const [isExplainDrawerOpen, setIsExplainDrawerOpen] = useState(false)
 
+  // Phase 4: Toast feedback notification & reset operation state
+  const [toast, setToast] = useState(null)
+  const [isResetting, setIsResetting] = useState(false)
+
+  const showToast = useCallback((message, type = 'info') => {
+    setToast({ id: Date.now(), message, type })
+  }, [])
+
+  const hideToast = useCallback(() => {
+    setToast(null)
+  }, [])
+
+  // Theme state: dark / light with persistence
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('resilience_theme') || 'dark'
+  })
+
+  useEffect(() => {
+    document.documentElement.setAttribute('data-theme', theme)
+    localStorage.setItem('resilience_theme', theme)
+  }, [theme])
+
+  const handleToggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'))
+  }, [])
+
   // Navigation state for sidebar active indicator (dashboard, digital-twin, start-simulation, what-if, incident-timeline, risk-resilience, reports, settings)
   const [activeSection, setActiveSection] = useState('dashboard')
+  const mainContentRef = useRef(null)
+
+  // Scroll to top of main viewport when switching pages
+  useEffect(() => {
+    if (mainContentRef.current) {
+      mainContentRef.current.scrollTo({ top: 0, behavior: 'instant' })
+    }
+  }, [activeSection])
 
   // Shared asset and service selection state
   const [selectedStrategyId, setSelectedStrategyId] = useState(null)
@@ -320,7 +351,10 @@ export default function App() {
   }, [])
 
   // Reset to 100% normal baseline
-  const handleReset = useCallback(() => {
+  const handleReset = useCallback(async () => {
+    if (isResetting) return
+    setIsResetting(true)
+
     setIncident(INITIAL_INCIDENT_STATE)
     setResilience(INITIAL_RESILIENCE)
     setAssets(INITIAL_ASSETS)
@@ -335,15 +369,18 @@ export default function App() {
 
     try {
       const baseUrl = getApiBaseUrl()
-      fetch(`${baseUrl}/api/hospital/reset`, { method: 'POST' }).catch(() => {})
+      await fetch(`${baseUrl}/api/hospital/reset`, { method: 'POST' }).catch(() => {})
     } catch {
       // Offline fallback
     }
 
+    showToast('Hospital digital twin restored to 100% operational baseline', 'success')
+
     setTimeout(() => {
       fetchWhatIfAnalysis()
-    }, 200)
-  }, [fetchWhatIfAnalysis])
+      setIsResetting(false)
+    }, 250)
+  }, [isResetting, showToast, fetchWhatIfAnalysis])
 
   // Event callback: Synchronize incoming real-time telemetry and resilience score
   const handleTelemetryTick = useCallback(({ telemetry: tel, resilienceScore: score, statusLabel: label, deltaFromBaseline: delta }) => {
@@ -643,20 +680,26 @@ export default function App() {
           }))
         }
         fetchWhatIfAnalysis()
+        const sourceName = res.data.incident?.source_asset_id || payload.asset_id
+        showToast(`Disruption active on ${sourceName} — cascade simulation started`, 'warning')
         return { success: true, data: res.data }
       } else {
+        const errText = res.error || 'Failed to inject failure into digital twin'
+        showToast(errText, 'error')
         return {
           success: false,
-          error: res.error || 'Failed to inject failure into digital twin'
+          error: errText
         }
       }
     } catch (err) {
+      const errText = err?.message || 'Network error injecting failure'
+      showToast(errText, 'error')
       return {
         success: false,
-        error: err?.message || 'Network error injecting failure'
+        error: errText
       }
     }
-  }, [fetchWhatIfAnalysis])
+  }, [fetchWhatIfAnalysis, showToast])
 
   // Controlled fetch: when entering what-if view, or initial load for dashboard
   useEffect(() => {
@@ -750,166 +793,59 @@ export default function App() {
   }, [incident?.is_active, incident?.source_asset_id, incident?.title])
 
   return (
-    <div className="dashboard-shell">
-      {/* 1. Top Global Command Header */}
-      <Header
-        resilience={resilience}
-        scenarioName={scenarioTitle}
-        assetsCount={assets.length}
-        servicesCount={services.length}
-        alertsCount={activeAlertsCount}
-        connectionStatus={connectionStatus}
-        lastUpdated={lastUpdated}
-        onReconnect={reconnect}
-        onReset={handleReset}
+    <div className="dashboard-shell" data-theme={theme}>
+      {/* 1. Left Persistent Full-Height Command Sidebar */}
+      <Sidebar
+        activeSection={activeSection}
+        onNavigate={(sec) => setActiveSection(sec)}
+        incidentActive={incident.is_active}
       />
 
-      {/* 2. Workspace Body: Left Sidebar + Main Content */}
-      <div className="dashboard-layout-body">
-        {/* Left Persistent Command-Center Sidebar */}
-        <Sidebar
+      {/* 2. Main Content Workspace: Header + Page Content */}
+      <div className="dashboard-body-container">
+        {/* Global Operations Header spanning main content */}
+        <Header
           activeSection={activeSection}
-          onNavigate={(sec) => setActiveSection(sec)}
-          incidentActive={incident.is_active}
+          resilience={resilience}
+          scenarioName={scenarioTitle}
+          assetsCount={assets.length}
+          servicesCount={services.length}
+          alertsCount={activeAlertsCount}
+          connectionStatus={connectionStatus}
+          lastUpdated={lastUpdated}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onReconnect={reconnect}
+          onReset={handleReset}
+          isResetting={isResetting}
         />
 
         {/* Center Main Application Scroll View */}
-        <main className="dashboard-main-content">
+        <main ref={mainContentRef} className="dashboard-main-content">
           {/* VIEW ROUTING BASED ON ACTIVE SECTION */}
           {activeSection === 'dashboard' && (
-            <>
-              {/* A. Premium Home / Overview Landing Screen */}
-              <Home
-                resilience={resilience}
-                assets={assets}
-                services={services}
-                incident={incident}
-                connectionStatus={connectionStatus}
-                lastUpdated={lastUpdated}
-                telemetry={telemetry || INITIAL_TELEMETRY}
-                latestTwinEvent={latestTwinEvent}
-                onNavigate={(sec) => setActiveSection(sec)}
-                onSelectAsset={handleSelectAsset}
-              />
-
-              {/* B. DIGITAL TWIN + INCIDENT CONTROL */}
-              <section className="dashboard-section-block" id="digital-twin">
-                <div className="section-title-row">
-                  <span className="section-title-tag">PRIMARY VISUALIZATION & CONTROL</span>
-                  <h2 className="section-main-heading">Digital Twin Topology & Incident Injection</h2>
-                </div>
-
-                <div className="twin-incident-split-grid">
-                  <div className="twin-col">
-                    <TwinContainer
-                      assets={assets}
-                      services={services}
-                      selectedAssetId={selectedAssetId}
-                      onSelectAsset={handleSelectAsset}
-                    />
-                  </div>
-                  <div className="incident-col" id="incident-control">
-                    <IncidentPanel
-                      incident={incident}
-                      onTriggerFailure={handleTriggerFailure}
-                      onReset={handleReset}
-                      activeCheckpointIndex={activeCheckpointIndex}
-                      onNextCheckpoint={handleNextCheckpoint}
-                      onOpenExplainability={handleOpenExplainability}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* C. RESILIENCE + CASCADE */}
-              <section className="dashboard-section-block" id="resilience-cascade">
-                <div className="section-title-row">
-                  <span className="section-title-tag">RESILIENCE ANALYTICS</span>
-                  <h2 className="section-main-heading">Resilience Index Synthesis & Cascade Timeline</h2>
-                </div>
-
-                <div className="resilience-cascade-split-grid">
-                  <div className="resilience-col">
-                    <ResilienceCard resilience={resilience} />
-                  </div>
-                  <div className="cascade-col">
-                    <TimelineView
-                      timeline={effectiveTimeline}
-                      isIncidentActive={incident.is_active}
-                      activeCheckpointIndex={activeCheckpointIndex}
-                      onSelectCheckpoint={handleSelectCheckpoint}
-                    />
-                  </div>
-                </div>
-              </section>
-
-              {/* D. WHAT-IF STRATEGY LAB */}
-              <section className="dashboard-section-block" id="strategy-lab">
-                <div className="section-title-row">
-                  <span className="section-title-tag">DECISION SUPPORT SYSTEM</span>
-                  <h2 className="section-main-heading">What-If Strategy Simulation Lab</h2>
-                </div>
-
-                <StrategyMatrix
-                  strategies={effectiveStrategies}
-                  selectedStrategyId={selectedStrategyId}
-                  onSelectStrategy={setSelectedStrategyId}
-                  whatIfData={whatIfData}
-                  isLoading={whatIfLoading}
-                  error={whatIfError}
-                  onRefresh={fetchWhatIfAnalysis}
-                  isIncidentActive={incident.is_active}
-                />
-              </section>
-
-              {/* E. INFRASTRUCTURE ASSETS CATALOG */}
-              <section className="dashboard-section-block" id="assets">
-                <div className="section-title-row">
-                  <span className="section-title-tag">INFRASTRUCTURE TELEMETRY</span>
-                  <h2 className="section-main-heading">Subsystem Asset Monitoring Catalog</h2>
-                </div>
-
-                <AssetGrid
-                  assets={assets}
-                  selectedAssetId={selectedAssetId}
-                  onSelectAsset={handleSelectAsset}
-                />
-              </section>
-
-              {/* F. HOSPITAL CRITICAL SERVICES */}
-              <section className="dashboard-section-block" id="services">
-                <div className="section-title-row">
-                  <span className="section-title-tag">CLINICAL CONTINUITY</span>
-                  <h2 className="section-main-heading">Critical Care Services Impact</h2>
-                </div>
-
-                <ServiceList
-                  services={services}
-                  selectedServiceId={selectedServiceId}
-                  onSelectService={handleSelectService}
-                />
-              </section>
-            </>
+            <Home
+              resilience={resilience}
+              assets={assets}
+              services={services}
+              incident={incident}
+              connectionStatus={connectionStatus}
+              lastUpdated={lastUpdated}
+              telemetry={telemetry || INITIAL_TELEMETRY}
+              latestTwinEvent={latestTwinEvent}
+              onNavigate={(sec) => setActiveSection(sec)}
+              onSelectAsset={handleSelectAsset}
+            />
           )}
 
           {activeSection === 'digital-twin' && (
-            <section className="dashboard-section-block">
-              <div className="section-title-row">
-                <span className="section-title-tag">3D SPATIAL RECONSTRUCTION</span>
-                <h2 className="section-main-heading">Hospital BIM Digital Twin & Subsystem Nodes</h2>
-              </div>
-              <TwinContainer
-                assets={assets}
-                services={services}
-                selectedAssetId={selectedAssetId}
-                onSelectAsset={handleSelectAsset}
-              />
-              <AssetGrid
-                assets={assets}
-                selectedAssetId={selectedAssetId}
-                onSelectAsset={handleSelectAsset}
-              />
-            </section>
+            <DigitalTwinView
+              assets={assets}
+              services={services}
+              selectedAssetId={selectedAssetId}
+              onSelectAsset={handleSelectAsset}
+              onOpenExplainability={handleOpenExplainability}
+            />
           )}
 
           {activeSection === 'start-simulation' && (
@@ -919,55 +855,40 @@ export default function App() {
               incident={incident}
               onTriggerFailure={handleTriggerFailure}
               onReset={handleReset}
+              onNotify={showToast}
             />
           )}
 
           {activeSection === 'what-if' && (
-            <section className="dashboard-section-block">
-              <div className="section-title-row">
-                <span className="section-title-tag">MULTI-CRITERIA DECISION ANALYSIS</span>
-                <h2 className="section-main-heading">What-If Strategy Simulation & TOPSIS Ranking</h2>
-              </div>
-              <StrategyMatrix
-                strategies={effectiveStrategies}
-                selectedStrategyId={selectedStrategyId}
-                onSelectStrategy={setSelectedStrategyId}
-                whatIfData={whatIfData}
-                isLoading={whatIfLoading}
-                error={whatIfError}
-                onRefresh={fetchWhatIfAnalysis}
-                isIncidentActive={incident.is_active}
-              />
-            </section>
+            <WhatIfView
+              strategies={effectiveStrategies}
+              selectedStrategyId={selectedStrategyId}
+              onSelectStrategy={setSelectedStrategyId}
+              whatIfData={whatIfData}
+              isLoading={whatIfLoading}
+              error={whatIfError}
+              onRefresh={fetchWhatIfAnalysis}
+              isIncidentActive={incident.is_active}
+              incident={incident}
+              assets={assets}
+              services={services}
+              onNotify={showToast}
+            />
           )}
 
           {activeSection === 'incident-timeline' && (
-            <section className="dashboard-section-block">
-              <div className="section-title-row">
-                <span className="section-title-tag">CASCADE PROPAGATION</span>
-                <h2 className="section-main-heading">Incident Horizon & Cascade Timeline</h2>
-              </div>
-              <div className="twin-incident-split-grid">
-                <div className="twin-col">
-                  <TimelineView
-                    timeline={effectiveTimeline}
-                    isIncidentActive={incident.is_active}
-                    activeCheckpointIndex={activeCheckpointIndex}
-                    onSelectCheckpoint={handleSelectCheckpoint}
-                  />
-                </div>
-                <div className="incident-col">
-                  <IncidentPanel
-                    incident={incident}
-                    onTriggerFailure={handleTriggerFailure}
-                    onReset={handleReset}
-                    activeCheckpointIndex={activeCheckpointIndex}
-                    onNextCheckpoint={handleNextCheckpoint}
-                    onOpenExplainability={handleOpenExplainability}
-                  />
-                </div>
-              </div>
-            </section>
+            <IncidentTimelineView
+              incident={incident}
+              timeline={effectiveTimeline}
+              activeCheckpointIndex={activeCheckpointIndex}
+              onSelectCheckpoint={handleSelectCheckpoint}
+              onNextCheckpoint={handleNextCheckpoint}
+              onOpenExplainability={handleOpenExplainability}
+              onReset={handleReset}
+              assets={assets}
+              services={services}
+              resilience={resilience}
+            />
           )}
 
           {activeSection === 'risk-resilience' && (
@@ -983,11 +904,17 @@ export default function App() {
               resilience={resilience}
               incident={incident}
               assets={assets}
+              onNotify={showToast}
             />
           )}
 
           {activeSection === 'settings' && (
-            <SettingsView onReset={handleReset} />
+            <SettingsView
+              onReset={handleReset}
+              theme={theme}
+              onSetTheme={setTheme}
+              onNotify={showToast}
+            />
           )}
 
           {/* Footer Bar */}
@@ -1020,6 +947,9 @@ export default function App() {
         isLoading={isLoadingExplanations}
         error={explanationsError}
       />
+
+      {/* 4. Feedback Toast Container */}
+      <Toast toast={toast} onClose={hideToast} />
     </div>
   )
 }

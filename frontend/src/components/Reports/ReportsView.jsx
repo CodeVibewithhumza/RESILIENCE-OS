@@ -13,7 +13,7 @@ import {
 import { getSimulationReport } from '../../services/simulationApi'
 import './ReportsView.css'
 
-export default function ReportsView({ resilience, incident, assets = [] }) {
+export default function ReportsView({ resilience, incident, assets = [], onNotify }) {
   const [reportType, setReportType] = useState('incident')
   const [selectedFormat, setSelectedFormat] = useState('pdf')
   const [reportData, setReportData] = useState(null)
@@ -83,6 +83,7 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
     const customTitle = scopeScenario === 'active' ? null : scopeScenario
     await fetchReport(customTitle)
     setDownloadSuccess(true)
+    if (onNotify) onNotify('Simulation audit report successfully generated', 'success')
     setTimeout(() => setDownloadSuccess(false), 2500)
   }
 
@@ -92,9 +93,9 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
 
     // Excel and PowerPoint are unsupported by backend
     if (selectedFormat === 'excel' || selectedFormat === 'ppt') {
-      setFormatNotice(
-        `Format "${selectedFormat.toUpperCase()}" is unsupported by the backend. Use Markdown (.md), JSON (.json), or PDF Print.`
-      )
+      const msg = `Format "${selectedFormat.toUpperCase()}" is unsupported by backend. Use Markdown, JSON, or PDF Print.`
+      setFormatNotice(msg)
+      if (onNotify) onNotify(msg, 'warning')
       return
     }
 
@@ -102,6 +103,7 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
     if (selectedFormat === 'pdf') {
       window.print()
       setDownloadSuccess(true)
+      if (onNotify) onNotify('Opening executive PDF print dialog...', 'info')
       setTimeout(() => setDownloadSuccess(false), 3000)
       return
     }
@@ -137,6 +139,7 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
         setDownloadSuccess(true)
+        if (onNotify) onNotify(`Export completed: ${baseFilename}.json`, 'success')
         setTimeout(() => setDownloadSuccess(false), 3000)
       } catch (err) {
         setError(`JSON download failed: ${err.message}`)
@@ -166,6 +169,7 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
         document.body.removeChild(a)
         URL.revokeObjectURL(url)
         setDownloadSuccess(true)
+        if (onNotify) onNotify(`Export completed: ${baseFilename}.md`, 'success')
         setTimeout(() => setDownloadSuccess(false), 3000)
       } catch (err) {
         setIsGenerating(false)
@@ -252,10 +256,12 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
       {/* Report Type Category Selector Tabs */}
       <div className="report-tabs-bar">
         {[
-          { id: 'incident', label: 'Incident Analysis Report', icon: FileText },
-          { id: 'simulation', label: 'Simulation & Cascade Log', icon: FileCheck },
-          { id: 'whatif', label: 'What-If Comparison Report', icon: Layers },
-          { id: 'risk', label: 'Risk Assessment (SPOF)', icon: ShieldCheck }
+          { id: 'incident', label: 'Incident Report', icon: FileText },
+          { id: 'simulation', label: 'Simulation Report', icon: FileCheck },
+          { id: 'whatif', label: 'What-If Analysis Report', icon: Layers },
+          { id: 'risk', label: 'Risk Assessment Report', icon: ShieldCheck },
+          { id: 'audit', label: 'Infrastructure Audit', icon: FileSpreadsheet },
+          { id: 'executive', label: 'Executive Summary', icon: Presentation }
         ].map((tab) => {
           const Icon = tab.icon
           return (
@@ -361,7 +367,8 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
                   <span>JSON Data (.json)</span>
                 </button>
                 <button
-                  className={`format-pill ${selectedFormat === 'excel' ? 'active' : ''}`}
+                  type="button"
+                  className={`format-pill is-unsupported ${selectedFormat === 'excel' ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedFormat('excel')
                     setFormatNotice('Excel export (.xlsx) is currently unsupported by backend.')
@@ -372,7 +379,8 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
                   <span>Excel (N/A)</span>
                 </button>
                 <button
-                  className={`format-pill ${selectedFormat === 'ppt' ? 'active' : ''}`}
+                  type="button"
+                  className={`format-pill is-unsupported ${selectedFormat === 'ppt' ? 'active' : ''}`}
                   onClick={() => {
                     setSelectedFormat('ppt')
                     setFormatNotice('Presentation slides (.pptx) is currently unsupported by backend.')
@@ -607,6 +615,60 @@ export default function ReportsView({ resilience, incident, assets = [] }) {
 
         {/* Right Column: Live Generated Document Preview Card */}
         <div className="reports-right-col">
+          {/* Quick Reports 4-Card Section */}
+          <div className="report-card quick-reports-card">
+            <div className="report-card-header">
+              <span className="report-card-title">Quick Reports</span>
+              <span className="font-mono" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1-CLICK EXPORTS</span>
+            </div>
+            <div className="quick-reports-grid">
+              <button
+                type="button"
+                className="quick-report-btn"
+                onClick={() => { setSelectedFormat('pdf'); handleDownloadReport(); }}
+              >
+                <FileText size={15} style={{ color: 'var(--accent-cyan)' }} />
+                <div className="quick-report-meta">
+                  <span className="quick-name">Executive Summary</span>
+                  <span className="quick-type font-mono">PDF DOCUMENT</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="quick-report-btn"
+                onClick={() => { setSelectedFormat('json'); handleDownloadReport(); }}
+              >
+                <FileCheck size={15} style={{ color: '#10b981' }} />
+                <div className="quick-report-meta">
+                  <span className="quick-name">Technical Audit</span>
+                  <span className="quick-type font-mono">JSON TELEMETRY</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="quick-report-btn"
+                onClick={() => { setSelectedFormat('markdown'); handleDownloadReport(); }}
+              >
+                <Layers size={15} style={{ color: '#0284c7' }} />
+                <div className="quick-report-meta">
+                  <span className="quick-name">Incident Log</span>
+                  <span className="quick-type font-mono">MARKDOWN REPORT</span>
+                </div>
+              </button>
+              <button
+                type="button"
+                className="quick-report-btn"
+                onClick={() => { setSelectedFormat('json'); handleDownloadReport(); }}
+              >
+                <ShieldCheck size={15} style={{ color: '#f59e0b' }} />
+                <div className="quick-report-meta">
+                  <span className="quick-name">Asset Telemetry</span>
+                  <span className="quick-type font-mono">RAW AUDIT JSON</span>
+                </div>
+              </button>
+            </div>
+          </div>
+
           <div className="report-card document-preview-card">
             <div className="preview-top-bar">
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>

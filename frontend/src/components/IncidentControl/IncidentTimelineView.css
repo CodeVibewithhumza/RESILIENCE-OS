@@ -1,0 +1,613 @@
+/* ==========================================================================
+   Incident Timeline View Styles (IncidentTimelineView.css)
+   Matches official ResilienceOS Design reference for Incident Timeline
+   ========================================================================== */
+
+.incident-timeline-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+/* 1. TOP MILESTONE PROGRESSION BAR CARD */
+.timeline-progression-bar-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-shadow: var(--shadow-sm);
+}
+
+.progression-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.progression-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.progression-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.progression-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.progression-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.prog-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+}
+
+.prog-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.prog-btn:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.prog-btn:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+.prog-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.prog-next-btn {
+  background: rgba(6, 182, 212, 0.12);
+  border-color: rgba(6, 182, 212, 0.3);
+  color: var(--accent-cyan);
+}
+
+/* Milestones Horizontal Track */
+.milestones-track {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .milestones-track {
+    grid-template-columns: 1fr;
+  }
+}
+
+.milestone-node {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+  min-width: 0;
+  transition: transform 0.18s ease;
+}
+
+.milestone-node:hover:not(.is-current) .milestone-dot {
+  border-color: var(--accent-cyan);
+  background: var(--bg-hover);
+}
+
+.milestone-indicator-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.milestone-dot {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--bg-surface-elevated);
+  border: 2px solid var(--border-subtle);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+}
+
+.milestone-node.is-completed .milestone-dot {
+  background: var(--status-normal);
+  border-color: var(--status-normal);
+  color: #ffffff;
+}
+
+.milestone-node.is-current .milestone-dot {
+  border-color: var(--accent-cyan);
+  background: rgba(6, 182, 212, 0.2);
+  box-shadow: 0 0 10px rgba(6, 182, 212, 0.4);
+}
+
+.current-pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-cyan);
+  box-shadow: 0 0 6px var(--accent-cyan);
+}
+
+.milestone-line {
+  flex: 1;
+  height: 2px;
+  background: var(--border-subtle);
+  margin-left: 6px;
+}
+
+.milestone-node.is-completed .milestone-line {
+  background: var(--status-normal);
+}
+
+.milestone-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 2px;
+  min-width: 0;
+}
+
+.milestone-time {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.milestone-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.milestone-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* 2. MIDDLE 3-COLUMN GRID */
+.timeline-middle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.6fr 1.2fr;
+  gap: 16px;
+  align-items: stretch;
+  min-width: 0;
+}
+
+@media (max-width: 1200px) {
+  .timeline-middle-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.timeline-col-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-heading {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.card-sub {
+  font-size: 10px;
+  color: var(--text-muted);
+  letter-spacing: 0.05em;
+}
+
+/* Active Incident Card */
+.incident-id-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.incident-code {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-cyan);
+}
+
+.incident-name-sub {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.incident-specs-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spec-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+}
+
+.spec-k {
+  color: var(--text-muted);
+}
+
+.spec-v {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.affected-services-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid var(--border-subtle);
+  padding-top: 10px;
+}
+
+.affected-section-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.services-chips-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.service-status-chip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 8px;
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+
+.service-status-chip.is-at-risk .chip-dot {
+  background-color: var(--status-critical);
+  box-shadow: 0 0 6px var(--status-critical);
+}
+
+.service-status-chip.is-nominal .chip-dot {
+  background-color: var(--status-normal);
+}
+
+.chip-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  margin-right: 6px;
+}
+
+.chip-name {
+  flex: 1;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.chip-status {
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.incident-explain-btn {
+  margin-top: auto;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(6, 182, 212, 0.12);
+  border: 1px solid rgba(6, 182, 212, 0.3);
+  color: var(--accent-cyan);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.incident-explain-btn:hover {
+  background: rgba(6, 182, 212, 0.2);
+  border-color: var(--accent-cyan);
+}
+
+/* Temporal State (3D View) */
+.twin-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.temporal-canvas-wrapper {
+  height: 320px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  background: #030712;
+  position: relative;
+}
+
+.temporal-scrubber-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.scrubber-label {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.temporal-slider {
+  flex: 1;
+  accent-color: var(--accent-cyan);
+  cursor: pointer;
+}
+
+.temporal-slider:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+/* Event Log Card */
+.event-log-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.event-log-item {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: background-color 0.18s ease, border-color 0.18s ease;
+}
+
+.event-log-item:hover {
+  background-color: var(--bg-hover);
+  border-color: var(--border-default);
+}
+
+.log-top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 9px;
+}
+
+.log-time-tag {
+  color: var(--accent-cyan);
+  font-weight: 700;
+}
+
+.log-node {
+  color: var(--text-muted);
+}
+
+.log-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.log-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.dot-critical { background-color: var(--status-critical); }
+.dot-warning { background-color: var(--status-warning); }
+.dot-normal { background-color: var(--status-normal); }
+
+.log-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.log-desc {
+  font-size: 10px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* 3. BOTTOM ROW: 3 CARDS */
+.timeline-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1024px) {
+  .timeline-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Chart */
+.timeline-chart-legend {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 9px;
+}
+
+.leg-cyan { color: var(--accent-cyan); }
+.leg-blue { color: #0284c7; }
+.leg-green { color: #10b981; }
+
+.timeline-chart-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.timeline-chart-svg {
+  width: 100%;
+  height: 80px;
+}
+
+.timeline-chart-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+/* Heatmap */
+.service-heatmap-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+
+.heatmap-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 0;
+}
+
+.heatmap-svc-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  width: 90px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex-shrink: 0;
+}
+
+.heatmap-cells-track {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 1;
+  min-width: 0;
+}
+
+.hm-cell {
+  flex: 1;
+  height: 14px;
+  border-radius: var(--radius-xs);
+}
+
+.hm-nominal { background-color: rgba(16, 185, 129, 0.25); border: 1px solid rgba(16, 185, 129, 0.4); }
+.hm-warning { background-color: rgba(245, 158, 11, 0.35); border: 1px solid rgba(245, 158, 11, 0.5); }
+.hm-critical { background-color: rgba(239, 68, 68, 0.45); border: 1px solid rgba(239, 68, 68, 0.6); }
+
+/* Key Metrics */
+.timeline-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  min-width: 0;
+}
+
+.tm-metric-box {
+  background: var(--bg-surface-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-xs);
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.tm-metric-val {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.tm-metric-lbl {
+  font-size: 10px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

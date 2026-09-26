@@ -99,7 +99,8 @@ export default function StartSimulationView({
   services = [],
   incident = {},
   onTriggerFailure,
-  onReset
+  onReset,
+  onNotify
 }) {
   const [selectedCategory, setSelectedCategory] = useState('electrical')
   const [selectedIncident, setSelectedIncident] = useState('transformer')

@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import {
   LayoutDashboard,
   Layers,
@@ -8,10 +7,8 @@ import {
   ShieldCheck,
   FileText,
   Settings,
-  ChevronLeft,
-  ChevronRight,
-  Radio,
-  Building2
+  Building2,
+  Radio
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -20,8 +17,6 @@ export default function Sidebar({
   onNavigate,
   incidentActive = false
 }) {
-  const [isCollapsed, setIsCollapsed] = useState(false)
-
   const navItems = [
     {
       id: 'dashboard',
@@ -44,7 +39,7 @@ export default function Sidebar({
     },
     {
       id: 'what-if',
-      label: 'What-If Analysis',
+      label: 'What-if Analysis',
       icon: Sliders,
       badge: '6 Labs'
     },
@@ -73,7 +68,7 @@ export default function Sidebar({
       id: 'settings',
       label: 'Settings',
       icon: Settings,
-      badge: 'v1.0'
+      badge: null
     }
   ]
 
@@ -81,47 +76,29 @@ export default function Sidebar({
     if (onNavigate) {
       onNavigate(id)
     }
-    const targetElement = document.getElementById(id)
-    if (targetElement) {
-      targetElement.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }
   }
 
   return (
-    <aside className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''}`}>
-      {/* 1. Sidebar Top Domain Identity Card */}
+    <aside className="command-sidebar">
+      {/* 1. Sidebar Top Domain Brand Header */}
       <div className="sidebar-top">
         <div className="sidebar-domain-info">
           <div className="sidebar-domain-badge">
-            <Building2 size={16} className="sidebar-domain-icon" />
+            <Building2 size={18} className="sidebar-domain-icon" />
           </div>
-          {!isCollapsed && (
-            <div className="domain-meta">
-              <span className="domain-title">Hospital Infrastructure</span>
-              <span className="domain-sub">Digital Twin OS</span>
-              <span className="domain-tagline">Predict • Prepare • Protect</span>
-            </div>
-          )}
+          <div className="domain-meta">
+            <span className="domain-title">
+              Resilience<span className="domain-title-accent">OS</span>
+            </span>
+            <span className="domain-sub">Hospital Infrastructure Digital Twin</span>
+          </div>
         </div>
-
-        <button
-          type="button"
-          className="sidebar-toggle-btn"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-          aria-label={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
-        >
-          {isCollapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
-        </button>
       </div>
 
       {/* 2. Main Navigation Section */}
       <nav className="sidebar-nav">
         {/* CORE OPERATIONS */}
         <div className="sidebar-nav-group">
-          {!isCollapsed && (
-            <span className="sidebar-group-label">Core Operations</span>
-          )}
           <ul className="sidebar-menu">
             {navItems.map((item) => {
               const Icon = item.icon
@@ -133,24 +110,19 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
-                    title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon size={16} className="nav-btn-icon" />
-                    {!isCollapsed && (
-                      <>
-                        <span className="nav-btn-label">{item.label}</span>
-                        {item.badge && (
-                          <span
-                            className={`nav-btn-badge ${
-                              item.badgeType === 'critical'
-                                ? 'badge-critical'
-                                : 'badge-subtle'
-                            }`}
-                          >
-                            {item.badge}
-                          </span>
-                        )}
-                      </>
+                    <Icon size={17} className="nav-btn-icon" />
+                    <span className="nav-btn-label">{item.label}</span>
+                    {item.badge && (
+                      <span
+                        className={`nav-btn-badge ${
+                          item.badgeType === 'critical'
+                            ? 'badge-critical'
+                            : 'badge-subtle'
+                        }`}
+                      >
+                        {item.badge}
+                      </span>
                     )}
                   </button>
                 </li>
@@ -159,11 +131,9 @@ export default function Sidebar({
           </ul>
         </div>
 
-        {/* SYSTEM VIEWS */}
+        {/* SYSTEM */}
         <div className="sidebar-nav-group">
-          {!isCollapsed && (
-            <span className="sidebar-group-label">System</span>
-          )}
+          <span className="sidebar-group-label">SYSTEM</span>
           <ul className="sidebar-menu">
             {systemItems.map((item) => {
               const Icon = item.icon
@@ -175,16 +145,13 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
-                    title={isCollapsed ? item.label : undefined}
                   >
-                    <Icon size={16} className="nav-btn-icon" />
-                    {!isCollapsed && (
-                      <>
-                        <span className="nav-btn-label">{item.label}</span>
-                        <span className="nav-btn-badge badge-subtle">
-                          {item.badge}
-                        </span>
-                      </>
+                    <Icon size={17} className="nav-btn-icon" />
+                    <span className="nav-btn-label">{item.label}</span>
+                    {item.badge && (
+                      <span className="nav-btn-badge badge-subtle">
+                        {item.badge}
+                      </span>
                     )}
                   </button>
                 </li>
@@ -194,49 +161,16 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* 3. Bottom Digital Twin Engine Status Panel */}
-      {!isCollapsed && (
-        <div className="sidebar-footer">
-          <div className="sidebar-telemetry-box">
-            <div className="telemetry-header">
-              <Radio size={12} className="telemetry-icon" />
-              <span>SIMULATION ENGINE</span>
-            </div>
-            <div className="telemetry-row">
-              <span className="telemetry-key">State:</span>
-              <span
-                className="telemetry-val font-mono"
-                style={{
-                  color: 'var(--status-normal)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 5
-                }}
-              >
-                <span
-                  className="status-dot status-dot-pulse"
-                  style={{ backgroundColor: 'var(--status-normal)', width: 6, height: 6 }}
-                />
-                SYNCHRONIZED
-              </span>
-            </div>
-            <div className="telemetry-row">
-              <span className="telemetry-key">Nodes:</span>
-              <span className="telemetry-val font-mono">52 Monitored</span>
-            </div>
-            <div className="telemetry-row">
-              <span className="telemetry-key">Subsystems:</span>
-              <span className="telemetry-val font-mono">6 Connected</span>
-            </div>
-            <div className="telemetry-row">
-              <span className="telemetry-key">Last Sync:</span>
-              <span className="telemetry-val font-mono" style={{ color: 'var(--text-muted)' }}>
-                Real-time 1s
-              </span>
-            </div>
+      {/* 3. Bottom Simulation Mode Card */}
+      <div className="sidebar-footer">
+        <div className="sidebar-sim-mode-card">
+          <div className="sim-mode-status-row">
+            <span className="sim-mode-dot" />
+            <span className="sim-mode-title">SIMULATION MODE</span>
           </div>
+          <span className="sim-mode-sub">Synthetic Infrastructure Data</span>
         </div>
-      )}
+      </div>
     </aside>
   )
 }

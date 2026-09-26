@@ -5,31 +5,36 @@
 
 .dashboard-shell {
   display: flex;
-  flex-direction: column;
-  min-height: 100vh;
+  flex-direction: row;
+  height: 100vh;
+  width: 100vw;
   background-color: var(--bg-base);
   color: var(--text-primary);
+  overflow: hidden;
   position: relative;
 }
 
-.dashboard-layout-body {
+.dashboard-body-container {
   display: flex;
+  flex-direction: column;
   flex: 1;
-  min-height: calc(100vh - 56px);
+  height: 100vh;
+  min-width: 0;
+  overflow: hidden;
   position: relative;
 }
 
 .dashboard-main-content {
   flex: 1;
-  padding: 24px 32px 64px;
+  padding: 20px 24px 48px;
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 20px;
   overflow-y: auto;
-  max-width: 1760px;
-  margin: 0 auto;
+  overflow-x: hidden;
   width: 100%;
 }
+
 
 /* ==========================================================================
    Section Title & Headers (Cyber Tagged Layout)

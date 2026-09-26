@@ -6,21 +6,21 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
 :root {
-  /* Canvas & Obsidian Surfaces */
-  --bg-base: #030712;
-  --bg-surface: #060b18;
-  --bg-panel: #091024;
-  --bg-panel-elevated: #0e1732;
-  --bg-panel-glass: rgba(9, 16, 36, 0.85);
-  --bg-card-glass: rgba(14, 23, 50, 0.72);
-  --bg-subtle: rgba(255, 255, 255, 0.03);
+  /* Canvas & Obsidian Surfaces (Dark Theme Default) */
+  --bg-base: #070e1b;
+  --bg-surface: #0c182b;
+  --bg-panel: #0d192d;
+  --bg-panel-elevated: #11223b;
+  --bg-panel-glass: rgba(13, 25, 45, 0.88);
+  --bg-card-glass: rgba(16, 30, 54, 0.82);
+  --bg-subtle: rgba(255, 255, 255, 0.04);
   --bg-hover: rgba(0, 240, 255, 0.08);
   --bg-active: rgba(0, 240, 255, 0.16);
 
   /* Luminous Border Hierarchy */
-  --border-subtle: rgba(30, 58, 102, 0.5);
-  --border-default: rgba(45, 80, 138, 0.65);
-  --border-bright: rgba(56, 189, 248, 0.45);
+  --border-subtle: rgba(30, 58, 95, 0.55);
+  --border-default: #1b2e4b;
+  --border-bright: rgba(56, 189, 248, 0.5);
   --border-focus: #00f0ff;
   --border-cyan-glow: rgba(0, 240, 255, 0.4);
   --border-cyan-bright: rgba(34, 211, 238, 0.8);
@@ -64,20 +64,35 @@
   --status-offline-bg: rgba(100, 116, 139, 0.14);
   --status-offline-border: rgba(100, 116, 139, 0.35);
 
+  /* Surface Aliases */
+  --bg-surface-elevated: #11223b;
+  --bg-surface-hover: rgba(0, 240, 255, 0.08);
+
+  /* Controlled Typography Scale */
+  --text-page-title: 18px;
+  --text-page-subtitle: 12px;
+  --text-card-title: 14px;
+  --text-section-title: 13px;
+  --text-kpi-value: 18px;
+  --text-body: 13px;
+  --text-label: 11px;
+  --text-meta: 10px;
+  --text-badge: 9px;
+
   /* Typography */
   --text-primary: #f8fafc;
   --text-secondary: #94a3b8;
   --text-muted: #64748b;
   --text-dim: #475569;
-  --text-inverse: #030712;
+  --text-inverse: #070e1b;
 
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Shadows & Depth */
-  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.5);
-  --shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.65), 0 2px 8px -2px rgba(0, 0, 0, 0.5);
-  --shadow-panel: 0 16px 40px -4px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(0, 240, 255, 0.08);
+  --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
+  --shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.6), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
+  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(56, 189, 248, 0.08);
   --shadow-cyan: 0 0 25px rgba(0, 240, 255, 0.25);
   --shadow-critical: 0 0 26px rgba(239, 68, 68, 0.35);
 
@@ -87,6 +102,79 @@
   --radius-md: 10px;
   --radius-lg: 14px;
   --radius-full: 9999px;
+}
+
+[data-theme="light"] {
+  /* Canvas & Light Surfaces */
+  --bg-base: #f0f4f9;
+  --bg-surface: #ffffff;
+  --bg-panel: #ffffff;
+  --bg-panel-elevated: #f8fafc;
+  --bg-panel-glass: rgba(255, 255, 255, 0.94);
+  --bg-card-glass: rgba(255, 255, 255, 0.96);
+  --bg-subtle: #f1f5f9;
+  --bg-hover: rgba(2, 132, 199, 0.08);
+  --bg-active: rgba(2, 132, 199, 0.14);
+
+  /* Clean Crisp Border Hierarchy */
+  --border-subtle: #e2e8f0;
+  --border-default: #cbd5e1;
+  --border-bright: #94a3b8;
+  --border-focus: #0284c7;
+  --border-cyan-glow: rgba(2, 132, 199, 0.2);
+  --border-cyan-bright: #0284c7;
+
+  /* Primary Brand & Accents for Light Mode */
+  --accent-cyan: #0284c7;
+  --accent-cyan-light: #0ea5e9;
+  --accent-cyan-dim: rgba(2, 132, 199, 0.1);
+  --accent-cyan-hover: #0369a1;
+  --accent-cyan-glow: rgba(2, 132, 199, 0.2);
+  --accent-teal: #0d9488;
+  --accent-blue: #2563eb;
+  --accent-indigo: #4f46e5;
+
+  /* Operational Status Tokens */
+  --status-normal: #059669;
+  --status-normal-bg: rgba(5, 150, 105, 0.1);
+  --status-normal-border: rgba(5, 150, 105, 0.3);
+
+  --status-stable: #0284c7;
+  --status-stable-bg: rgba(2, 132, 199, 0.1);
+  --status-stable-border: rgba(2, 132, 199, 0.3);
+
+  --status-warning: #d97706;
+  --status-warning-bg: rgba(217, 119, 6, 0.1);
+  --status-warning-border: rgba(217, 119, 6, 0.3);
+
+  --status-critical: #dc2626;
+  --status-critical-bg: rgba(220, 38, 38, 0.1);
+  --status-critical-border: rgba(220, 38, 38, 0.3);
+
+  --status-failed: #b91c1c;
+  --status-failed-bg: rgba(185, 28, 28, 0.14);
+  --status-failed-border: rgba(185, 28, 28, 0.4);
+
+  --status-offline: #64748b;
+  --status-offline-bg: rgba(100, 116, 139, 0.08);
+  --status-offline-border: rgba(100, 116, 139, 0.25);
+
+  /* Surface Aliases */
+  --bg-surface-elevated: #f8fafc;
+  --bg-surface-hover: rgba(2, 132, 199, 0.08);
+
+  /* Typography */
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Shadows & Depth */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px #e2e8f0;
+  --shadow-cyan: 0 2px 10px rgba(2, 132, 199, 0.15);
 }
 
 /* ==========================================================================
@@ -153,19 +241,45 @@ html, body {
   font-family: var(--font-mono);
 }
 
+/* Typography & Layout Polish Utilities */
+.text-truncate {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.min-w-0 {
+  min-width: 0;
+}
+
+.flex-vcenter {
+  display: flex;
+  align-items: center;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
 /* Reusable Badges */
 .badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 5px;
   padding: 3px 8px;
   font-size: 10px;
+  line-height: 1.2;
   font-weight: 700;
   border-radius: var(--radius-xs);
   letter-spacing: 0.05em;
   text-transform: uppercase;
   user-select: none;
   border: 1px solid transparent;
+  white-space: nowrap;
+  flex-shrink: 0;
   transition: all 0.15s ease;
 }
 
@@ -244,4 +358,74 @@ html, body {
 @keyframes radarSweep {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
+/* Universal Accessible Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--accent-cyan);
+  outline-offset: 2px;
+}
+
+[data-theme="light"] :focus-visible {
+  outline: 2px solid #0284c7;
+  outline-offset: 2px;
+}
+
+/* Universal Button Interaction */
+button {
+  user-select: none;
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Form Control Focus States */
+select:hover:not(:disabled),
+input[type="text"]:hover:not(:disabled),
+input[type="number"]:hover:not(:disabled) {
+  border-color: var(--border-default);
+}
+
+select:focus,
+input[type="text"]:focus,
+input[type="number"]:focus {
+  outline: none;
+  border-color: var(--accent-cyan);
+  box-shadow: 0 0 0 2px rgba(6, 182, 212, 0.2);
+}
+
+[data-theme="light"] select:focus,
+[data-theme="light"] input[type="text"]:focus,
+[data-theme="light"] input[type="number"]:focus {
+  border-color: #0284c7;
+  box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
+}
+
+.interactive-hover-lift {
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.interactive-hover-lift:hover {
+  transform: translateY(-1px);
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-md);
+}
+
+.interactive-hover-lift:active {
+  transform: translateY(0);
 }

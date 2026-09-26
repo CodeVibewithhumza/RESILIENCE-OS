@@ -1,12 +1,13 @@
 /* ==========================================================================
    Risk & Resilience View Styles (RiskResilienceView.css)
+   Matches official ResilienceOS Design reference for Risk & Resilience
    ========================================================================== */
 
 .risk-resilience-page {
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  animation: fadeIn 0.25s ease-out;
+  gap: 16px;
+  width: 100%;
 }
 
 .risk-header-row {
@@ -18,16 +19,16 @@
 }
 
 .risk-page-title {
-  font-size: 20px;
-  font-weight: 800;
-  color: #f8fafc;
-  letter-spacing: -0.02em;
-  margin: 0 0 4px 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+  margin: 0 0 2px 0;
 }
 
 .risk-page-subtitle {
-  font-size: 13px;
-  color: var(--text-muted, #94a3b8);
+  font-size: 12px;
+  color: var(--text-secondary);
   margin: 0;
 }
 
@@ -35,36 +36,56 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1px solid rgba(56, 189, 248, 0.3);
-  padding: 5px 12px;
-  border-radius: 6px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
   font-size: 11px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
-/* KPI Grid */
+/* 1. TOP 6 KPI GRID */
 .risk-kpi-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(6, 1fr);
   gap: 12px;
+  min-width: 0;
+}
+
+@media (max-width: 1300px) {
+  .risk-kpi-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .risk-kpi-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 .risk-kpi-card {
-  background: var(--bg-card, #0f172a);
-  border: 1px solid var(--border-default, #1e293b);
-  border-radius: var(--radius-md, 8px);
-  padding: 14px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.15s ease, border-color 0.15s ease;
+  min-width: 0;
+}
+
+.risk-kpi-card:hover {
+  border-color: var(--border-default);
+  transform: translateY(-1px);
 }
 
 .kpi-icon-wrap {
-  width: 38px;
-  height: 38px;
-  border-radius: 8px;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-xs);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -72,65 +93,65 @@
 }
 
 .kpi-label {
-  font-size: 11px;
-  color: var(--text-muted, #94a3b8);
+  font-size: 10px;
+  color: var(--text-muted);
   display: block;
   margin-bottom: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .kpi-val-row {
   display: flex;
-  align-items: center;
+  align-items: baseline;
   gap: 6px;
+  min-width: 0;
 }
 
 .kpi-val {
-  font-size: 16px;
-  font-weight: 800;
-  color: #f8fafc;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .kpi-delta {
   font-size: 10px;
-  font-weight: 700;
-  padding: 1px 4px;
-  border-radius: 3px;
+  font-weight: 600;
 }
 
 .kpi-delta.positive {
-  color: #10b981;
-  background: rgba(16, 185, 129, 0.15);
+  color: var(--status-normal);
 }
 
 .kpi-delta.negative {
-  color: #ef4444;
-  background: rgba(239, 68, 68, 0.15);
+  color: var(--status-critical);
 }
 
-/* Middle & Bottom Grids */
-.risk-middle-grid,
-.risk-bottom-grid {
+/* 2. MIDDLE ROW */
+.risk-middle-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1.8fr 1fr;
   gap: 16px;
 }
 
-@media (max-width: 1024px) {
-  .risk-middle-grid,
-  .risk-bottom-grid {
+@media (max-width: 1100px) {
+  .risk-middle-grid {
     grid-template-columns: 1fr;
   }
 }
 
 .risk-card {
-  background: var(--bg-card, #0f172a);
-  border: 1px solid var(--border-default, #1e293b);
-  border-radius: var(--radius-md, 8px);
-  padding: 18px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  box-shadow: var(--shadow-sm);
 }
 
 .risk-card-header {
@@ -140,19 +161,23 @@
 }
 
 .risk-card-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #f8fafc;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-/* 5 Factors Circle Row */
+/* 5 Resilience Pillars Dials */
 .factors-circle-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
-  gap: 12px;
-  padding: 10px 0;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .factors-circle-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .factor-dial-item {
@@ -160,68 +185,77 @@
   flex-direction: column;
   align-items: center;
   text-align: center;
+  gap: 6px;
+  min-width: 0;
 }
 
 .factor-circular-wrap {
   position: relative;
-  width: 64px;
-  height: 64px;
-  margin-bottom: 8px;
+  width: 56px;
+  height: 56px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .factor-svg {
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
 }
 
 .factor-bg {
   fill: none;
-  stroke: rgba(255, 255, 255, 0.08);
-  stroke-width: 3.2;
+  stroke: var(--bg-surface-elevated);
+  stroke-width: 3.5;
 }
 
 .factor-fill {
   fill: none;
-  stroke-width: 3.2;
+  stroke-width: 3.5;
   stroke-linecap: round;
   transition: stroke-dasharray 0.5s ease;
 }
 
 .factor-number {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 13px;
-  font-weight: 800;
-  color: #f8fafc;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
 .factor-name {
   font-size: 11px;
-  font-weight: 700;
-  color: #e2e8f0;
-  margin-bottom: 2px;
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .factor-desc {
-  font-size: 9.5px;
-  color: var(--text-muted, #94a3b8);
+  font-size: 9px;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
-/* Donut Body */
+/* Risk Donut */
 .donut-body-row {
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 18px;
+  padding: 8px 0;
 }
 
 .donut-visual-box {
-  width: 110px;
-  height: 110px;
+  width: 100px;
+  height: 100px;
   border-radius: 50%;
-  background: conic-gradient(#ef4444 0% 6%, #f59e0b 6% 16%, #10b981 16% 39%, #38bdf8 39% 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -229,10 +263,10 @@
 }
 
 .donut-center-stat {
-  width: 76px;
-  height: 76px;
+  width: 68px;
+  height: 68px;
   border-radius: 50%;
-  background: #0f172a;
+  background: var(--bg-surface);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -242,19 +276,20 @@
 .donut-huge-num {
   font-size: 18px;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--text-primary);
+  line-height: 1;
 }
 
 .donut-label {
-  font-size: 9px;
-  color: #94a3b8;
+  font-size: 8px;
+  color: var(--text-muted);
   text-transform: uppercase;
 }
 
 .donut-legend-col {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
   flex: 1;
 }
 
@@ -263,88 +298,120 @@
   align-items: center;
   gap: 8px;
   font-size: 11px;
-  color: #cbd5e1;
+  color: var(--text-secondary);
 }
 
 .legend-bullet {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  flex-shrink: 0;
 }
 
 .percentage {
   margin-left: auto;
   font-weight: 700;
-  color: #f8fafc;
+  color: var(--text-primary);
 }
 
-/* Risk Table */
+/* 3. BOTTOM ROW */
+.risk-bottom-grid {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr;
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (max-width: 1100px) {
+  .risk-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
 .risk-table-wrap {
   overflow-x: auto;
+  min-width: 0;
 }
 
 .risk-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11.5px;
+  font-size: 11px;
 }
 
 .risk-table th {
   text-align: left;
-  padding: 8px 12px;
-  color: #94a3b8;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 8px 10px;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border-subtle);
   font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.04em;
+  vertical-align: middle;
 }
 
 .risk-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-  color: #e2e8f0;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: middle;
 }
 
-/* Service Risk List */
+.risk-table tbody tr {
+  transition: background-color 0.15s ease;
+}
+
+.risk-table tbody tr:hover {
+  background-color: var(--bg-hover);
+}
+
 .service-risk-list {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
 
 .service-risk-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  padding: 4px 6px;
+  border-radius: var(--radius-xs);
+  transition: background-color 0.15s ease;
+}
+
+.service-risk-row:hover {
+  background-color: var(--bg-hover);
 }
 
 .service-risk-name-col {
-  width: 170px;
+  width: 140px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
 }
 
 .service-name-text {
-  font-size: 11.5px;
-  font-weight: 700;
-  color: #f1f5f9;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-primary);
 }
 
 .service-status-pill {
   font-size: 9px;
-  color: #94a3b8;
+  color: var(--text-muted);
 }
 
 .service-score-bar-wrap {
   flex: 1;
   height: 6px;
-  background: rgba(255, 255, 255, 0.08);
-  border-radius: 3px;
+  background: var(--bg-surface-elevated);
+  border-radius: 9999px;
   overflow: hidden;
 }
 
 .service-score-bar-fill {
   height: 100%;
+  border-radius: 9999px;
   transition: width 0.4s ease;
 }

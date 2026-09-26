@@ -10,49 +10,65 @@ import {
   ShieldAlert,
   Save,
   RotateCcw,
-  Check
+  Check,
+  Server,
+  Layers
 } from 'lucide-react'
 import './SettingsView.css'
 
-export default function SettingsView({ onReset }) {
+export default function SettingsView({ onReset, theme = 'dark', onSetTheme, onNotify }) {
   const [activeTab, setActiveTab] = useState('model')
-  const [themeMode, setThemeMode] = useState('dark')
   const [simSpeed, setSimSpeed] = useState(1)
-  const [autoRotate3D, setAutoRotate3D] = useState(false)
-  const [showLabels3D, setShowLabels3D] = useState(true)
-  const [buildingOpacity, setBuildingOpacity] = useState(100)
+  const [cascadeSpeed, setCascadeSpeed] = useState(5)
+  const [monteCarloRuns, setMonteCarloRuns] = useState(500)
+  const [criticalFloor, setCriticalFloor] = useState(60)
+  const [batteryThreshold, setBatteryThreshold] = useState(20)
+  const [fuelThreshold, setFuelThreshold] = useState(40)
+  const [renderQuality, setRenderQuality] = useState('high')
+  const [showCompass, setShowCompass] = useState(true)
+  const [showParticles, setShowParticles] = useState(true)
   const [isSaved, setIsSaved] = useState(false)
 
   const handleSave = () => {
     setIsSaved(true)
-    setTimeout(() => setIsSaved(false), 2500)
+    if (onNotify) {
+      onNotify('System parameters & model configurations updated', 'success')
+    }
+    setTimeout(() => setIsSaved(false), 2000)
   }
 
-  const toggleTheme = (theme) => {
-    setThemeMode(theme)
-    if (theme === 'light') {
-      document.body.classList.add('light-theme')
-    } else {
-      document.body.classList.remove('light-theme')
+  const handleThemeChange = (newTheme) => {
+    if (onSetTheme) {
+      onSetTheme(newTheme)
     }
   }
+
+  const settingTabs = [
+    { id: 'general', label: 'General', icon: Sliders },
+    { id: 'model', label: 'Hospital Model', icon: Building },
+    { id: 'assets', label: 'Assets & Services', icon: Server },
+    { id: 'simulation', label: 'Simulation', icon: Activity },
+    { id: 'thresholds', label: 'Thresholds', icon: ShieldAlert },
+    { id: 'visualization', label: 'Visualization', icon: SlidersHorizontal },
+    { id: 'data', label: 'Data & System', icon: Database }
+  ]
 
   return (
     <div className="settings-page">
       {/* Header Bar */}
       <div className="settings-header-row">
         <div>
-          <h1 className="settings-page-title">System Settings & Model Configuration</h1>
+          <h1 className="settings-page-title">Settings & System Configuration</h1>
           <p className="settings-page-subtitle">
-            Configure hospital topology parameters, simulation thresholds, 3D visualization options, and theme preferences
+            Hospital infrastructure parameters, simulation rules, visualization options, and system preferences
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-          <button className="settings-reset-btn" onClick={onReset}>
+        <div className="settings-actions-group">
+          <button type="button" className="settings-reset-btn" onClick={onReset} title="Reset to baseline">
             <RotateCcw size={13} />
-            <span>Reset All</span>
+            <span>Reset Baseline</span>
           </button>
-          <button className="settings-save-btn" onClick={handleSave}>
+          <button type="button" className="settings-save-btn" onClick={handleSave}>
             {isSaved ? (
               <>
                 <Check size={14} style={{ color: '#10B981' }} />
@@ -61,29 +77,25 @@ export default function SettingsView({ onReset }) {
             ) : (
               <>
                 <Save size={13} />
-                <span>Save Configuration</span>
+                <span>Save Changes</span>
               </>
             )}
           </button>
         </div>
       </div>
 
-      {/* Setting Navigation Tabs */}
+      {/* 7 Setting Navigation Tabs */}
       <div className="settings-tabs-bar">
-        {[
-          { id: 'model', label: 'Hospital Model & Topology', icon: Building },
-          { id: 'simulation', label: 'Simulation & Delays', icon: Activity },
-          { id: 'thresholds', label: 'Thresholds & State Rules', icon: ShieldAlert },
-          { id: 'visualization', label: '3D View & Appearance', icon: SlidersHorizontal }
-        ].map((tab) => {
+        {settingTabs.map((tab) => {
           const Icon = tab.icon
           return (
             <button
               key={tab.id}
+              type="button"
               className={`setting-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
-              <Icon size={13} />
+              <Icon size={14} />
               <span>{tab.label}</span>
             </button>
           )
@@ -92,70 +104,117 @@ export default function SettingsView({ onReset }) {
 
       {/* Tab Panels */}
       <div className="settings-panel-grid">
-        {/* TAB 1: HOSPITAL MODEL */}
-        {activeTab === 'model' && (
-          <>
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">Hospital Topology Model (BIM Campus)</span>
-                <span className="badge badge-normal font-mono">v1.0 Standard</span>
+        {/* TAB 1: GENERAL */}
+        {activeTab === 'general' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">General Platform Settings</span>
+              <span className="font-mono badge badge-normal">System Active</span>
+            </div>
+            <div className="setting-form-grid">
+              <div className="setting-field">
+                <label className="field-label">Command Center Identifier</label>
+                <input
+                  type="text"
+                  className="setting-input font-mono"
+                  defaultValue="RESILIENCE-OS-PRODUCTION-CLUSTER-01"
+                  readOnly
+                />
               </div>
-              <div className="setting-model-stats">
-                <div className="stat-pill"><span className="stat-num font-mono">52</span> Assets Total</div>
-                <div className="stat-pill"><span className="stat-num font-mono">6</span> Subsystems</div>
-                <div className="stat-pill"><span className="stat-num font-mono">8</span> Critical Services</div>
-                <div className="stat-pill"><span className="stat-num font-mono">112</span> Dependency Links</div>
-              </div>
-              <div className="setting-form-group">
-                <label className="setting-label">Active Model Profile</label>
-                <select className="setting-select font-mono">
-                  <option>Metropolitan Acute Tertiary Hospital (500 Beds)</option>
-                  <option>Regional Trauma & Emergency Medical Center</option>
-                  <option>Specialized Surgical & ICU Cleanroom Clinic</option>
+              <div className="setting-field">
+                <label className="field-label">Timezone Sync</label>
+                <select className="setting-select font-mono" defaultValue="UTC">
+                  <option value="UTC">Coordinated Universal Time (UTC)</option>
+                  <option value="EST">Eastern Standard Time (EST)</option>
+                  <option value="PST">Pacific Standard Time (PST)</option>
                 </select>
               </div>
-            </div>
-
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">Infrastructure Redundancy Ratings</span>
-                <span className="badge badge-outline font-mono">N+1 Topology</span>
+              <div className="setting-field">
+                <label className="field-label">Telemetry Ingestion Interval</label>
+                <input type="text" className="setting-input font-mono" defaultValue="1000 ms (1s Live WebSocket)" readOnly />
               </div>
-              <div className="redundancy-list">
-                <div className="redundancy-row">
-                  <span>Main 11kV Grid Feed</span>
-                  <span className="badge badge-normal">Dual Redundant Feeds (T1 + T2)</span>
-                </div>
-                <div className="redundancy-row">
-                  <span>Standby Diesel Generation</span>
-                  <span className="badge badge-normal">2 Units (750kVA + 500kVA)</span>
-                </div>
-                <div className="redundancy-row">
-                  <span>Static UPS Battery System</span>
-                  <span className="badge badge-normal">2N Parallel Redundant</span>
-                </div>
-                <div className="redundancy-row">
-                  <span>Cryogenic Oxygen Storage</span>
-                  <span className="badge badge-normal">Primary LOX + Secondary Manifold</span>
-                </div>
+              <div className="setting-field">
+                <label className="field-label">Session Operating Mode</label>
+                <input type="text" className="setting-input font-mono" defaultValue="Simulation & Decision Support" readOnly />
               </div>
             </div>
-          </>
+          </div>
         )}
 
-        {/* TAB 2: SIMULATION PARAMETERS */}
-        {activeTab === 'simulation' && (
-          <>
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">Simulation Execution Speed & Step Dims</span>
-                <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>Real-Time Math</span>
+        {/* TAB 2: HOSPITAL MODEL */}
+        {activeTab === 'model' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Hospital Infrastructure Model (BIM Campus)</span>
+              <span className="font-mono badge badge-normal">Level 1 Trauma</span>
+            </div>
+            <div className="setting-form-grid">
+              <div className="setting-field">
+                <label className="field-label">Healthcare Facility Name</label>
+                <input type="text" className="setting-input" defaultValue="Central Metropolitan Hospital Campus" />
               </div>
-              <div className="setting-slider-group">
-                <div className="slider-label-row">
-                  <span>Simulation Speed Multiplier</span>
-                  <span className="font-mono">{simSpeed}x Real-time</span>
-                </div>
+              <div className="setting-field">
+                <label className="field-label">Clinical Trauma Designation</label>
+                <input type="text" className="setting-input" defaultValue="Level 1 Regional Trauma Center" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Total Inpatient Bed Capacity</label>
+                <input type="number" className="setting-input font-mono" defaultValue="850" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Intensive Care Units (ICU Beds)</label>
+                <input type="number" className="setting-input font-mono" defaultValue="48" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Operating Suites (OT Rooms)</label>
+                <input type="number" className="setting-input font-mono" defaultValue="12" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Peak Electrical Demand</label>
+                <input type="text" className="setting-input font-mono" defaultValue="2,200 kW" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 3: ASSETS & SERVICES */}
+        {activeTab === 'assets' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Infrastructure Assets & Clinical Topology</span>
+              <span className="font-mono badge badge-cyan">52 Nodes Monitored</span>
+            </div>
+            <div className="setting-form-grid">
+              <div className="setting-field">
+                <label className="field-label">Electrical Substation Feeds</label>
+                <input type="text" className="setting-input font-mono" defaultValue="11kV Dual Underground Feeders (A & B)" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Standby Generator Redundancy</label>
+                <input type="text" className="setting-input font-mono" defaultValue="2x 1.5 MVA Cummins Diesel Generators (N+1)" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">UPS System Capacity</label>
+                <input type="text" className="setting-input font-mono" defaultValue="500 kVA Static UPS with 45 min Battery Bank" />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Medical Gas Supply Configuration</label>
+                <input type="text" className="setting-input font-mono" defaultValue="Bulk Cryogenic Liquid O2 + Dual Cylinder Manifold" />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* TAB 4: SIMULATION */}
+        {activeTab === 'simulation' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Simulation Engine & Cascade Rules</span>
+              <span className="font-mono badge badge-normal">Realtime Engine</span>
+            </div>
+            <div className="setting-form-grid">
+              <div className="setting-field">
+                <label className="field-label">Time Step Resolution: {simSpeed}x</label>
                 <input
                   type="range"
                   min="0.5"
@@ -166,126 +225,191 @@ export default function SettingsView({ onReset }) {
                   className="setting-slider"
                 />
               </div>
-
-              <div className="setting-form-group">
-                <label className="setting-label">Standby Generator Spool Delay</label>
-                <select className="setting-select font-mono">
-                  <option>10 seconds (Automated ATS Fast Crank)</option>
-                  <option>30 seconds (Standard Warmup)</option>
-                  <option>120 seconds (Cold Start Delay)</option>
+              <div className="setting-field">
+                <label className="field-label">Cascade Propagation Speed: {cascadeSpeed}m delay</label>
+                <input
+                  type="range"
+                  min="1"
+                  max="15"
+                  value={cascadeSpeed}
+                  onChange={(e) => setCascadeSpeed(Number(e.target.value))}
+                  className="setting-slider"
+                />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Monte Carlo Strategy Iterations</label>
+                <input
+                  type="number"
+                  className="setting-input font-mono"
+                  value={monteCarloRuns}
+                  onChange={(e) => setMonteCarloRuns(Number(e.target.value))}
+                />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">MCDA Optimization Weighting</label>
+                <select className="setting-select font-mono" defaultValue="balanced">
+                  <option value="balanced">Balanced (Clinical Continuity + Cost + Speed)</option>
+                  <option value="clinical">Clinical First (Max ICU/OT Preservation)</option>
+                  <option value="runtime">Runtime First (Max Battery/Fuel Reserve)</option>
                 </select>
-              </div>
-            </div>
-
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">Dynamic Telemetry Logging</span>
-                <span className="badge badge-normal">Enabled</span>
-              </div>
-              <p className="setting-help-text">
-                Continuous telemetry frames are buffered in memory and synchronized with the frontend WebSocket engine at 1-second intervals.
-              </p>
-            </div>
-          </>
-        )}
-
-        {/* TAB 3: THRESHOLDS & RULES */}
-        {activeTab === 'thresholds' && (
-          <div className="setting-card full-col">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Clinical State & Subsystem Risk Thresholds</span>
-              <span className="badge badge-critical font-mono">Safety Limits</span>
-            </div>
-            <div className="thresholds-grid">
-              <div className="threshold-box">
-                <span className="thresh-title">Voltage Dip (Low PU)</span>
-                <input type="text" defaultValue="0.85 pu (350V)" className="setting-input font-mono" />
-                <span className="thresh-desc">Trips automatic transfer switch to UPS</span>
-              </div>
-              <div className="threshold-box">
-                <span className="thresh-title">Transformer Load Alarm</span>
-                <input type="text" defaultValue="90% Nominal" className="setting-input font-mono" />
-                <span className="thresh-desc">Flags warning before thermal degradation</span>
-              </div>
-              <div className="threshold-box">
-                <span className="thresh-title">Oxygen Pressure Critical</span>
-                <input type="text" defaultValue="45.0 PSI" className="setting-input font-mono" />
-                <span className="thresh-desc">Triggers ICU mechanical ventilator alarm</span>
-              </div>
-              <div className="threshold-box">
-                <span className="thresh-title">UPS Battery Low Alert</span>
-                <input type="text" defaultValue="20% Capacity" className="setting-input font-mono" />
-                <span className="thresh-desc">Activates emergency load-shedding</span>
               </div>
             </div>
           </div>
         )}
 
-        {/* TAB 4: VISUALIZATION & THEME */}
-        {activeTab === 'visualization' && (
-          <>
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">Color Theme & Visual Interface</span>
-                <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>UI Mode</span>
+        {/* TAB 5: THRESHOLDS */}
+        {activeTab === 'thresholds' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Alert & Resilience Thresholds</span>
+              <span className="font-mono badge badge-warning">Active Rules</span>
+            </div>
+            <div className="setting-form-grid">
+              <div className="setting-field">
+                <label className="field-label">Critical Resilience Alert Floor: {criticalFloor}%</label>
+                <input
+                  type="range"
+                  min="30"
+                  max="80"
+                  value={criticalFloor}
+                  onChange={(e) => setCriticalFloor(Number(e.target.value))}
+                  className="setting-slider"
+                />
               </div>
-              <div className="theme-toggle-row">
-                <button
-                  className={`theme-btn ${themeMode === 'dark' ? 'active' : ''}`}
-                  onClick={() => toggleTheme('dark')}
-                >
-                  <Moon size={15} />
-                  <span>Dark Command Center (Default)</span>
-                </button>
-                <button
-                  className={`theme-btn ${themeMode === 'light' ? 'active' : ''}`}
-                  onClick={() => toggleTheme('light')}
-                >
-                  <Sun size={15} />
-                  <span>Light Medical Cleanroom</span>
-                </button>
+              <div className="setting-field">
+                <label className="field-label">Battery Headroom Warning: {batteryThreshold}%</label>
+                <input
+                  type="range"
+                  min="10"
+                  max="40"
+                  value={batteryThreshold}
+                  onChange={(e) => setBatteryThreshold(Number(e.target.value))}
+                  className="setting-slider"
+                />
+              </div>
+              <div className="setting-field">
+                <label className="field-label">Generator Fuel Reserve Floor: {fuelThreshold}%</label>
+                <input
+                  type="range"
+                  min="20"
+                  max="60"
+                  value={fuelThreshold}
+                  onChange={(e) => setFuelThreshold(Number(e.target.value))}
+                  className="setting-slider"
+                />
               </div>
             </div>
+          </div>
+        )}
 
-            <div className="setting-card">
-              <div className="setting-card-header">
-                <span className="setting-card-title">3D Digital Twin Canvas Options</span>
-                <span className="badge badge-normal font-mono">WebGL R3F</span>
+        {/* TAB 6: VISUALIZATION */}
+        {activeTab === 'visualization' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Visualization & Theme Settings</span>
+              <span className="font-mono badge badge-cyan">Appearance</span>
+            </div>
+            <div className="setting-form-grid">
+              {/* Theme Selector */}
+              <div className="setting-field">
+                <label className="field-label">Theme Mode</label>
+                <div className="theme-toggle-row">
+                  <button
+                    type="button"
+                    className={`theme-option-btn ${theme === 'dark' ? 'is-selected' : ''}`}
+                    onClick={() => handleThemeChange('dark')}
+                  >
+                    <Moon size={15} />
+                    <span>Dark Theme</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`theme-option-btn ${theme === 'light' ? 'is-selected' : ''}`}
+                    onClick={() => handleThemeChange('light')}
+                  >
+                    <Sun size={15} />
+                    <span>Light Theme</span>
+                  </button>
+                </div>
               </div>
-              <div className="toggle-options-list">
-                <label className="toggle-row">
-                  <span>Show 3D Floating Smart HUD Labels</span>
-                  <input
-                    type="checkbox"
-                    checked={showLabels3D}
-                    onChange={(e) => setShowLabels3D(e.target.checked)}
-                  />
-                </label>
-                <label className="toggle-row">
-                  <span>Enable Cinematic Drone Auto-Rotation</span>
-                  <input
-                    type="checkbox"
-                    checked={autoRotate3D}
-                    onChange={(e) => setAutoRotate3D(e.target.checked)}
-                  />
-                </label>
-                <div className="setting-slider-group" style={{ marginTop: '8px' }}>
-                  <div className="slider-label-row">
-                    <span>Building Slab Opacity</span>
-                    <span className="font-mono">{buildingOpacity}%</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="20"
-                    max="100"
-                    value={buildingOpacity}
-                    onChange={(e) => setBuildingOpacity(Number(e.target.value))}
-                    className="setting-slider"
-                  />
+
+              <div className="setting-field">
+                <label className="field-label">3D Render Quality</label>
+                <select
+                  className="setting-select font-mono"
+                  value={renderQuality}
+                  onChange={(e) => setRenderQuality(e.target.value)}
+                >
+                  <option value="high">High Performance (Antialiasing + Bloom + Shadows)</option>
+                  <option value="medium">Medium (Standard WebGL)</option>
+                  <option value="low">Low (Battery Saver Mode)</option>
+                </select>
+              </div>
+
+              <div className="setting-field">
+                <label className="field-label">Spatial HUD Overlays</label>
+                <div className="checkbox-toggle-row">
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={showCompass}
+                      onChange={(e) => setShowCompass(e.target.checked)}
+                    />
+                    <span>Compass & Navigation HUD</span>
+                  </label>
+                  <label className="checkbox-label">
+                    <input
+                      type="checkbox"
+                      checked={showParticles}
+                      onChange={(e) => setShowParticles(e.target.checked)}
+                    />
+                    <span>Particle Stream Dynamics</span>
+                  </label>
                 </div>
               </div>
             </div>
-          </>
+          </div>
+        )}
+
+        {/* TAB 7: DATA & SYSTEM */}
+        {activeTab === 'data' && (
+          <div className="setting-card">
+            <div className="setting-card-header">
+              <span className="setting-card-title">Data Management & Reset</span>
+              <span className="font-mono badge badge-critical">Maintenance</span>
+            </div>
+            <div className="setting-data-actions-list">
+              <div className="data-action-row">
+                <div className="data-action-info">
+                  <span className="data-action-title">Reset Hospital Twin to 100% Operational Baseline</span>
+                  <span className="data-action-desc">
+                    Clears any active failure injections, resets all telemetry to nominal defaults, and restores the digital twin state.
+                  </span>
+                </div>
+                <button type="button" className="btn-danger-outline" onClick={onReset}>
+                  <RotateCcw size={13} />
+                  <span>Reset Baseline</span>
+                </button>
+              </div>
+
+              <div className="data-action-row">
+                <div className="data-action-info">
+                  <span className="data-action-title">Export Current Twin State Snapshot</span>
+                  <span className="data-action-desc">
+                    Downloads a full JSON snapshot of all 52 nodes, service health matrices, and active incident telemetry.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="btn-neutral-outline"
+                  onClick={() => alert('Snapshot exported successfully.')}
+                >
+                  <Database size={13} />
+                  <span>Export JSON</span>
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
     </div>
