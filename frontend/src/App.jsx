@@ -16,16 +16,13 @@ import SettingsView from './components/Settings/SettingsView'
 import StartSimulationView from './components/StartSimulation/StartSimulationView'
 import { useResilienceRealtime } from './hooks/useResilienceRealtime'
 import { getApiBaseUrl } from './config/api'
-import { getWhatIfAnalysis } from './services/simulationApi'
+import { getWhatIfAnalysis, injectFailure } from './services/simulationApi'
 import {
   INITIAL_ASSETS,
   INITIAL_SERVICES,
   INITIAL_RESILIENCE,
-  DISRUPTED_RESILIENCE,
   DISRUPTED_ASSETS,
-  DISRUPTED_SERVICES,
   INITIAL_INCIDENT_STATE,
-  ACTIVE_INCIDENT_STATE,
   CASCADE_TIMELINE,
   WHAT_IF_STRATEGIES,
   CAUSAL_EXPLANATION_DATA,
@@ -540,29 +537,48 @@ export default function App() {
     ? incident.timeline
     : CASCADE_TIMELINE
 
-  // Deterministic failure injection: Switch to canonical disrupted mock state & notify backend
-  const handleTriggerGridFailure = useCallback(() => {
-    setIncident(ACTIVE_INCIDENT_STATE)
-    setResilience(DISRUPTED_RESILIENCE)
-    setAssets(DISRUPTED_ASSETS)
-    setServices(DISRUPTED_SERVICES)
+  // Dynamic failure injection handler: sends configured payload to backend engine
+  const handleTriggerFailure = useCallback(async (customPayload) => {
     setActiveCheckpointIndex(0)
 
+    const payload = customPayload || {
+      asset_id: 'GRID_MAIN',
+      failure_type: 'complete_outage',
+      severity: 'high',
+      duration_minutes: 120,
+      compound_heatwave: false
+    }
+
     try {
-      const baseUrl = getApiBaseUrl()
-      fetch(`${baseUrl}/api/failures/inject`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          asset_id: 'GRID_MAIN',
-          failure_type: 'complete_outage',
-          severity: 'high'
-        })
-      })
-        .then(() => fetchWhatIfAnalysis())
-        .catch(() => {})
-    } catch {
-      // Offline fallback
+      const res = await injectFailure(payload)
+      if (res.success && res.data) {
+        // Use backend response as the authoritative initial state
+        if (res.data.incident) {
+          setIncident((prev) => ({
+            ...prev,
+            ...res.data.incident,
+            is_active: true
+          }))
+        }
+        if (res.data.resilience_index) {
+          setResilience((prev) => ({
+            ...prev,
+            ...res.data.resilience_index
+          }))
+        }
+        fetchWhatIfAnalysis()
+        return { success: true, data: res.data }
+      } else {
+        return {
+          success: false,
+          error: res.error || 'Failed to inject failure into digital twin'
+        }
+      }
+    } catch (err) {
+      return {
+        success: false,
+        error: err?.message || 'Network error injecting failure'
+      }
     }
   }, [fetchWhatIfAnalysis])
 
@@ -705,7 +721,7 @@ export default function App() {
                   <div className="incident-col" id="incident-control">
                     <IncidentPanel
                       incident={incident}
-                      onTriggerFailure={handleTriggerGridFailure}
+                      onTriggerFailure={handleTriggerFailure}
                       onReset={handleReset}
                       activeCheckpointIndex={activeCheckpointIndex}
                       onNextCheckpoint={handleNextCheckpoint}
@@ -811,7 +827,7 @@ export default function App() {
               assets={assets}
               services={services}
               incident={incident}
-              onTriggerFailure={handleTriggerGridFailure}
+              onTriggerFailure={handleTriggerFailure}
               onReset={handleReset}
             />
           )}
@@ -853,7 +869,7 @@ export default function App() {
                 <div className="incident-col">
                   <IncidentPanel
                     incident={incident}
-                    onTriggerFailure={handleTriggerGridFailure}
+                    onTriggerFailure={handleTriggerFailure}
                     onReset={handleReset}
                     activeCheckpointIndex={activeCheckpointIndex}
                     onNextCheckpoint={handleNextCheckpoint}
