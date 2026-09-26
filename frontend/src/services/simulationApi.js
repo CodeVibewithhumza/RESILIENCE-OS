@@ -93,3 +93,64 @@ export async function injectFailure(requestData) {
     }
   }
 }
+
+/**
+ * Fetches executive simulation audit and resilience report from the backend.
+ * Supports structured JSON and publication-ready Markdown.
+ *
+ * Endpoint: GET /api/simulation/report?format=<format>&scenario_title=<encoded title>
+ *
+ * @param {string} format - 'json' | 'markdown'
+ * @param {string|null} scenarioTitle - Optional custom scenario title
+ * @returns {Promise<{ success: boolean, data: object|string|null, error: string|null }>}
+ */
+export async function getSimulationReport(format = 'json', scenarioTitle = null) {
+  try {
+    const baseUrl = getApiBaseUrl()
+    const params = new URLSearchParams()
+    if (format) params.append('format', format)
+    if (scenarioTitle) params.append('scenario_title', scenarioTitle)
+    const queryString = params.toString() ? `?${params.toString()}` : ''
+
+    const isMarkdown = format && format.toLowerCase() === 'markdown'
+    const headers = {
+      'Accept': isMarkdown ? 'text/markdown, text/plain, */*' : 'application/json'
+    }
+
+    const response = await fetch(`${baseUrl}/api/simulation/report${queryString}`, {
+      method: 'GET',
+      headers
+    })
+
+    if (!response.ok) {
+      let errorDetail = `HTTP ${response.status}: ${response.statusText}`
+      try {
+        const errJson = await response.json()
+        if (errJson?.detail) {
+          errorDetail = errJson.detail
+        }
+      } catch {
+        // Fallback for non-JSON error
+      }
+      return {
+        success: false,
+        data: null,
+        error: errorDetail
+      }
+    }
+
+    const data = isMarkdown ? await response.text() : await response.json()
+    return {
+      success: true,
+      data,
+      error: null
+    }
+  } catch (err) {
+    return {
+      success: false,
+      data: null,
+      error: err?.message || 'Network error: Backend unavailable'
+    }
+  }
+}
+
