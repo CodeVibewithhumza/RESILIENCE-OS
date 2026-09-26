@@ -1,46 +1,342 @@
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   ShieldAlert,
   ShieldCheck,
   AlertTriangle,
   Clock,
   Activity,
-  ArrowUpRight,
-  ArrowDownRight,
-  ChevronRight,
   Layers,
-  Zap,
-  Droplets,
-  Wind,
-  Flame,
-  CheckCircle2
+  CheckCircle2,
+  RefreshCw
 } from 'lucide-react'
+import { getRiskSummary, getResilienceBreakdown } from '../../services/riskResilienceApi'
 import './RiskResilienceView.css'
 
+/**
+ * Format asset system/type name for UI display.
+ * Maps backend AssetType enum values to human-readable subsystem labels.
+ */
+function formatAssetType(type) {
+  if (!type) return 'General'
+  const map = {
+    grid: 'Electrical Grid',
+    transformer: 'Transformer',
+    generator: 'Standby Generator',
+    ups: 'Static UPS',
+    battery: 'Battery Storage',
+    main_bus: 'Main Bus',
+    emergency_bus: 'Emergency Bus',
+    chiller_hvac: 'HVAC Chiller',
+    water_pump: 'Water Booster',
+    oxygen_system: 'Medical Gas'
+  }
+  return map[type] || type.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+/**
+ * Returns style object for risk level badge based on backend RiskLevel.
+ */
+function getRiskBadgeStyle(level) {
+  const normLevel = (level || '').toLowerCase()
+  if (normLevel === 'critical') {
+    return {
+      background: 'rgba(239, 68, 68, 0.25)',
+      color: '#EF4444',
+      border: '1px solid #EF4444'
+    }
+  }
+  if (normLevel === 'high') {
+    return {
+      background: 'rgba(239, 68, 68, 0.2)',
+      color: '#EF4444',
+      border: '1px solid #EF4444'
+    }
+  }
+  if (normLevel === 'medium') {
+    return {
+      background: 'rgba(245, 158, 11, 0.2)',
+      color: '#F59E0B',
+      border: '1px solid #F59E0B'
+    }
+  }
+  return {
+    background: 'rgba(16, 185, 129, 0.2)',
+    color: '#10B981',
+    border: '1px solid #10B981'
+  }
+}
+
 export default function RiskResilienceView({ resilience, assets = [], services = [] }) {
-  const [activeTab, setActiveTab] = useState('infrastructure')
-  const [selectedAssetFilter, setSelectedAssetFilter] = useState('all')
+  const [riskSummary, setRiskSummary] = useState(null)
+  const [resilienceBreakdown, setResilienceBreakdown] = useState(null)
+  const [loading, setLoading] = useState(true)
+  const [isRefreshing, setIsRefreshing] = useState(false)
+  const [error, setError] = useState(null)
 
-  const resilienceScore = resilience?.overall_score || 82
-  const isHealthy = resilienceScore >= 75
+  const fetchData = useCallback(async (isInitial = false) => {
+    if (isInitial) {
+      setLoading(true)
+    } else {
+      setIsRefreshing(true)
+    }
+    setError(null)
 
-  // Top Risk Assets Ranked
-  const topRiskAssets = [
-    { rank: 1, name: 'Main Substation Transformer T1', system: 'Electrical', riskLevel: 'High', riskScore: 92, status: 'normal' },
-    { rank: 2, name: 'HVAC Chiller Plant & AHU-1', system: 'HVAC', riskLevel: 'High', riskScore: 88, status: 'degraded' },
-    { rank: 3, name: 'Cryogenic O2 Manifold Compressor', system: 'Medical Gas', riskLevel: 'High', riskScore: 86, status: 'normal' },
-    { rank: 4, name: 'Standby Generator DG-1 (750kVA)', system: 'Electrical', riskLevel: 'Medium', riskScore: 68, status: 'normal' },
-    { rank: 5, name: 'Potable Water Hydro Booster Pumps', system: 'Water', riskLevel: 'Medium', riskScore: 62, status: 'normal' }
-  ]
+    try {
+      const [riskRes, resilienceRes] = await Promise.all([
+        getRiskSummary(),
+        getResilienceBreakdown()
+      ])
 
-  // Resilience 5 Core Factors
+      if (!riskRes.success && !resilienceRes.success) {
+        setError(riskRes.error || resilienceRes.error || 'Failed to communicate with risk engine backend')
+        return
+      }
+
+      if (riskRes.success && riskRes.data) {
+        setRiskSummary(riskRes.data)
+      } else if (!riskRes.success) {
+        setError(riskRes.error)
+      }
+
+      if (resilienceRes.success && resilienceRes.data) {
+        setResilienceBreakdown(resilienceRes.data)
+      } else if (!resilienceRes.success && !riskRes.error) {
+        setError(resilienceRes.error)
+      }
+    } catch (err) {
+      setError(err?.message || 'Unexpected network error')
+    } finally {
+      setLoading(false)
+      setIsRefreshing(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchData(true)
+  }, [fetchData, resilience?.overall_score])
+
+  // Initial loading state (before any data is cached)
+  if (loading && !riskSummary && !resilienceBreakdown) {
+    return (
+      <div className="risk-resilience-page">
+        <div className="risk-header-row">
+          <div>
+            <h1 className="risk-page-title">Risk & Resilience Analytics</h1>
+            <p className="risk-page-subtitle">
+              Assess systemic vulnerabilities, single-points-of-failure (SPOF), and multi-criteria resilience metrics
+            </p>
+          </div>
+          <div className="risk-header-badge font-mono">
+            <Activity size={13} style={{ color: 'var(--accent-cyan)' }} />
+            <span>CONNECTING TO RISK ENGINE...</span>
+          </div>
+        </div>
+        <div
+          className="risk-card"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '64px 20px',
+            gap: '14px'
+          }}
+        >
+          <Activity size={24} style={{ color: 'var(--accent-cyan)' }} />
+          <span className="font-mono" style={{ color: 'var(--text-muted)', fontSize: '13px' }}>
+            Synchronizing risk & resilience telemetry from backend...
+          </span>
+        </div>
+      </div>
+    )
+  }
+
+  // Graceful inline error state if API is unavailable and no data could be loaded
+  if (error && !riskSummary && !resilienceBreakdown) {
+    return (
+      <div className="risk-resilience-page">
+        <div className="risk-header-row">
+          <div>
+            <h1 className="risk-page-title">Risk & Resilience Analytics</h1>
+            <p className="risk-page-subtitle">
+              Assess systemic vulnerabilities, single-points-of-failure (SPOF), and multi-criteria resilience metrics
+            </p>
+          </div>
+          <div
+            className="risk-header-badge font-mono"
+            style={{ borderColor: 'rgba(239, 68, 68, 0.4)', color: '#EF4444' }}
+          >
+            <AlertTriangle size={13} style={{ color: '#EF4444' }} />
+            <span>TELEMETRY DISCONNECTED</span>
+          </div>
+        </div>
+        <div
+          className="risk-card"
+          style={{
+            border: '1px solid rgba(239, 68, 68, 0.35)',
+            background: 'rgba(239, 68, 68, 0.05)',
+            padding: '36px 24px',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '12px'
+          }}
+        >
+          <AlertTriangle size={36} style={{ color: '#EF4444' }} />
+          <div style={{ color: '#F8FAFC', fontWeight: 800, fontSize: '16px' }}>
+            Risk Engine Telemetry Unavailable
+          </div>
+          <p style={{ color: 'var(--text-muted)', fontSize: '13px', maxWidth: '520px', margin: 0 }}>
+            Unable to connect to backend risk assessment endpoints (/api/risk/summary, /api/resilience/breakdown).
+            {error && (
+              <span style={{ display: 'block', marginTop: '6px', color: '#EF4444', fontFamily: 'var(--font-mono)' }}>
+                {error}
+              </span>
+            )}
+          </p>
+          <button
+            type="button"
+            onClick={() => fetchData(true)}
+            className="btn btn-primary"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              marginTop: '8px',
+              padding: '8px 18px',
+              fontSize: '12px',
+              cursor: 'pointer'
+            }}
+          >
+            <RefreshCw size={14} />
+            <span>Retry Telemetry Connection</span>
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // --- Backend Data Derivations ---
+
+  // 1. Resilience Score & Delta
+  const score = typeof resilienceBreakdown?.overall_score === 'number'
+    ? resilienceBreakdown.overall_score
+    : typeof resilience?.overall_score === 'number'
+    ? resilience.overall_score
+    : 0
+  const isHealthy = score >= 75
+  const scoreColor = resilienceBreakdown?.status_color || (isHealthy ? '#10B981' : score >= 50 ? '#F59E0B' : '#EF4444')
+  const delta = resilienceBreakdown?.delta_from_baseline ?? resilience?.delta_from_baseline ?? 0
+  const isDeltaPositive = delta >= 0
+
+  // 2. Asset Risks & Distribution
+  const assetRiskList = riskSummary?.asset_risks
+    ? Object.values(riskSummary.asset_risks)
+    : []
+  const totalAssets = assetRiskList.length || assets.length || 0
+
+  const highRiskCount = assetRiskList.filter(
+    (a) => a.risk_level === 'critical' || a.risk_level === 'high'
+  ).length
+
+  const medRiskCount = assetRiskList.filter(
+    (a) => a.risk_level === 'medium'
+  ).length
+
+  const lowRiskCount = assetRiskList.filter(
+    (a) => a.risk_level === 'low' && (a.risk_percentage > 0 || (a.operational_status && a.operational_status !== 'normal'))
+  ).length
+
+  const nominalCount = Math.max(0, totalAssets - highRiskCount - medRiskCount - lowRiskCount)
+
+  const highPct = totalAssets > 0 ? Math.round((highRiskCount / totalAssets) * 100) : 0
+  const medPct = totalAssets > 0 ? Math.round((medRiskCount / totalAssets) * 100) : 0
+  const lowPct = totalAssets > 0 ? Math.round((lowRiskCount / totalAssets) * 100) : 0
+  const nomPct = totalAssets > 0 ? Math.max(0, 100 - highPct - medPct - lowPct) : 0
+
+  const p1 = highPct
+  const p2 = p1 + medPct
+  const p3 = p2 + lowPct
+  const donutGradient = totalAssets > 0
+    ? `conic-gradient(#ef4444 0% ${p1}%, #f59e0b ${p1}% ${p2}%, #10b981 ${p2}% ${p3}%, #38bdf8 ${p3}% 100%)`
+    : 'conic-gradient(#38bdf8 0% 100%)'
+
+  // 3. Service Risks & Critical Services
+  const serviceRiskList = riskSummary?.service_risks
+    ? Object.values(riskSummary.service_risks)
+    : []
+  const totalServices = serviceRiskList.length || services.length || 0
+
+  const criticalServicesList = serviceRiskList.filter((s) => s.criticality >= 4)
+  const totalCriticalServices = criticalServicesList.length > 0 ? criticalServicesList.length : totalServices
+
+  const criticalAtRiskCount = Array.isArray(riskSummary?.critical_services_at_risk) && riskSummary.critical_services_at_risk.length > 0
+    ? riskSummary.critical_services_at_risk.length
+    : serviceRiskList.filter((s) => s.criticality >= 4 && (s.risk_score >= 0.25 || s.risk_level !== 'low')).length
+
+  const criticalServicesPct = totalCriticalServices > 0
+    ? Math.round((criticalAtRiskCount / totalCriticalServices) * 100)
+    : 0
+
+  // 4. Recovery Time & Readiness
+  const tPenalty = resilienceBreakdown?.sub_scores?.canonical?.t_recovery_penalty ?? 0
+  const recoveryTimeMin = tPenalty * 120
+  const recoveryDisplay = recoveryTimeMin > 0
+    ? (recoveryTimeMin >= 60 ? `${(recoveryTimeMin / 60).toFixed(1)} hrs` : `${Math.round(recoveryTimeMin)} min`)
+    : '0 min'
+  const recoveryReadinessScore = resilienceBreakdown?.sub_scores?.recovery_readiness ?? 100
+
+  // 5. Canonical Resilience Pillars (sub_scores from /api/resilience/breakdown)
+  // Strictly adhering to backend canonical terminology:
+  // 1. Critical Service Continuity
+  // 2. Infrastructure Availability / Stability Factor
+  // 3. Backup Margin
+  // 4. Recovery Readiness
+  // 5. Resource Conservation
+  const subScores = resilienceBreakdown?.sub_scores || {}
+
   const components = [
-    { name: 'Capacity (C)', score: 78, color: '#38BDF8', desc: 'Rated vs. active load buffer' },
-    { name: 'Adaptability (A)', score: 85, color: '#00F0FF', desc: 'Dynamic feeder rerouting capability' },
-    { name: 'Backup Margin (B)', score: 80, color: '#10B981', desc: 'N+1 generator & UPS reserve' },
-    { name: 'Technical Health (T)', score: 70, color: '#F59E0B', desc: 'Equipment age & thermal state' },
-    { name: 'Utilization (U)', score: 75, color: '#818CF8', desc: 'Subsystem duty-cycle factor' }
+    {
+      name: 'Critical Service Continuity',
+      score: Math.round(subScores.service_continuity ?? 100),
+      color: '#00F0FF',
+      desc: 'Critical service delivery index Sc'
+    },
+    {
+      name: 'Infrastructure Availability / Stability Factor',
+      score: Math.round(subScores.stability_factor ?? 100),
+      color: '#38BDF8',
+      desc: 'Grid & asset availability factor Ap'
+    },
+    {
+      name: 'Backup Margin',
+      score: Math.round(subScores.backup_margin ?? 100),
+      color: '#10B981',
+      desc: 'Available backup energy & fuel reserve Rb'
+    },
+    {
+      name: 'Recovery Readiness',
+      score: Math.round(subScores.recovery_readiness ?? 100),
+      color: '#F59E0B',
+      desc: 'Recovery readiness factor Lr'
+    },
+    {
+      name: 'Resource Conservation',
+      score: Math.round(subScores.resource_conservation ?? 100),
+      color: '#818CF8',
+      desc: 'Resource conservation & load balance factor'
+    }
   ]
+
+  // 6. Top 5 Ranked Risk Vulnerabilities (SPOF) sorted by risk_percentage descending
+  const topRiskAssets = [...assetRiskList]
+    .sort((a, b) => (b.risk_percentage ?? 0) - (a.risk_percentage ?? 0))
+    .slice(0, 5)
+
+  // 7. Clinical Healthcare Continuity Risk sorted by risk_percentage descending
+  const sortedServices = [...serviceRiskList].sort(
+    (a, b) => (b.risk_percentage ?? 0) - (a.risk_percentage ?? 0)
+  )
 
   return (
     <div className="risk-resilience-page">
@@ -52,10 +348,16 @@ export default function RiskResilienceView({ resilience, assets = [], services =
             Assess systemic vulnerabilities, single-points-of-failure (SPOF), and multi-criteria resilience metrics
           </p>
         </div>
-        <div className="risk-header-badge font-mono">
+        <button
+          type="button"
+          onClick={() => fetchData(false)}
+          className="risk-header-badge font-mono"
+          title="Click to refresh telemetry from backend"
+          style={{ cursor: 'pointer', background: 'rgba(15, 23, 42, 0.9)' }}
+        >
           <Activity size={13} style={{ color: 'var(--accent-cyan)' }} />
-          <span>REAL-TIME RISK ENGINE ACTIVE</span>
-        </div>
+          <span>{isRefreshing ? 'REFRESHING TELEMETRY...' : 'REAL-TIME RISK ENGINE ACTIVE'}</span>
+        </button>
       </div>
 
       {/* 1. Top 6 KPI Metric Pills */}
@@ -67,10 +369,12 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">Resilience Index</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono" style={{ color: isHealthy ? '#10B981' : '#EF4444' }}>
-                {resilienceScore.toFixed(0)} / 100
+              <span className="kpi-val font-mono" style={{ color: scoreColor }}>
+                {score.toFixed(0)} / 100
               </span>
-              <span className="kpi-delta positive font-mono">↑ 6%</span>
+              <span className={`kpi-delta ${isDeltaPositive ? 'positive' : 'negative'} font-mono`}>
+                {isDeltaPositive ? '↑' : '↓'} {Math.abs(delta).toFixed(1)}%
+              </span>
             </div>
           </div>
         </div>
@@ -82,8 +386,12 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">High Risk Assets</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono" style={{ color: '#EF4444' }}>3</span>
-              <span className="kpi-delta negative font-mono">↑ 1</span>
+              <span className="kpi-val font-mono" style={{ color: '#EF4444' }}>
+                {highRiskCount}
+              </span>
+              <span className={`kpi-delta ${highRiskCount > 0 ? 'negative' : 'positive'} font-mono`}>
+                {highPct}%
+              </span>
             </div>
           </div>
         </div>
@@ -95,8 +403,12 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">Medium Risk Assets</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono" style={{ color: '#F59E0B' }}>5</span>
-              <span className="kpi-delta positive font-mono">↓ 2</span>
+              <span className="kpi-val font-mono" style={{ color: '#F59E0B' }}>
+                {medRiskCount}
+              </span>
+              <span className="kpi-delta positive font-mono">
+                {medPct}%
+              </span>
             </div>
           </div>
         </div>
@@ -108,8 +420,12 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">Low Risk / Nominal</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono" style={{ color: '#10B981' }}>44</span>
-              <span className="kpi-delta positive font-mono">↑ 4</span>
+              <span className="kpi-val font-mono" style={{ color: '#10B981' }}>
+                {lowRiskCount + nominalCount}
+              </span>
+              <span className="kpi-delta positive font-mono">
+                {lowPct + nomPct}%
+              </span>
             </div>
           </div>
         </div>
@@ -121,8 +437,15 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">Critical Services Risk</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono" style={{ color: '#8B5CF6' }}>2 / 8</span>
-              <span className="kpi-delta font-mono">25%</span>
+              <span
+                className="kpi-val font-mono"
+                style={{ color: criticalAtRiskCount > 0 ? '#EF4444' : '#8B5CF6' }}
+              >
+                {criticalAtRiskCount} / {totalCriticalServices}
+              </span>
+              <span className={`kpi-delta ${criticalAtRiskCount > 0 ? 'negative' : 'positive'} font-mono`}>
+                {criticalServicesPct}%
+              </span>
             </div>
           </div>
         </div>
@@ -134,8 +457,12 @@ export default function RiskResilienceView({ resilience, assets = [], services =
           <div>
             <span className="kpi-label">Avg. Time to Recovery</span>
             <div className="kpi-val-row">
-              <span className="kpi-val font-mono">3.2 hrs</span>
-              <span className="kpi-delta positive font-mono">↓ 28%</span>
+              <span className="kpi-val font-mono">
+                {recoveryDisplay}
+              </span>
+              <span className={`kpi-delta ${recoveryReadinessScore >= 80 ? 'positive' : 'negative'} font-mono`}>
+                {Math.round(recoveryReadinessScore)}% ready
+              </span>
             </div>
           </div>
         </div>
@@ -147,7 +474,7 @@ export default function RiskResilienceView({ resilience, assets = [], services =
         <div className="risk-card components-card">
           <div className="risk-card-header">
             <span className="risk-card-title">Resilience Pillars & Sub-Score Synthesis</span>
-            <span className="badge badge-normal font-mono">MCDA Weighted</span>
+            <span className="badge badge-normal font-mono">Canonical Sub-Scores</span>
           </div>
           <div className="factors-circle-row">
             {components.map((comp, idx) => (
@@ -178,35 +505,37 @@ export default function RiskResilienceView({ resilience, assets = [], services =
         <div className="risk-card donut-card">
           <div className="risk-card-header">
             <span className="risk-card-title">Risk Distribution</span>
-            <span className="font-mono" style={{ color: 'var(--text-muted)' }}>52 Total Assets</span>
+            <span className="font-mono" style={{ color: 'var(--text-muted)' }}>
+              {totalAssets} Total Assets
+            </span>
           </div>
           <div className="donut-body-row">
-            <div className="donut-visual-box">
+            <div className="donut-visual-box" style={{ background: donutGradient }}>
               <div className="donut-center-stat">
-                <span className="font-mono donut-huge-num">52</span>
+                <span className="font-mono donut-huge-num">{totalAssets}</span>
                 <span className="donut-label">Assets</span>
               </div>
             </div>
             <div className="donut-legend-col">
               <div className="legend-row">
                 <span className="legend-bullet" style={{ background: '#EF4444' }} />
-                <span>High Risk (3 assets)</span>
-                <span className="font-mono percentage">6%</span>
+                <span>High Risk ({highRiskCount} {highRiskCount === 1 ? 'asset' : 'assets'})</span>
+                <span className="font-mono percentage">{highPct}%</span>
               </div>
               <div className="legend-row">
                 <span className="legend-bullet" style={{ background: '#F59E0B' }} />
-                <span>Medium Risk (5 assets)</span>
-                <span className="font-mono percentage">10%</span>
+                <span>Medium Risk ({medRiskCount} {medRiskCount === 1 ? 'asset' : 'assets'})</span>
+                <span className="font-mono percentage">{medPct}%</span>
               </div>
               <div className="legend-row">
                 <span className="legend-bullet" style={{ background: '#10B981' }} />
-                <span>Low Risk (12 assets)</span>
-                <span className="font-mono percentage">23%</span>
+                <span>Low Risk ({lowRiskCount} {lowRiskCount === 1 ? 'asset' : 'assets'})</span>
+                <span className="font-mono percentage">{lowPct}%</span>
               </div>
               <div className="legend-row">
                 <span className="legend-bullet" style={{ background: '#38BDF8' }} />
-                <span>Nominal (32 assets)</span>
-                <span className="font-mono percentage">61%</span>
+                <span>Nominal ({nominalCount} {nominalCount === 1 ? 'asset' : 'assets'})</span>
+                <span className="font-mono percentage">{nomPct}%</span>
               </div>
             </div>
           </div>
@@ -233,30 +562,40 @@ export default function RiskResilienceView({ resilience, assets = [], services =
                 </tr>
               </thead>
               <tbody>
-                {topRiskAssets.map((asset) => (
-                  <tr key={asset.rank}>
-                    <td className="font-mono font-bold">{asset.rank}</td>
-                    <td>{asset.name}</td>
-                    <td>
-                      <span className="badge badge-outline">{asset.system}</span>
-                    </td>
-                    <td>
-                      <span
-                        className="badge"
-                        style={{
-                          background: asset.riskLevel === 'High' ? 'rgba(239, 68, 68, 0.2)' : 'rgba(245, 158, 11, 0.2)',
-                          color: asset.riskLevel === 'High' ? '#EF4444' : '#F59E0B',
-                          border: `1px solid ${asset.riskLevel === 'High' ? '#EF4444' : '#F59E0B'}`
-                        }}
-                      >
-                        {asset.riskLevel}
-                      </span>
-                    </td>
-                    <td className="font-mono font-bold" style={{ color: asset.riskScore > 80 ? '#EF4444' : '#F59E0B' }}>
-                      {asset.riskScore} / 100
+                {topRiskAssets.length === 0 ? (
+                  <tr>
+                    <td colSpan="5" style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                      No asset risk vulnerabilities detected. All assets nominal.
                     </td>
                   </tr>
-                ))}
+                ) : (
+                  topRiskAssets.map((asset, idx) => {
+                    const tierLabel = (asset.risk_level || 'low').toUpperCase()
+                    const riskPct = asset.risk_percentage ?? 0
+                    const tierStyle = getRiskBadgeStyle(asset.risk_level)
+                    const assetScoreColor = riskPct >= 50 ? '#EF4444' : riskPct >= 25 ? '#F59E0B' : '#10B981'
+
+                    return (
+                      <tr key={asset.asset_id || idx}>
+                        <td className="font-mono font-bold">{idx + 1}</td>
+                        <td>{asset.asset_name || asset.asset_id}</td>
+                        <td>
+                          <span className="badge badge-outline">
+                            {formatAssetType(asset.asset_type)}
+                          </span>
+                        </td>
+                        <td>
+                          <span className="badge" style={tierStyle}>
+                            {tierLabel}
+                          </span>
+                        </td>
+                        <td className="font-mono font-bold" style={{ color: assetScoreColor }}>
+                          {Math.round(riskPct)} / 100
+                        </td>
+                      </tr>
+                    )
+                  })
+                )}
               </tbody>
             </table>
           </div>
@@ -266,29 +605,56 @@ export default function RiskResilienceView({ resilience, assets = [], services =
         <div className="risk-card">
           <div className="risk-card-header">
             <span className="risk-card-title">Clinical Healthcare Continuity Risk</span>
-            <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>8 Units</span>
+            <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>
+              {sortedServices.length} Units
+            </span>
           </div>
           <div className="service-risk-list">
-            {[
-              { name: 'Intensive Care Unit (ICU)', status: 'At Risk', risk: 'High', score: 62 },
-              { name: 'Operating Theatres (OT 1 & 2)', status: 'At Risk', risk: 'High', score: 58 },
-              { name: 'Emergency Trauma Department', status: 'Normal', risk: 'Medium', score: 74 },
-              { name: 'Inpatient Wards (101–104)', status: 'Normal', risk: 'Low', score: 82 },
-              { name: 'Outpatient Clinic (OPD)', status: 'Normal', risk: 'Low', score: 85 }
-            ].map((srv, i) => (
-              <div key={i} className="service-risk-row">
-                <div className="service-risk-name-col">
-                  <span className="service-name-text">{srv.name}</span>
-                  <span className="service-status-pill">{srv.status}</span>
-                </div>
-                <div className="service-score-bar-wrap">
-                  <div className="service-score-bar-fill" style={{ width: `${srv.score}%`, background: srv.score < 70 ? '#EF4444' : '#10B981' }} />
-                </div>
-                <span className="font-mono font-bold" style={{ color: srv.score < 70 ? '#EF4444' : '#10B981' }}>
-                  {srv.score}%
-                </span>
+            {sortedServices.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                No clinical service risk records available.
               </div>
-            ))}
+            ) : (
+              sortedServices.map((srv, i) => {
+                const continuity = Math.round(srv.service_continuity_pct ?? 100)
+                const continuityColor = continuity < 70 ? '#EF4444' : continuity < 90 ? '#F59E0B' : '#10B981'
+                const riskTier = (srv.risk_level || 'low').toUpperCase()
+                const statusName = srv.service_status ? srv.service_status.replace(/_/g, ' ').toUpperCase() : 'NOMINAL'
+
+                return (
+                  <div key={srv.service_id || i} className="service-risk-row">
+                    <div className="service-risk-name-col">
+                      <span className="service-name-text">{srv.service_name}</span>
+                      <span
+                        className="service-status-pill font-mono"
+                        style={{
+                          color:
+                            srv.risk_level === 'critical' || srv.risk_level === 'high'
+                              ? '#EF4444'
+                              : srv.risk_level === 'medium'
+                              ? '#F59E0B'
+                              : 'var(--text-muted)'
+                        }}
+                      >
+                        {riskTier} RISK • {statusName}
+                      </span>
+                    </div>
+                    <div className="service-score-bar-wrap">
+                      <div
+                        className="service-score-bar-fill"
+                        style={{
+                          width: `${Math.max(0, Math.min(100, continuity))}%`,
+                          background: continuityColor
+                        }}
+                      />
+                    </div>
+                    <span className="font-mono font-bold" style={{ color: continuityColor }}>
+                      {continuity}%
+                    </span>
+                  </div>
+                )
+              })
+            )}
           </div>
         </div>
       </div>
