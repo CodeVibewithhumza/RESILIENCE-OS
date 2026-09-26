@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Settings View Styles (SettingsView.css)
-   Matches official ResilienceOS Design reference for Settings
+   Settings Page Styles (SettingsView.css)
+   100% Pixel-Aligned with ResilienceOS Master Design Reference
    ========================================================================== */
 
 .settings-page {
@@ -10,325 +10,502 @@
   width: 100%;
 }
 
-.settings-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
+/* --------------------------------------------------------------------------
+   1. TOP 7 NAVIGATION TABS
+   -------------------------------------------------------------------------- */
 
-.settings-page-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  margin: 0 0 2px 0;
-}
-
-.settings-page-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.settings-actions-group {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.settings-reset-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.settings-reset-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.settings-save-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  background: rgba(6, 182, 212, 0.12);
-  border: 1px solid rgba(6, 182, 212, 0.3);
-  color: var(--accent-cyan);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.settings-save-btn:hover {
-  background: rgba(6, 182, 212, 0.22);
-  border-color: var(--accent-cyan);
-}
-
-/* 7 Tabs Bar */
-.settings-tabs-bar {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-wrap: wrap;
-  border-bottom: 1px solid var(--border-subtle);
-  padding-bottom: 10px;
-}
-
-.setting-tab-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 14px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.15s ease;
-}
-
-.setting-tab-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
-}
-
-.setting-tab-btn.active {
-  background: rgba(6, 182, 212, 0.12);
-  border-color: rgba(6, 182, 212, 0.35);
-  color: var(--accent-cyan);
-}
-
-[data-theme="light"] .setting-tab-btn.active {
-  background: rgba(2, 132, 199, 0.12);
-  border-color: rgba(2, 132, 199, 0.35);
-  color: #0284c7;
-}
-
-/* Panels */
-.settings-panel-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.setting-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  padding: 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-  box-shadow: var(--shadow-sm);
-}
-
-.setting-card-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.setting-card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-.setting-form-grid {
+.settings-top-tabs-row {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 14px;
-  min-width: 0;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 8px;
 }
 
-@media (max-width: 900px) {
-  .setting-form-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 1400px) {
+  .settings-top-tabs-row {
+    grid-template-columns: repeat(4, 1fr);
   }
 }
 
-.setting-field {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
+@media (max-width: 800px) {
+  .settings-top-tabs-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
-.field-label {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-secondary);
-}
-
-.setting-input,
-.setting-select {
-  padding: 8px 10px;
-  background: var(--bg-surface-elevated);
+.settings-nav-tab {
+  background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-xs);
-  color: var(--text-primary);
-  font-size: 12px;
-  outline: none;
-  transition: border-color 0.15s ease;
-}
-
-.setting-input:focus,
-.setting-select:focus {
-  border-color: var(--accent-cyan);
-}
-
-.setting-slider {
-  accent-color: var(--accent-cyan);
-  cursor: pointer;
-  margin-top: 4px;
-}
-
-/* Theme Option Buttons */
-.theme-toggle-row {
-  display: flex;
-  gap: 10px;
-}
-
-.theme-option-btn {
-  flex: 1;
+  border-radius: var(--radius-sm);
+  padding: 8px 10px;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-radius: var(--radius-sm);
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  color: var(--text-secondary);
-  font-size: 12px;
-  font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  box-shadow: var(--shadow-sm);
 }
 
-.theme-option-btn:hover {
-  background: var(--bg-hover);
-  color: var(--text-primary);
+.settings-nav-tab:hover {
+  border-color: var(--border-default);
 }
 
-.theme-option-btn.is-selected {
-  background: rgba(6, 182, 212, 0.12);
+.settings-nav-tab.is-active {
   border-color: var(--accent-cyan);
+  background: rgba(0, 240, 255, 0.05);
+}
+
+[data-theme="light"] .settings-nav-tab.is-active {
+  border-color: var(--accent-blue);
+  background: rgba(0, 163, 255, 0.08);
+}
+
+.tab-icon-wrap {
   color: var(--accent-cyan);
+  flex-shrink: 0;
 }
 
-.checkbox-toggle-row {
-  display: flex;
-  gap: 16px;
-  margin-top: 4px;
+[data-theme="light"] .tab-icon-wrap {
+  color: var(--accent-blue);
 }
 
-.checkbox-label {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 12px;
-  color: var(--text-primary);
-  cursor: pointer;
-}
-
-.checkbox-label input {
-  accent-color: var(--accent-cyan);
-}
-
-/* Data actions */
-.setting-data-actions-list {
+.tab-text-col {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-}
-
-.data-action-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 16px;
-  padding: 12px;
-  background: var(--bg-surface-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-sm);
   min-width: 0;
 }
 
-.data-action-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-width: 0;
-}
-
-.data-action-title {
-  font-size: 12px;
-  font-weight: 600;
+.tab-name {
+  font-size: 11px;
+  font-weight: 700;
   color: var(--text-primary);
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
-.data-action-desc {
-  font-size: 11px;
+.tab-sub {
+  font-size: 8px;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.btn-danger-outline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-xs);
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.35);
-  color: var(--status-critical);
-  font-size: 11px;
-  font-weight: 600;
-  cursor: pointer;
-  flex-shrink: 0;
+/* --------------------------------------------------------------------------
+   2. TOP ROW (3 CARDS): 1. Hospital Config, 2. Infrastructure Assets, 3. Critical Services
+   -------------------------------------------------------------------------- */
+
+.settings-top-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1.2fr 1fr;
+  gap: 16px;
+  align-items: stretch;
 }
 
-.btn-danger-outline:hover {
-  background: rgba(239, 68, 68, 0.2);
+@media (max-width: 1200px) {
+  .settings-top-cards-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
-.btn-neutral-outline {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 12px;
-  border-radius: var(--radius-xs);
+.settings-panel-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.panel-header-with-info,
+.panel-header-with-select {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.settings-panel-title {
+  font-size: 13px;
+  font-weight: 700;
   color: var(--text-primary);
-  font-size: 11px;
-  font-weight: 600;
+}
+
+.panel-subtitle {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-top: -4px;
+}
+
+.settings-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 10px;
   cursor: pointer;
+}
+
+/* Card 1: Hospital Configuration */
+.hospital-model-select-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.model-dropdown-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.load-preset-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.hospital-badges-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.h-badge-box {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 2px;
+}
+
+.h-badge-icon {
+  color: var(--accent-cyan);
+}
+
+.h-badge-val {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.h-badge-lbl {
+  font-size: 8px;
+  color: var(--text-muted);
+}
+
+.model-meta-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 10px;
+}
+
+.meta-field-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.meta-k {
+  color: var(--text-muted);
+  font-size: 9px;
+}
+
+.meta-v {
+  color: var(--text-secondary);
+  line-height: 1.3;
+}
+
+.hospital-actions-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.h-action-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 9px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.h-action-btn:hover {
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+/* Tables in Cards 2 & 3 */
+.assets-table-scroll,
+.services-table-scroll {
+  overflow-x: auto;
+  max-height: 220px;
+}
+
+.settings-data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 9px;
+  text-align: center;
+}
+
+.settings-data-table th,
+.settings-data-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+}
+
+.td-with-icon {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.td-icon {
+  color: var(--accent-cyan);
   flex-shrink: 0;
 }
 
-.btn-neutral-outline:hover {
-  background: var(--bg-hover);
+.crit-badge {
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 8px;
+  font-weight: 700;
+}
+
+.crit-badge.badge-critical { background: rgba(255, 77, 77, 0.2); color: #FF4D4D; }
+.crit-badge.badge-high { background: rgba(255, 77, 77, 0.15); color: #FF4D4D; }
+.crit-badge.badge-medium { background: rgba(255, 184, 0, 0.15); color: #FFB800; }
+.crit-badge.badge-low { background: rgba(0, 229, 163, 0.15); color: #00E5A3; }
+
+.td-chevron {
+  color: var(--text-muted);
+}
+
+.add-item-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: rgba(0, 240, 255, 0.08);
+  border: 1px dashed var(--accent-cyan);
+  color: var(--accent-cyan);
+  border-radius: 4px;
+  padding: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* --------------------------------------------------------------------------
+   3. BOTTOM ROW (4 CARDS)
+   -------------------------------------------------------------------------- */
+
+.settings-bottom-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  align-items: stretch;
+}
+
+@media (max-width: 1400px) {
+  .settings-bottom-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 800px) {
+  .settings-bottom-cards-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.sliders-form-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.slider-row {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.slider-label-val {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.setting-range-input {
+  width: 100%;
+  accent-color: var(--accent-cyan);
+  height: 4px;
+}
+
+.dropdown-field-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.toggle-switches-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.toggle-switch-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 9px;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.toggle-switch-row input {
+  accent-color: var(--accent-cyan);
+}
+
+/* Thresholds sub-tabs */
+.thresholds-mini-tabs {
+  display: flex;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  padding: 2px;
+}
+
+.thresh-tab {
+  flex: 1;
+  background: transparent;
+  border: none;
+  font-size: 8px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  padding: 3px 0;
+  cursor: pointer;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.thresh-tab.is-active {
+  background: var(--accent-cyan);
+  color: #01111E;
+}
+
+.edit-rules-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 5px;
+  font-size: 9px;
+  cursor: pointer;
+  margin-top: 4px;
+  text-align: center;
+}
+
+/* Visualization settings */
+.vis-radio-toggle-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.vis-radio-lbl {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+}
+
+.vis-radio-lbl input {
+  accent-color: var(--accent-cyan);
+}
+
+/* Data & System */
+.scen-lib-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 4px 6px;
+  font-size: 9px;
+  cursor: pointer;
+}
+
+.import-export-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.ie-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+.ie-btn {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 3px;
+  padding: 3px 6px;
+  font-size: 8px;
+  cursor: pointer;
+}
+
+.reset-all-settings-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  background: rgba(255, 77, 77, 0.08);
+  border: 1px solid #FF4D4D;
+  color: #FF4D4D;
+  border-radius: 4px;
+  padding: 8px;
+  font-size: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-top: 4px;
+  transition: all 0.15s ease;
+}
+
+.reset-all-settings-btn:hover {
+  background: rgba(255, 77, 77, 0.15);
 }

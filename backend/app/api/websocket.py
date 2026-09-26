@@ -64,6 +64,11 @@ async def _telemetry_broadcaster():
 
                 telemetry = engine.get_telemetry_snapshot()
                 resilience = cached_resilience
+                sub_scores_dump = (
+                    resilience.sub_scores.model_dump(mode="json")
+                    if hasattr(resilience.sub_scores, "model_dump")
+                    else {}
+                )
 
                 payload = {
                     "type": "telemetry_tick",
@@ -72,10 +77,14 @@ async def _telemetry_broadcaster():
                         "telemetry": telemetry.model_dump(mode="json"),
                         "resilience_score": resilience.overall_score,
                         "status_label": resilience.status_label,
+                        "delta_from_baseline": getattr(resilience, "delta_from_baseline", 0.0),
+                        "sub_scores": sub_scores_dump,
                     },
                     "telemetry": telemetry.model_dump(mode="json"),
                     "resilience_score": resilience.overall_score,
                     "status_label": resilience.status_label,
+                    "delta_from_baseline": getattr(resilience, "delta_from_baseline", 0.0),
+                    "sub_scores": sub_scores_dump,
                 }
                 await event_bus.publish("telemetry", payload)
         except asyncio.CancelledError:
@@ -129,6 +138,11 @@ async def websocket_twin_endpoint(websocket: WebSocket):
 
     try:
         resilience = engine.get_resilience_breakdown()
+        sub_scores_dump = (
+            resilience.sub_scores.model_dump(mode="json")
+            if hasattr(resilience.sub_scores, "model_dump")
+            else {}
+        )
 
         # Send initial state snapshot.
         await manager.send_message(
@@ -142,6 +156,8 @@ async def websocket_twin_endpoint(websocket: WebSocket):
                     ),
                     "resilience_score": resilience.overall_score,
                     "status_label": resilience.status_label,
+                    "delta_from_baseline": getattr(resilience, "delta_from_baseline", 0.0),
+                    "sub_scores": sub_scores_dump,
                 },
             },
         )

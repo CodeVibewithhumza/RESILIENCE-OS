@@ -1,417 +1,646 @@
 import { useState } from 'react'
 import {
-  Sliders,
   Building,
   Activity,
+  AlertTriangle,
   SlidersHorizontal,
-  Moon,
-  Sun,
+  Users,
   Database,
-  ShieldAlert,
-  Save,
+  Settings as SettingsIcon,
+  Info,
+  ChevronRight,
+  Plus,
   RotateCcw,
-  Check,
-  Server,
+  Zap,
+  Droplets,
+  Wind,
+  Flame,
+  HeartPulse,
+  Share2,
+  FileText,
+  Download,
+  Upload,
   Layers
 } from 'lucide-react'
 import './SettingsView.css'
 
+const SETTING_TABS = [
+  { id: 'model', name: 'Hospital Model', sub: 'Assets, services, dependencies', icon: Building },
+  { id: 'sim', name: 'Simulation', sub: 'Parameters and scenarios', icon: Activity },
+  { id: 'thresholds', name: 'Thresholds', sub: 'State & risk thresholds', icon: AlertTriangle },
+  { id: 'vis', name: 'Visualization', sub: '3D view & display options', icon: SlidersHorizontal },
+  { id: 'users', name: 'Users & Access', sub: 'Team and permissions', icon: Users },
+  { id: 'data', name: 'Data & Export', sub: 'Import, export & logs', icon: Database },
+  { id: 'system', name: 'System', sub: 'General settings', icon: SettingsIcon }
+]
+
 export default function SettingsView({ onReset, theme = 'dark', onSetTheme, onNotify }) {
   const [activeTab, setActiveTab] = useState('model')
+  const [assetSystemFilter, setAssetSystemFilter] = useState('Electrical System')
+  const [thresholdSystemTab, setThresholdSystemTab] = useState('Electrical')
+
+  // Sliders state
   const [simSpeed, setSimSpeed] = useState(1)
-  const [cascadeSpeed, setCascadeSpeed] = useState(5)
-  const [monteCarloRuns, setMonteCarloRuns] = useState(500)
-  const [criticalFloor, setCriticalFloor] = useState(60)
-  const [batteryThreshold, setBatteryThreshold] = useState(20)
-  const [fuelThreshold, setFuelThreshold] = useState(40)
-  const [renderQuality, setRenderQuality] = useState('high')
-  const [showCompass, setShowCompass] = useState(true)
-  const [showParticles, setShowParticles] = useState(true)
-  const [isSaved, setIsSaved] = useState(false)
+  const [timeStep, setTimeStep] = useState(1)
+  const [defDuration, setDefDuration] = useState(2)
+  const [defSeverity, setDefSeverity] = useState('Medium (50%)')
 
-  const handleSave = () => {
-    setIsSaved(true)
-    if (onNotify) {
-      onNotify('System parameters & model configurations updated', 'success')
-    }
-    setTimeout(() => setIsSaved(false), 2000)
-  }
+  const [voltageThreshold, setVoltageThreshold] = useState(0.85)
+  const [transformerLoad, setTransformerLoad] = useState(90)
+  const [genStartDelay, setGenStartDelay] = useState(10)
+  const [upsBatteryLow, setUpsBatteryLow] = useState(20)
+  const [stateHysteresis, setStateHysteresis] = useState(5)
 
-  const handleThemeChange = (newTheme) => {
-    if (onSetTheme) {
-      onSetTheme(newTheme)
-    }
-  }
+  const [buildingOpacity, setBuildingOpacity] = useState(100)
+  const [showLabels, setShowLabels] = useState(true)
+  const [showFlowAnim, setShowFlowAnim] = useState(true)
+  const [cameraAutoRotate, setCameraAutoRotate] = useState(false)
 
-  const settingTabs = [
-    { id: 'general', label: 'General', icon: Sliders },
-    { id: 'model', label: 'Hospital Model', icon: Building },
-    { id: 'assets', label: 'Assets & Services', icon: Server },
-    { id: 'simulation', label: 'Simulation', icon: Activity },
-    { id: 'thresholds', label: 'Thresholds', icon: ShieldAlert },
-    { id: 'visualization', label: 'Visualization', icon: SlidersHorizontal },
-    { id: 'data', label: 'Data & System', icon: Database }
+  // System toggles
+  const [enableWebSocket, setEnableWebSocket] = useState(true)
+  const [saveSimHistory, setSaveSimHistory] = useState(true)
+  const [enableAnomalyDetection, setEnableAnomalyDetection] = useState(true)
+  const [enableDetailedLogs, setEnableDetailedLogs] = useState(true)
+
+  const [enableRealtimeAnim, setEnableRealtimeAnim] = useState(true)
+  const [enableEventLogging, setEnableEventLogging] = useState(true)
+  const [autoRefreshDash, setAutoRefreshDash] = useState(true)
+
+  const assetsList = [
+    { name: 'Main Transformer', icon: Zap, cap: '2 MVA', status: 'Normal', crit: 'High' },
+    { name: 'Diesel Generator (DG-1)', icon: SettingsIcon, cap: '1.5 MVA', status: 'Standby', crit: 'High' },
+    { name: 'UPS System', icon: Layers, cap: '500 kVA', status: 'Normal', crit: 'High' },
+    { name: 'ATS', icon: Zap, cap: '2 MVA', status: 'Normal', crit: 'High' },
+    { name: 'Distribution Panel', icon: Zap, cap: '—', status: 'Normal', crit: 'Medium' },
+    { name: 'Chiller Plant', icon: Wind, cap: '1200 TR', status: 'Normal', crit: 'Medium' },
+    { name: 'Water Tank (Main)', icon: Droplets, cap: '200 KL', status: 'Normal', crit: 'Medium' },
+    { name: 'Medical Gas Plant', icon: Flame, cap: 'Oxygen/Air/Vacuum', status: 'Normal', crit: 'High' }
   ]
+
+  const servicesList = [
+    { name: 'ICU', icon: HeartPulse, prio: 'Critical', deps: 12, status: 'Normal' },
+    { name: 'OT (Operation Theatre)', icon: Activity, prio: 'Critical', deps: 10, status: 'Normal' },
+    { name: 'Emergency', icon: HeartPulse, prio: 'Critical', deps: 11, status: 'Normal' },
+    { name: 'Wards', icon: Building, prio: 'High', deps: 8, status: 'Normal' },
+    { name: 'OPD', icon: Building, prio: 'Medium', deps: 6, status: 'Normal' },
+    { name: 'Laboratory', icon: Flame, prio: 'Medium', deps: 7, status: 'Normal' },
+    { name: 'Radiology', icon: Zap, prio: 'Medium', deps: 6, status: 'Normal' },
+    { name: 'Pharmacy', icon: Layers, prio: 'Low', deps: 4, status: 'Normal' }
+  ]
+
+  const handleResetAll = () => {
+    if (onReset) onReset()
+    if (onNotify) onNotify('All system settings reset to factory defaults', 'warning')
+  }
 
   return (
     <div className="settings-page">
-      {/* Header Bar */}
-      <div className="settings-header-row">
-        <div>
-          <h1 className="settings-page-title">Settings & System Configuration</h1>
-          <p className="settings-page-subtitle">
-            Hospital infrastructure parameters, simulation rules, visualization options, and system preferences
-          </p>
-        </div>
-        <div className="settings-actions-group">
-          <button type="button" className="settings-reset-btn" onClick={onReset} title="Reset to baseline">
-            <RotateCcw size={13} />
-            <span>Reset Baseline</span>
-          </button>
-          <button type="button" className="settings-save-btn" onClick={handleSave}>
-            {isSaved ? (
-              <>
-                <Check size={14} style={{ color: '#10B981' }} />
-                <span>Saved!</span>
-              </>
-            ) : (
-              <>
-                <Save size={13} />
-                <span>Save Changes</span>
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* 7 Setting Navigation Tabs */}
-      <div className="settings-tabs-bar">
-        {settingTabs.map((tab) => {
+      {/* 1. TOP 7 NAVIGATION TABS */}
+      <section className="settings-top-tabs-row">
+        {SETTING_TABS.map((tab) => {
           const Icon = tab.icon
+          const isActive = activeTab === tab.id
           return (
-            <button
+            <div
               key={tab.id}
-              type="button"
-              className={`setting-tab-btn ${activeTab === tab.id ? 'active' : ''}`}
+              className={`settings-nav-tab ${isActive ? 'is-active' : ''}`}
               onClick={() => setActiveTab(tab.id)}
             >
-              <Icon size={14} />
-              <span>{tab.label}</span>
-            </button>
+              <div className="tab-icon-wrap">
+                <Icon size={16} />
+              </div>
+              <div className="tab-text-col">
+                <span className="tab-name">{tab.name}</span>
+                <span className="tab-sub">{tab.sub}</span>
+              </div>
+            </div>
           )
         })}
-      </div>
+      </section>
 
-      {/* Tab Panels */}
-      <div className="settings-panel-grid">
-        {/* TAB 1: GENERAL */}
-        {activeTab === 'general' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">General Platform Settings</span>
-              <span className="font-mono badge badge-normal">System Active</span>
+      {/* 2. TOP ROW (3 CARDS): 1. Hospital Config, 2. Infrastructure Assets, 3. Critical Services */}
+      <section className="settings-top-cards-grid">
+        {/* Card 1: Hospital Configuration */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">1. Hospital Configuration</span>
+            <Info size={13} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Configure the hospital model, assets, services and dependencies.</span>
+
+          <div className="hospital-model-select-row">
+            <div className="model-dropdown-wrap">
+              <label className="field-lbl">Hospital Model</label>
+              <select className="settings-select font-mono" defaultValue="campus_default">
+                <option value="campus_default">Campus Model (Default)</option>
+                <option value="single_tower">Single Tower Model</option>
+              </select>
             </div>
-            <div className="setting-form-grid">
-              <div className="setting-field">
-                <label className="field-label">Command Center Identifier</label>
-                <input
-                  type="text"
-                  className="setting-input font-mono"
-                  defaultValue="RESILIENCE-OS-PRODUCTION-CLUSTER-01"
-                  readOnly
-                />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Timezone Sync</label>
-                <select className="setting-select font-mono" defaultValue="UTC">
-                  <option value="UTC">Coordinated Universal Time (UTC)</option>
-                  <option value="EST">Eastern Standard Time (EST)</option>
-                  <option value="PST">Pacific Standard Time (PST)</option>
-                </select>
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Telemetry Ingestion Interval</label>
-                <input type="text" className="setting-input font-mono" defaultValue="1000 ms (1s Live WebSocket)" readOnly />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Session Operating Mode</label>
-                <input type="text" className="setting-input font-mono" defaultValue="Simulation & Decision Support" readOnly />
-              </div>
+            <button type="button" className="load-preset-btn">Load Preset</button>
+          </div>
+
+          {/* 4 Metric Badges in 2x2 */}
+          <div className="hospital-badges-grid font-mono">
+            <div className="h-badge-box">
+              <Building size={14} className="h-badge-icon" />
+              <span className="h-badge-val">52</span>
+              <span className="h-badge-lbl">Total Assets</span>
+            </div>
+            <div className="h-badge-box">
+              <SettingsIcon size={14} className="h-badge-icon" />
+              <span className="h-badge-val">6</span>
+              <span className="h-badge-lbl">Sub-systems</span>
+            </div>
+            <div className="h-badge-box">
+              <ShieldCheck size={14} className="h-badge-icon" />
+              <span className="h-badge-val">8</span>
+              <span className="h-badge-lbl">Critical Services</span>
+            </div>
+            <div className="h-badge-box">
+              <Share2 size={14} className="h-badge-icon" />
+              <span className="h-badge-val">112</span>
+              <span className="h-badge-lbl">Dependencies</span>
             </div>
           </div>
-        )}
 
-        {/* TAB 2: HOSPITAL MODEL */}
-        {activeTab === 'model' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Hospital Infrastructure Model (BIM Campus)</span>
-              <span className="font-mono badge badge-normal">Level 1 Trauma</span>
+          <div className="model-meta-fields">
+            <div className="meta-field-row">
+              <span className="meta-k">Model Name</span>
+              <span className="meta-v">ResilienceOS - Campus Hospital (v1.0)</span>
             </div>
-            <div className="setting-form-grid">
-              <div className="setting-field">
-                <label className="field-label">Healthcare Facility Name</label>
-                <input type="text" className="setting-input" defaultValue="Central Metropolitan Hospital Campus" />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Clinical Trauma Designation</label>
-                <input type="text" className="setting-input" defaultValue="Level 1 Regional Trauma Center" />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Total Inpatient Bed Capacity</label>
-                <input type="number" className="setting-input font-mono" defaultValue="850" />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Intensive Care Units (ICU Beds)</label>
-                <input type="number" className="setting-input font-mono" defaultValue="48" />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Operating Suites (OT Rooms)</label>
-                <input type="number" className="setting-input font-mono" defaultValue="12" />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Peak Electrical Demand</label>
-                <input type="text" className="setting-input font-mono" defaultValue="2,200 kW" />
-              </div>
+            <div className="meta-field-row">
+              <span className="meta-k">Description</span>
+              <span className="meta-v">Small, representative hospital infrastructure model for simulation and demonstration.</span>
             </div>
           </div>
-        )}
 
-        {/* TAB 3: ASSETS & SERVICES */}
-        {activeTab === 'assets' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Infrastructure Assets & Clinical Topology</span>
-              <span className="font-mono badge badge-cyan">52 Nodes Monitored</span>
+          {/* 4 Action buttons 2x2 */}
+          <div className="hospital-actions-grid">
+            <button type="button" className="h-action-btn">✏ Edit Infrastructure Model</button>
+            <button type="button" className="h-action-btn">📋 Manage Services</button>
+            <button type="button" className="h-action-btn">🔗 View Dependency Graph</button>
+            <button type="button" className="h-action-btn">🔄 Reset to Default</button>
+          </div>
+        </div>
+
+        {/* Card 2: Infrastructure Assets */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-select">
+            <div className="title-with-info">
+              <span className="settings-panel-title">2. Infrastructure Assets</span>
+              <Info size={13} className="panel-info-icon" />
             </div>
-            <div className="setting-form-grid">
-              <div className="setting-field">
-                <label className="field-label">Electrical Substation Feeds</label>
-                <input type="text" className="setting-input font-mono" defaultValue="11kV Dual Underground Feeders (A & B)" />
+            <select
+              className="settings-select font-mono"
+              value={assetSystemFilter}
+              onChange={(e) => setAssetSystemFilter(e.target.value)}
+            >
+              <option value="Electrical System">Electrical System</option>
+              <option value="Water System">Water System</option>
+              <option value="HVAC System">HVAC System</option>
+              <option value="Medical Gas">Medical Gas</option>
+            </select>
+          </div>
+          <span className="panel-subtitle">Configure key assets and capacities.</span>
+
+          <div className="assets-table-scroll font-mono">
+            <table className="settings-data-table">
+              <thead>
+                <tr>
+                  <th className="th-left font-sans">Asset</th>
+                  <th>Capacity</th>
+                  <th>Status</th>
+                  <th>Criticality</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {assetsList.map((item, idx) => {
+                  const Icon = item.icon
+                  return (
+                    <tr key={idx}>
+                      <td className="td-left font-sans td-with-icon">
+                        <Icon size={12} className="td-icon" />
+                        <span>{item.name}</span>
+                      </td>
+                      <td>{item.cap}</td>
+                      <td><span className="status-dot dot-cyan" /> {item.status}</td>
+                      <td>
+                        <span className={`crit-badge badge-${item.crit.toLowerCase()}`}>{item.crit}</span>
+                      </td>
+                      <td><ChevronRight size={12} className="td-chevron" /></td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <button type="button" className="add-item-btn">
+            <Plus size={13} />
+            <span>Add New Asset</span>
+          </button>
+        </div>
+
+        {/* Card 3: Critical Services */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">3. Critical Services</span>
+            <Info size={13} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Configure service dependencies and criticality.</span>
+
+          <div className="services-table-scroll font-mono">
+            <table className="settings-data-table">
+              <thead>
+                <tr>
+                  <th className="th-left font-sans">Service</th>
+                  <th>Priority</th>
+                  <th>Dependencies</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {servicesList.map((srv, idx) => {
+                  const Icon = srv.icon
+                  return (
+                    <tr key={idx}>
+                      <td className="td-left font-sans td-with-icon">
+                        <Icon size={12} className="td-icon" />
+                        <span>{srv.name}</span>
+                      </td>
+                      <td>
+                        <span className={`crit-badge badge-${srv.prio.toLowerCase()}`}>{srv.prio}</span>
+                      </td>
+                      <td>{srv.deps}</td>
+                      <td><span className="status-dot dot-cyan" /> {srv.status}</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          <button type="button" className="add-item-btn">
+            <Plus size={13} />
+            <span>Add New Service</span>
+          </button>
+        </div>
+      </section>
+
+      {/* 3. BOTTOM ROW (4 CARDS): 4. Simulation Settings, 5. Thresholds & State Rules, 6. Visualization Settings, 7. Data & System */}
+      <section className="settings-bottom-cards-grid">
+        {/* Card 4: Simulation Settings */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">4. Simulation Settings</span>
+            <Info size={12} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Set global simulation parameters.</span>
+
+          <div className="sliders-form-list">
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Simulation Speed</span>
+                <span className="font-mono">{simSpeed} x</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">Standby Generator Redundancy</label>
-                <input type="text" className="setting-input font-mono" defaultValue="2x 1.5 MVA Cummins Diesel Generators (N+1)" />
+              <input
+                type="range"
+                min="0.5"
+                max="5"
+                step="0.5"
+                value={simSpeed}
+                onChange={(e) => setSimSpeed(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Time Step</span>
+                <span className="font-mono">{timeStep} min</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">UPS System Capacity</label>
-                <input type="text" className="setting-input font-mono" defaultValue="500 kVA Static UPS with 45 min Battery Bank" />
+              <input
+                type="range"
+                min="1"
+                max="10"
+                value={timeStep}
+                onChange={(e) => setTimeStep(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Default Duration</span>
+                <span className="font-mono">{defDuration} hours</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">Medical Gas Supply Configuration</label>
-                <input type="text" className="setting-input font-mono" defaultValue="Bulk Cryogenic Liquid O2 + Dual Cylinder Manifold" />
-              </div>
+              <input
+                type="range"
+                min="1"
+                max="8"
+                value={defDuration}
+                onChange={(e) => setDefDuration(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="dropdown-field-row">
+              <span>Default Severity</span>
+              <select
+                className="settings-select font-mono"
+                value={defSeverity}
+                onChange={(e) => setDefSeverity(e.target.value)}
+              >
+                <option value="Medium (50%)">Medium (50%)</option>
+                <option value="Full Failure">Full Failure</option>
+              </select>
+            </div>
+
+            <div className="toggle-switches-list">
+              <label className="toggle-switch-row">
+                <span>Enable Real-time Animation</span>
+                <input
+                  type="checkbox"
+                  checked={enableRealtimeAnim}
+                  onChange={() => setEnableRealtimeAnim(!enableRealtimeAnim)}
+                />
+              </label>
+              <label className="toggle-switch-row">
+                <span>Enable Event Logging</span>
+                <input
+                  type="checkbox"
+                  checked={enableEventLogging}
+                  onChange={() => setEnableEventLogging(!enableEventLogging)}
+                />
+              </label>
+              <label className="toggle-switch-row">
+                <span>Auto-refresh Dashboard</span>
+                <input
+                  type="checkbox"
+                  checked={autoRefreshDash}
+                  onChange={() => setAutoRefreshDash(!autoRefreshDash)}
+                />
+              </label>
             </div>
           </div>
-        )}
+        </div>
 
-        {/* TAB 4: SIMULATION */}
-        {activeTab === 'simulation' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Simulation Engine & Cascade Rules</span>
-              <span className="font-mono badge badge-normal">Realtime Engine</span>
+        {/* Card 5: Thresholds & State Rules */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">5. Thresholds & State Rules</span>
+            <Info size={12} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Configure state transition thresholds for key systems.</span>
+
+          {/* System Tabs */}
+          <div className="thresholds-mini-tabs">
+            {['Electrical', 'Water', 'HVAC', 'Medical Gas'].map((t) => (
+              <button
+                key={t}
+                type="button"
+                className={`thresh-tab ${thresholdSystemTab === t ? 'is-active' : ''}`}
+                onClick={() => setThresholdSystemTab(t)}
+              >
+                {t}
+              </button>
+            ))}
+          </div>
+
+          <div className="sliders-form-list">
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Voltage Threshold (Low)</span>
+                <span className="font-mono">{voltageThreshold} pu</span>
+              </div>
+              <input
+                type="range"
+                min="0.5"
+                max="1.0"
+                step="0.05"
+                value={voltageThreshold}
+                onChange={(e) => setVoltageThreshold(Number(e.target.value))}
+                className="setting-range-input"
+              />
             </div>
-            <div className="setting-form-grid">
-              <div className="setting-field">
-                <label className="field-label">Time Step Resolution: {simSpeed}x</label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="5"
-                  step="0.5"
-                  value={simSpeed}
-                  onChange={(e) => setSimSpeed(Number(e.target.value))}
-                  className="setting-slider"
-                />
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Transformer Load (High)</span>
+                <span className="font-mono">{transformerLoad} %</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">Cascade Propagation Speed: {cascadeSpeed}m delay</label>
-                <input
-                  type="range"
-                  min="1"
-                  max="15"
-                  value={cascadeSpeed}
-                  onChange={(e) => setCascadeSpeed(Number(e.target.value))}
-                  className="setting-slider"
-                />
+              <input
+                type="range"
+                min="50"
+                max="100"
+                value={transformerLoad}
+                onChange={(e) => setTransformerLoad(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>Generator Start Delay</span>
+                <span className="font-mono">{genStartDelay} sec</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">Monte Carlo Strategy Iterations</label>
-                <input
-                  type="number"
-                  className="setting-input font-mono"
-                  value={monteCarloRuns}
-                  onChange={(e) => setMonteCarloRuns(Number(e.target.value))}
-                />
+              <input
+                type="range"
+                min="0"
+                max="30"
+                value={genStartDelay}
+                onChange={(e) => setGenStartDelay(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>UPS Battery Low</span>
+                <span className="font-mono">{upsBatteryLow} %</span>
               </div>
-              <div className="setting-field">
-                <label className="field-label">MCDA Optimization Weighting</label>
-                <select className="setting-select font-mono" defaultValue="balanced">
-                  <option value="balanced">Balanced (Clinical Continuity + Cost + Speed)</option>
-                  <option value="clinical">Clinical First (Max ICU/OT Preservation)</option>
-                  <option value="runtime">Runtime First (Max Battery/Fuel Reserve)</option>
-                </select>
+              <input
+                type="range"
+                min="10"
+                max="50"
+                value={upsBatteryLow}
+                onChange={(e) => setUpsBatteryLow(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <div className="slider-row">
+              <div className="slider-label-val">
+                <span>State Hysteresis</span>
+                <span className="font-mono">{stateHysteresis} min</span>
               </div>
+              <input
+                type="range"
+                min="1"
+                max="15"
+                value={stateHysteresis}
+                onChange={(e) => setStateHysteresis(Number(e.target.value))}
+                className="setting-range-input"
+              />
+            </div>
+
+            <button type="button" className="edit-rules-btn">✏ Edit Advanced Rules</button>
+          </div>
+        </div>
+
+        {/* Card 6: Visualization Settings */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">6. Visualization Settings</span>
+            <Info size={12} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Configure 3D digital twin and display options.</span>
+
+          <div className="vis-radio-toggle-row font-mono">
+            <label className="vis-radio-lbl">
+              <input type="radio" name="vis_mode" defaultChecked />
+              <span>3D View</span>
+            </label>
+            <label className="vis-radio-lbl">
+              <input type="radio" name="vis_mode" />
+              <span>2D Schematic</span>
+            </label>
+          </div>
+
+          <div className="dropdown-field-row">
+            <span>View Mode</span>
+            <select className="settings-select font-mono" defaultValue="campus">
+              <option value="campus">Campus View</option>
+              <option value="building">Building View</option>
+            </select>
+          </div>
+
+          <div className="dropdown-field-row">
+            <span>Theme</span>
+            <select
+              className="settings-select font-mono"
+              value={theme}
+              onChange={(e) => onSetTheme && onSetTheme(e.target.value)}
+            >
+              <option value="dark">Dark (Default)</option>
+              <option value="light">Light</option>
+            </select>
+          </div>
+
+          <div className="toggle-switches-list">
+            <label className="toggle-switch-row">
+              <span>Show Labels</span>
+              <input
+                type="checkbox"
+                checked={showLabels}
+                onChange={() => setShowLabels(!showLabels)}
+              />
+            </label>
+            <label className="toggle-switch-row">
+              <span>Show Flow Animation</span>
+              <input
+                type="checkbox"
+                checked={showFlowAnim}
+                onChange={() => setShowFlowAnim(!showFlowAnim)}
+              />
+            </label>
+            <label className="toggle-switch-row">
+              <span>Camera Auto-Rotate</span>
+              <input
+                type="checkbox"
+                checked={cameraAutoRotate}
+                onChange={() => setCameraAutoRotate(!cameraAutoRotate)}
+              />
+            </label>
+          </div>
+
+          <div className="slider-row">
+            <div className="slider-label-val">
+              <span>Building Opacity</span>
+              <span className="font-mono">{buildingOpacity} %</span>
+            </div>
+            <input
+              type="range"
+              min="20"
+              max="100"
+              value={buildingOpacity}
+              onChange={(e) => setBuildingOpacity(Number(e.target.value))}
+              className="setting-range-input"
+            />
+          </div>
+        </div>
+
+        {/* Card 7: Data & System */}
+        <div className="settings-panel-card">
+          <div className="panel-header-with-info">
+            <span className="settings-panel-title">7. Data & System</span>
+            <Info size={12} className="panel-info-icon" />
+          </div>
+          <span className="panel-subtitle">Manage data, import/export and system options.</span>
+
+          <div className="dropdown-field-row">
+            <span>Data Source</span>
+            <select className="settings-select font-mono" defaultValue="synthetic">
+              <option value="synthetic">Synthetic Data (Default)</option>
+              <option value="live_ws">Live Telemetry (WebSocket)</option>
+            </select>
+          </div>
+
+          <div className="dropdown-field-row">
+            <span>Scenario Library</span>
+            <button type="button" className="scen-lib-btn">📁 Manage Scenarios</button>
+          </div>
+
+          <div className="import-export-row">
+            <span>Import / Export</span>
+            <div className="ie-buttons">
+              <button type="button" className="ie-btn"><Upload size={11} /> Import Config</button>
+              <button type="button" className="ie-btn"><Download size={11} /> Export Config</button>
             </div>
           </div>
-        )}
 
-        {/* TAB 5: THRESHOLDS */}
-        {activeTab === 'thresholds' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Alert & Resilience Thresholds</span>
-              <span className="font-mono badge badge-warning">Active Rules</span>
-            </div>
-            <div className="setting-form-grid">
-              <div className="setting-field">
-                <label className="field-label">Critical Resilience Alert Floor: {criticalFloor}%</label>
-                <input
-                  type="range"
-                  min="30"
-                  max="80"
-                  value={criticalFloor}
-                  onChange={(e) => setCriticalFloor(Number(e.target.value))}
-                  className="setting-slider"
-                />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Battery Headroom Warning: {batteryThreshold}%</label>
-                <input
-                  type="range"
-                  min="10"
-                  max="40"
-                  value={batteryThreshold}
-                  onChange={(e) => setBatteryThreshold(Number(e.target.value))}
-                  className="setting-slider"
-                />
-              </div>
-              <div className="setting-field">
-                <label className="field-label">Generator Fuel Reserve Floor: {fuelThreshold}%</label>
-                <input
-                  type="range"
-                  min="20"
-                  max="60"
-                  value={fuelThreshold}
-                  onChange={(e) => setFuelThreshold(Number(e.target.value))}
-                  className="setting-slider"
-                />
-              </div>
-            </div>
+          <div className="toggle-switches-list">
+            <label className="toggle-switch-row">
+              <span>Enable WebSocket (Real-time)</span>
+              <input
+                type="checkbox"
+                checked={enableWebSocket}
+                onChange={() => setEnableWebSocket(!enableWebSocket)}
+              />
+            </label>
+            <label className="toggle-switch-row">
+              <span>Save Simulation History</span>
+              <input
+                type="checkbox"
+                checked={saveSimHistory}
+                onChange={() => setSaveSimHistory(!saveSimHistory)}
+              />
+            </label>
+            <label className="toggle-switch-row">
+              <span>Enable Anomaly Detection (ML)</span>
+              <input
+                type="checkbox"
+                checked={enableAnomalyDetection}
+                onChange={() => setEnableAnomalyDetection(!enableAnomalyDetection)}
+              />
+            </label>
+            <label className="toggle-switch-row">
+              <span>Enable Detailed Logs</span>
+              <input
+                type="checkbox"
+                checked={enableDetailedLogs}
+                onChange={() => setEnableDetailedLogs(!enableDetailedLogs)}
+              />
+            </label>
           </div>
-        )}
 
-        {/* TAB 6: VISUALIZATION */}
-        {activeTab === 'visualization' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Visualization & Theme Settings</span>
-              <span className="font-mono badge badge-cyan">Appearance</span>
-            </div>
-            <div className="setting-form-grid">
-              {/* Theme Selector */}
-              <div className="setting-field">
-                <label className="field-label">Theme Mode</label>
-                <div className="theme-toggle-row">
-                  <button
-                    type="button"
-                    className={`theme-option-btn ${theme === 'dark' ? 'is-selected' : ''}`}
-                    onClick={() => handleThemeChange('dark')}
-                  >
-                    <Moon size={15} />
-                    <span>Dark Theme</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`theme-option-btn ${theme === 'light' ? 'is-selected' : ''}`}
-                    onClick={() => handleThemeChange('light')}
-                  >
-                    <Sun size={15} />
-                    <span>Light Theme</span>
-                  </button>
-                </div>
-              </div>
-
-              <div className="setting-field">
-                <label className="field-label">3D Render Quality</label>
-                <select
-                  className="setting-select font-mono"
-                  value={renderQuality}
-                  onChange={(e) => setRenderQuality(e.target.value)}
-                >
-                  <option value="high">High Performance (Antialiasing + Bloom + Shadows)</option>
-                  <option value="medium">Medium (Standard WebGL)</option>
-                  <option value="low">Low (Battery Saver Mode)</option>
-                </select>
-              </div>
-
-              <div className="setting-field">
-                <label className="field-label">Spatial HUD Overlays</label>
-                <div className="checkbox-toggle-row">
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={showCompass}
-                      onChange={(e) => setShowCompass(e.target.checked)}
-                    />
-                    <span>Compass & Navigation HUD</span>
-                  </label>
-                  <label className="checkbox-label">
-                    <input
-                      type="checkbox"
-                      checked={showParticles}
-                      onChange={(e) => setShowParticles(e.target.checked)}
-                    />
-                    <span>Particle Stream Dynamics</span>
-                  </label>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* TAB 7: DATA & SYSTEM */}
-        {activeTab === 'data' && (
-          <div className="setting-card">
-            <div className="setting-card-header">
-              <span className="setting-card-title">Data Management & Reset</span>
-              <span className="font-mono badge badge-critical">Maintenance</span>
-            </div>
-            <div className="setting-data-actions-list">
-              <div className="data-action-row">
-                <div className="data-action-info">
-                  <span className="data-action-title">Reset Hospital Twin to 100% Operational Baseline</span>
-                  <span className="data-action-desc">
-                    Clears any active failure injections, resets all telemetry to nominal defaults, and restores the digital twin state.
-                  </span>
-                </div>
-                <button type="button" className="btn-danger-outline" onClick={onReset}>
-                  <RotateCcw size={13} />
-                  <span>Reset Baseline</span>
-                </button>
-              </div>
-
-              <div className="data-action-row">
-                <div className="data-action-info">
-                  <span className="data-action-title">Export Current Twin State Snapshot</span>
-                  <span className="data-action-desc">
-                    Downloads a full JSON snapshot of all 52 nodes, service health matrices, and active incident telemetry.
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  className="btn-neutral-outline"
-                  onClick={() => alert('Snapshot exported successfully.')}
-                >
-                  <Database size={13} />
-                  <span>Export JSON</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
+          <button type="button" className="reset-all-settings-btn" onClick={handleResetAll}>
+            <RotateCcw size={13} />
+            <span>Reset All Settings</span>
+          </button>
+        </div>
+      </section>
     </div>
   )
 }

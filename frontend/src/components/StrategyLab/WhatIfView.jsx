@@ -1,19 +1,46 @@
 import { useState } from 'react'
 import {
-  Sliders,
-  CheckCircle2,
-  Award,
-  Layers,
-  ChevronRight,
-  TrendingUp,
-  RotateCcw,
-  Check,
-  ShieldCheck,
   Zap,
-  Clock
+  Droplets,
+  Wind,
+  Flame,
+  AlertTriangle,
+  Building,
+  CheckCircle2,
+  ChevronRight,
+  Maximize2,
+  Navigation,
+  Plus,
+  Minus,
+  Box,
+  Clock,
+  ShieldCheck,
+  Play,
+  RotateCcw,
+  Check
 } from 'lucide-react'
 import TwinContainer from '../DigitalTwin3D/TwinContainer'
 import './WhatIfView.css'
+
+const PREDEFINED_SCENARIOS = [
+  { id: 'transformer', name: 'Primary Transformer Failure', sub: 'Loss of main transformer supply', icon: Zap, iconColor: '#00F0FF' },
+  { id: 'grid', name: 'Grid Power Outage', sub: 'Loss of external grid supply', icon: Zap, iconColor: '#00F0FF' },
+  { id: 'generator', name: 'Generator Failure', sub: 'Backup generator fails to start', icon: Zap, iconColor: '#00F0FF' },
+  { id: 'ups', name: 'UPS Battery Depletion', sub: 'UPS runtime exhausted', icon: Zap, iconColor: '#00F0FF' },
+  { id: 'water', name: 'Water Supply Disruption', sub: 'Main water tank/pump failure', icon: Droplets, iconColor: '#00A3FF' },
+  { id: 'hvac', name: 'HVAC Chiller Failure', sub: 'Loss of cooling capacity', icon: Wind, iconColor: '#FFB800' },
+  { id: 'gas', name: 'Medical Gas Pressure Drop', sub: 'Oxygen/air/vacuum supply failure', icon: Flame, iconColor: '#A855F7' },
+  { id: 'multiple', name: 'Multiple Failures', sub: 'Combined scenario', icon: Building, iconColor: '#00F0FF' }
+]
+
+const STRATEGY_CARDS = [
+  { code: 'A', id: 'backup_gen', name: 'Use Backup Generator', desc: 'Start DG and isolate fault', color: 'teal', defaultChecked: true },
+  { code: 'B', id: 'load_shedding', name: 'Load Shedding', desc: 'Prioritize critical services', color: 'blue', defaultChecked: true },
+  { code: 'C', id: 'alt_feeds', name: 'Switch to Alternate Feeds', desc: 'Reroute via secondary lines', color: 'orange', defaultChecked: true },
+  { code: 'D', id: 'ups_ext', name: 'Use UPS Extension', desc: 'Extend UPS runtime', color: 'purple', defaultChecked: false },
+  { code: 'E', id: 'partial_shut', name: 'Partial Shutdown', desc: 'Controlled service reduction', color: 'pink', defaultChecked: false },
+  { code: 'F', id: 'combined_strat', name: 'Combined Strategy', desc: 'Multi-system coordinated', color: 'cyan', defaultChecked: false }
+]
 
 export default function WhatIfView({
   strategies = [],
@@ -29,438 +56,535 @@ export default function WhatIfView({
   services = [],
   onNotify
 }) {
-  const [selectedIncidentType, setSelectedIncidentType] = useState('grid')
-  const [horizonHours, setHorizonHours] = useState('2')
-  const [selectedStrategies, setSelectedStrategies] = useState(['A', 'B', 'C', 'D', 'E', 'F'])
+  const [scenarioTab, setScenarioTab] = useState('predefined') // 'predefined' | 'custom'
+  const [selectedScenario, setSelectedScenario] = useState('transformer')
+  const [severity, setSeverity] = useState('Full Failure (100%)')
+  const [startTime, setStartTime] = useState('Immediate (T = 0)')
+  const [duration, setDuration] = useState('2 Hours')
+  const [selectedStrategies, setSelectedStrategies] = useState(['A', 'B', 'C'])
+  const [activeStrategyCode, setActiveStrategyCode] = useState('A')
   const [isApplied, setIsApplied] = useState(false)
 
-  // Default selected strategy
-  const defaultSelected =
-    whatIfData?.recommended_strategy_id ||
-    strategies.find((s) => s.is_recommended)?.strategy_id ||
-    strategies[0]?.strategy_id
-
-  const activeId = selectedStrategyId || defaultSelected
-  const activeStrategy = strategies.find((s) => s.strategy_id === activeId) || strategies[0] || {
-    strategy_code: 'B',
-    strategy_name: 'Emergency Generator Priority Dispatch',
-    projected_resilience_score: 88.5,
-    icu_continuity_pct: 100,
-    cost_score: 2,
-    time_to_stabilize_min: 15,
-    is_recommended: true
-  }
-
-  const toggleStrategyCheckbox = (code) => {
+  const toggleStrategy = (code) => {
     setSelectedStrategies((prev) =>
       prev.includes(code) ? prev.filter((c) => c !== code) : [...prev, code]
     )
   }
 
-  const handleApplyStrategy = () => {
+  const handleSelectAllStrategies = () => {
+    if (selectedStrategies.length === STRATEGY_CARDS.length) {
+      setSelectedStrategies(['A'])
+    } else {
+      setSelectedStrategies(STRATEGY_CARDS.map((s) => s.code))
+    }
+  }
+
+  const handleApply = () => {
     setIsApplied(true)
     if (onNotify) {
-      onNotify(`Strategy ${activeStrategy?.strategy_code}: "${activeStrategy?.strategy_name}" dispatched to hospital control`, 'success')
+      onNotify('Strategy A - Use Backup Generator applied successfully!', 'success')
     }
     setTimeout(() => setIsApplied(false), 2500)
   }
 
-  const workflowSteps = [
-    { num: 1, label: 'Select Incident', status: 'completed' },
-    { num: 2, label: 'Configure Parameters', status: 'completed' },
-    { num: 3, label: 'Select Strategies', status: 'active' },
-    { num: 4, label: 'Compare & Evaluate', status: 'active' }
+  // 3D HUD Pins for What-If preview
+  const whatIfPins = [
+    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '38%', left: '40%', color: 'red' },
+    { id: 'GEN_01', label: 'Generator', status: 'Active', top: '30%', left: '48%', color: 'cyan' },
+    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'At Risk', top: '34%', left: '64%', color: 'amber' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Partial Power', top: '48%', left: '52%', color: 'amber' },
+    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Stable', top: '53%', left: '65%', color: 'cyan' },
+    { id: 'SERVICE_ICU', label: 'ICU', status: 'Stable', top: '55%', left: '44%', color: 'cyan' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Stable', top: '63%', left: '50%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '59%', left: '60%', color: 'amber' }
   ]
 
-  const strategyCards = [
-    { code: 'A', name: 'Automated Load Shedding', desc: 'Throttles non-critical admin & ambulatory wings' },
-    { code: 'B', name: 'Emergency Generator Priority Dispatch', desc: 'Accelerates DG synchronization to life-support buses' },
-    { code: 'C', name: 'Cross-Tie Circuit Reconfiguration', desc: 'Isolates faulted bus via automatic transfer switch' },
-    { code: 'D', name: 'HVAC Duty Cycle Throttling', desc: 'Reduces chiller load to preserve emergency fuel headroom' },
-    { code: 'E', name: 'Selective Critical Care Isolation', desc: 'Creates microgrid islands for ICU and Surgery Suites' },
-    { code: 'F', name: 'Manual Feeder Bypass Protocol', desc: 'Dispatches technician team for auxiliary tie-in' }
+  // Comparison Table Data
+  const comparisonRows = [
+    {
+      metric: 'Resilience Index (0-100)',
+      baseline: '28',
+      stratA: '76',
+      stratB: '68',
+      stratC: '72',
+      stratD: '61',
+      stratE: '55',
+      stratF: '82'
+    },
+    {
+      metric: 'Services At Risk',
+      baseline: '6',
+      stratA: '2',
+      stratB: '3',
+      stratC: '2',
+      stratD: '3',
+      stratE: '4',
+      stratF: '1'
+    },
+    {
+      metric: 'Affected Assets',
+      baseline: '18',
+      stratA: '12',
+      stratB: '14',
+      stratC: '11',
+      stratD: '13',
+      stratE: '10',
+      stratF: '8'
+    },
+    {
+      metric: 'Time to First Impact',
+      baseline: '~3 min',
+      stratA: '~8 min',
+      stratB: '~10 min',
+      stratC: '~9 min',
+      stratD: '~12 min',
+      stratE: '~15 min',
+      stratF: '~14 min'
+    },
+    {
+      metric: 'Estimated Recovery Time',
+      baseline: '> 4 hours',
+      stratA: '~1.5 hours',
+      stratB: '~2 hours',
+      stratC: '~1.8 hours',
+      stratD: '~2.5 hours',
+      stratE: '~3 hours',
+      stratF: '~1 hour'
+    }
   ]
 
   return (
     <div className="whatif-page">
-      {/* 1. TOP 4-STEP WORKFLOW INDICATOR */}
-      <section className="whatif-workflow-card">
-        <div className="workflow-steps-track">
-          {workflowSteps.map((step, idx) => {
-            const isLast = idx === workflowSteps.length - 1
-            const isDone = step.status === 'completed'
-            const isCurrent = step.status === 'active'
+      {/* 1. TOP 4-STEP PROCESS BAR */}
+      <section className="whatif-process-bar">
+        <div className="process-step-box step-done">
+          <span className="step-num font-mono">1</span>
+          <div className="step-info">
+            <span className="step-title">Select Incident</span>
+            <span className="step-sub">Choose failure scenario</span>
+          </div>
+          <ChevronRight size={14} className="step-arrow" />
+        </div>
 
-            return (
-              <div key={step.num} className="workflow-step-item">
-                <div className="step-circle-row">
-                  <div className={`step-circle ${isDone ? 'is-done' : ''} ${isCurrent ? 'is-current' : ''}`}>
-                    {isDone ? <CheckCircle2 size={13} /> : step.num}
-                  </div>
-                  <span className="step-label font-mono">{step.label}</span>
-                  {!isLast && <ChevronRight size={14} className="step-arrow" />}
-                </div>
-              </div>
-            )
-          })}
+        <div className="process-step-box step-done">
+          <span className="step-num font-mono">2</span>
+          <div className="step-info">
+            <span className="step-title">Configure Parameters</span>
+            <span className="step-sub">Set severity, duration, etc.</span>
+          </div>
+          <ChevronRight size={14} className="step-arrow" />
+        </div>
+
+        <div className="process-step-box step-active">
+          <span className="step-num font-mono">3</span>
+          <div className="step-info">
+            <span className="step-title">Compare Strategies</span>
+            <span className="step-sub">Simulate and analyze</span>
+          </div>
+          <ChevronRight size={14} className="step-arrow" />
+        </div>
+
+        <div className="process-step-box step-next">
+          <span className="step-num font-mono">4</span>
+          <div className="step-info">
+            <span className="step-title">View Results</span>
+            <span className="step-sub">Impact, risk and recommendation</span>
+          </div>
         </div>
       </section>
 
-      {/* 2. THREE-COLUMN MAIN WORKSPACE */}
+      {/* 2. THREE-COLUMN WORKSPACE: Left Selectors, Center Strategies & Canvas & Table, Right Impact & Recommendation */}
       <section className="whatif-workspace-grid">
-        {/* Left Column: Incident Selector & Configuration */}
+        {/* Left Column: 1. Select Incident & 2. Configure Parameters */}
         <aside className="whatif-left-col">
+          {/* Card 1: Select Incident */}
           <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">1. Select Incident</span>
+            <span className="whatif-panel-title">1. Select Incident</span>
+            <div className="whatif-scenario-tabs">
+              <button
+                type="button"
+                className={`scen-tab ${scenarioTab === 'predefined' ? 'is-active' : ''}`}
+                onClick={() => setScenarioTab('predefined')}
+              >
+                Predefined Scenarios
+              </button>
+              <button
+                type="button"
+                className={`scen-tab ${scenarioTab === 'custom' ? 'is-active' : ''}`}
+                onClick={() => setScenarioTab('custom')}
+              >
+                Custom Scenario
+              </button>
             </div>
 
-            <div className="incident-select-list">
-              <label className={`incident-pick-row ${selectedIncidentType === 'grid' ? 'is-picked' : ''}`}>
-                <input
-                  type="radio"
-                  name="wi-incident"
-                  checked={selectedIncidentType === 'grid'}
-                  onChange={() => setSelectedIncidentType('grid')}
-                />
-                <div className="pick-meta">
-                  <span className="pick-name">11kV Grid Blackout</span>
-                  <span className="pick-sub">GRID_MAIN Primary Trip</span>
-                </div>
-              </label>
-
-              <label className={`incident-pick-row ${selectedIncidentType === 'transformer' ? 'is-picked' : ''}`}>
-                <input
-                  type="radio"
-                  name="wi-incident"
-                  checked={selectedIncidentType === 'transformer'}
-                  onChange={() => setSelectedIncidentType('transformer')}
-                />
-                <div className="pick-meta">
-                  <span className="pick-name">Transformer Overheat</span>
-                  <span className="pick-sub">TRANSFORMER_01 Thermal Trip</span>
-                </div>
-              </label>
-
-              <label className={`incident-pick-row ${selectedIncidentType === 'water' ? 'is-picked' : ''}`}>
-                <input
-                  type="radio"
-                  name="wi-incident"
-                  checked={selectedIncidentType === 'water'}
-                  onChange={() => setSelectedIncidentType('water')}
-                />
-                <div className="pick-meta">
-                  <span className="pick-name">Water Booster Loss</span>
-                  <span className="pick-sub">WATER_PUMP_STATION Pressure Drop</span>
-                </div>
-              </label>
-
-              <label className={`incident-pick-row ${selectedIncidentType === 'chiller' ? 'is-picked' : ''}`}>
-                <input
-                  type="radio"
-                  name="wi-incident"
-                  checked={selectedIncidentType === 'chiller'}
-                  onChange={() => setSelectedIncidentType('chiller')}
-                />
-                <div className="pick-meta">
-                  <span className="pick-name">HVAC Chiller Offline</span>
-                  <span className="pick-sub">CHILLER_PLANT Failure</span>
-                </div>
-              </label>
+            <div className="whatif-scenarios-list">
+              {PREDEFINED_SCENARIOS.map((scen) => {
+                const Icon = scen.icon
+                const isPicked = selectedScenario === scen.id
+                return (
+                  <label
+                    key={scen.id}
+                    className={`whatif-radio-row ${isPicked ? 'is-picked' : ''}`}
+                    onClick={() => setSelectedScenario(scen.id)}
+                  >
+                    <input
+                      type="radio"
+                      name="whatif_scen"
+                      checked={isPicked}
+                      onChange={() => setSelectedScenario(scen.id)}
+                    />
+                    <Icon size={14} style={{ color: scen.iconColor }} className="scen-icon" />
+                    <div className="scen-meta">
+                      <span className="scen-name">{scen.name}</span>
+                      <span className="scen-desc">{scen.sub}</span>
+                    </div>
+                    <span className="scen-indicator" />
+                  </label>
+                )
+              })}
             </div>
           </div>
 
+          {/* Card 2: Configure Parameters */}
           <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">2. Configure Parameters</span>
-            </div>
-
-            <div className="param-field-stack">
-              <div className="param-item">
-                <span className="param-lbl">Simulation Horizon</span>
+            <span className="whatif-panel-title">2. Configure Parameters</span>
+            <div className="whatif-form-group">
+              <div className="whatif-form-row">
+                <span className="form-lbl">Severity</span>
                 <select
-                  className="param-dropdown font-mono"
-                  value={horizonHours}
-                  onChange={(e) => setHorizonHours(e.target.value)}
+                  className="form-select font-mono"
+                  value={severity}
+                  onChange={(e) => setSeverity(e.target.value)}
                 >
-                  <option value="1">1.0 Hour (Immediate)</option>
-                  <option value="2">2.0 Hours (Standard)</option>
-                  <option value="4">4.0 Hours (Extended)</option>
+                  <option value="Full Failure (100%)">Full Failure (100%)</option>
+                  <option value="Partial (50%)">Partial (50%)</option>
                 </select>
               </div>
 
-              <div className="param-item">
-                <span className="param-lbl">MCDA Optimization Weighting</span>
-                <select className="param-dropdown font-mono" defaultValue="balanced">
-                  <option value="balanced">Balanced (Clinical + Cost + Speed)</option>
-                  <option value="clinical">Clinical First (Max ICU/OT)</option>
-                  <option value="speed">Rapidity First (Min Downtime)</option>
+              <div className="whatif-form-row">
+                <span className="form-lbl">Start Time</span>
+                <select
+                  className="form-select font-mono"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                >
+                  <option value="Immediate (T = 0)">Immediate (T = 0)</option>
+                  <option value="T + 5 min">T + 5 min</option>
                 </select>
               </div>
+
+              <div className="whatif-form-row">
+                <span className="form-lbl">Duration</span>
+                <select
+                  className="form-select font-mono"
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                >
+                  <option value="2 Hours">2 Hours</option>
+                  <option value="4 Hours">4 Hours</option>
+                </select>
+              </div>
+
+              <span className="whatif-adv-link">&gt; Advanced Parameters</span>
             </div>
           </div>
         </aside>
 
-        {/* Center Column: Strategy Selection Cards + 3D Twin Preview + Comparison Table */}
-        <main className="whatif-center-col">
-          {/* Strategy Selection Cards (A-F) */}
-          <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">3. Select Response Strategies</span>
-              <span className="badge badge-cyan font-mono">
-                {selectedStrategies.length} of 6 Selected
-              </span>
+        {/* Center Column: 3. Select Strategies, 4. Preview Canvas, 5. Comparison Results Table */}
+        <div className="whatif-center-col">
+          {/* 3. Select Response Strategies */}
+          <div className="whatif-strategies-box">
+            <div className="strategies-header-row">
+              <span className="strategies-title">3. Select Response Strategies <span className="sub-note">(Choose up to 3 for comparison)</span></span>
+              <button type="button" className="select-all-btn" onClick={handleSelectAllStrategies}>
+                Select All
+              </button>
             </div>
 
             <div className="strategy-cards-grid">
-              {strategyCards.map((strat) => {
+              {STRATEGY_CARDS.map((strat) => {
                 const isChecked = selectedStrategies.includes(strat.code)
-                const isSelected = activeStrategy?.strategy_code === strat.code
-
                 return (
                   <div
                     key={strat.code}
-                    className={`strat-item-card ${isChecked ? 'is-checked' : ''} ${isSelected ? 'is-active-inspect' : ''}`}
-                    onClick={() => {
-                      const matched = strategies.find((s) => s.strategy_code === strat.code)
-                      if (matched && onSelectStrategy) {
-                        onSelectStrategy(matched.strategy_id)
-                      }
-                    }}
+                    className={`strat-card strat-${strat.color} ${isChecked ? 'is-checked' : ''}`}
+                    onClick={() => toggleStrategy(strat.code)}
                   >
                     <div className="strat-card-top">
-                      <label
-                        className="strat-checkbox-wrap"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <input
-                          type="checkbox"
-                          checked={isChecked}
-                          onChange={() => toggleStrategyCheckbox(strat.code)}
-                        />
-                        <span className="strat-code font-mono">Strategy {strat.code}</span>
-                      </label>
-                      {activeStrategy?.strategy_code === strat.code && (
-                        <span className="badge badge-normal font-mono" style={{ fontSize: '9px' }}>
-                          Active
-                        </span>
-                      )}
+                      <div className="strat-code-badge">{strat.code}</div>
+                      <input
+                        type="checkbox"
+                        checked={isChecked}
+                        onChange={() => {}}
+                        className="strat-checkbox"
+                      />
                     </div>
-                    <span className="strat-name">{strat.name}</span>
-                    <span className="strat-desc">{strat.desc}</span>
+                    <div className="strat-card-name">{strat.name}</div>
+                    <div className="strat-card-desc">{strat.desc}</div>
                   </div>
                 )
               })}
             </div>
           </div>
 
-          {/* 3D Simulation Preview of Selected Strategy */}
-          <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <div className="preview-title-group">
-                <Layers size={14} style={{ color: 'var(--accent-cyan)' }} />
-                <span className="panel-heading">
-                  3D Simulation Preview: Strategy {activeStrategy?.strategy_code}
-                </span>
-              </div>
-              <span className="badge badge-normal font-mono">
-                Projected R: {activeStrategy?.projected_resilience_score?.toFixed(1) || '88.5'}%
-              </span>
+          {/* 4. Simulation Preview (Strategy A: Backup Generator) */}
+          <div className="whatif-canvas-card">
+            <div className="canvas-header-row">
+              <span className="canvas-title">4. Simulation Preview (Strategy A: Backup Generator)</span>
             </div>
 
-            <div className="whatif-twin-embed">
+            <div className="whatif-canvas-viewport">
               <TwinContainer
                 assets={assets}
                 services={services}
-                selectedAssetId={activeStrategy?.target_asset_id || incident?.source_asset_id || 'GEN_01'}
+                incident={incident}
               />
+
+              {/* Top-left Utility Legend */}
+              <div className="whatif-utility-legend">
+                <div className="leg-item"><span className="pipe-line" style={{ backgroundColor: '#00F0FF' }} /> Electrical</div>
+                <div className="leg-item"><span className="pipe-line" style={{ backgroundColor: '#00A3FF' }} /> Water</div>
+                <div className="leg-item"><span className="pipe-line" style={{ backgroundColor: '#FFB800' }} /> HVAC</div>
+                <div className="leg-item"><span className="pipe-line" style={{ backgroundColor: '#A855F7' }} /> Medical Gas</div>
+              </div>
+
+              {/* Pins */}
+              <div className="whatif-pins-layer">
+                {whatIfPins.map((pin) => (
+                  <div key={pin.id} className={`whatif-hud-pin pin-${pin.color}`} style={{ top: pin.top, left: pin.left }}>
+                    <span className="pin-icon">{pin.color === 'red' ? '⚡' : '●'}</span>
+                    <div className="pin-text">
+                      <span className="pin-name">{pin.label}</span>
+                      <span className="pin-status font-mono">{pin.status}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Compass HUD */}
+              <div className="whatif-compass-hud">
+                <div className="compass-circle">
+                  <span className="compass-dir compass-n">N</span>
+                  <span className="compass-dir compass-e">E</span>
+                  <span className="compass-dir compass-s">S</span>
+                  <span className="compass-dir compass-w">W</span>
+                  <div className="compass-needle" />
+                </div>
+              </div>
+
+              {/* Camera controls */}
+              <div className="whatif-camera-controls">
+                <button type="button" className="cam-btn"><Maximize2 size={12} /></button>
+                <button type="button" className="cam-btn"><Navigation size={12} /></button>
+                <button type="button" className="cam-btn"><Plus size={12} /></button>
+                <button type="button" className="cam-btn"><Minus size={12} /></button>
+              </div>
             </div>
           </div>
 
-          {/* Strategy Comparison Results Table */}
-          <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">Strategy Comparison Results (TOPSIS)</span>
-              <span className="badge badge-subtle font-mono">RANKED</span>
+          {/* 5. Strategy Comparison Results Table */}
+          <div className="whatif-table-card">
+            <div className="table-header-row">
+              <span className="table-title">5. Strategy Comparison Results</span>
+              <button type="button" className="export-results-btn">Export Results</button>
             </div>
 
-            <div className="comparison-table-wrap">
-              <table className="comparison-table">
+            <div className="comparison-table-scroll">
+              <table className="comparison-table font-mono">
                 <thead>
                   <tr>
-                    <th>Rank</th>
-                    <th>Strategy</th>
-                    <th>Resilience (R)</th>
-                    <th>ICU Cont.</th>
-                    <th>Cost Score</th>
-                    <th>Recovery Time</th>
+                    <th className="th-metric">Metric</th>
+                    <th>No Action<br /><span className="th-sub">(Baseline)</span></th>
+                    <th className="th-highlight">A. Generator<br /><span className="th-sub">Backup</span></th>
+                    <th>B. Load<br /><span className="th-sub">Shedding</span></th>
+                    <th>C. Alternate<br /><span className="th-sub">Feed</span></th>
+                    <th>D. UPS<br /><span className="th-sub">Extension</span></th>
+                    <th>E. Partial<br /><span className="th-sub">Shutdown</span></th>
+                    <th>F. Combined<br /><span className="th-sub">Strategy</span></th>
                   </tr>
                 </thead>
                 <tbody>
-                  {strategies.length > 0 ? (
-                    strategies.map((strat, idx) => (
-                      <tr
-                        key={strat.strategy_id}
-                        className={activeStrategy?.strategy_id === strat.strategy_id ? 'is-selected-row' : ''}
-                        onClick={() => onSelectStrategy && onSelectStrategy(strat.strategy_id)}
-                      >
-                        <td className="font-mono font-bold">
-                          {strat.is_recommended ? '⭐ 1' : `#${idx + 1}`}
-                        </td>
-                        <td className="font-bold">
-                          Strategy {strat.strategy_code} — {strat.strategy_name}
-                        </td>
-                        <td className="font-mono" style={{ color: 'var(--status-normal)' }}>
-                          {strat.projected_resilience_score?.toFixed(1)}%
-                        </td>
-                        <td className="font-mono">
-                          {strat.icu_continuity_pct?.toFixed(0)}%
-                        </td>
-                        <td className="font-mono">
-                          {strat.cost_score || '$2,400'}
-                        </td>
-                        <td className="font-mono">
-                          {strat.time_to_stabilize_min ? `${strat.time_to_stabilize_min} min` : '15 min'}
-                        </td>
-                      </tr>
-                    ))
-                  ) : (
-                    <tr>
-                      <td colSpan="6" style={{ textAlign: 'center', padding: '16px', color: 'var(--text-muted)' }}>
-                        Evaluating MCDA trade-offs...
-                      </td>
+                  {comparisonRows.map((row) => (
+                    <tr key={row.metric}>
+                      <td className="td-metric">{row.metric}</td>
+                      <td>{row.baseline}</td>
+                      <td className="td-highlight">{row.stratA}</td>
+                      <td>{row.stratB}</td>
+                      <td>{row.stratC}</td>
+                      <td>{row.stratD}</td>
+                      <td>{row.stratE}</td>
+                      <td>{row.stratF}</td>
                     </tr>
-                  )}
+                  ))}
                 </tbody>
               </table>
             </div>
           </div>
-        </main>
+        </div>
 
-        {/* Right Column: Key Impact + Service Impact Chart + Recommended Strategy */}
+        {/* Right Column: Key Impact + Service Level Impact + Recommended Strategy */}
         <aside className="whatif-right-col">
-          {/* Key Impact Stat Boxes */}
+          {/* Key Impact (Strategy A) */}
           <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">Key Impact</span>
-              <span className="badge badge-cyan font-mono">PROJECTED</span>
-            </div>
-
-            <div className="impact-stats-grid">
-              <div className="impact-box">
-                <span className="impact-lbl">Resilience Improvement</span>
-                <span className="impact-val font-mono" style={{ color: 'var(--status-normal)' }}>
-                  +18.4 pts
-                </span>
-              </div>
-              <div className="impact-box">
-                <span className="impact-lbl">ICU Continuity</span>
-                <span className="impact-val font-mono" style={{ color: 'var(--status-normal)' }}>
-                  100%
-                </span>
-              </div>
-              <div className="impact-box">
-                <span className="impact-lbl">Backup Runtime</span>
-                <span className="impact-val font-mono" style={{ color: 'var(--accent-cyan)' }}>
-                  3.5 hrs
-                </span>
-              </div>
-              <div className="impact-box">
-                <span className="impact-lbl">Load Shedding</span>
-                <span className="impact-val font-mono">
-                  420 kW
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Service Level Impact Bar Chart */}
-          <div className="whatif-panel-card">
-            <div className="panel-header-row">
-              <span className="panel-heading">Service Level Impact</span>
-              <span className="card-sub font-mono">CONTINUITY</span>
-            </div>
-
-            <div className="service-impact-bars-stack">
-              <div className="svc-impact-bar-item">
-                <div className="svc-bar-label-row font-mono">
-                  <span>Intensive Care (ICU)</span>
-                  <span>100%</span>
-                </div>
-                <div className="svc-bar-track">
-                  <div className="svc-bar-fill" style={{ width: '100%', backgroundColor: 'var(--status-normal)' }} />
+            <span className="whatif-panel-title">Key Impact (Strategy A)</span>
+            <div className="key-impact-grid">
+              <div className="key-impact-tile tile-red">
+                <div className="tile-icon-wrap icon-red"><AlertTriangle size={15} /></div>
+                <div className="tile-info">
+                  <span className="tile-num font-mono">2</span>
+                  <span className="tile-lbl">Services At Risk</span>
                 </div>
               </div>
 
-              <div className="svc-impact-bar-item">
-                <div className="svc-bar-label-row font-mono">
-                  <span>Surgery Suites (OT)</span>
-                  <span>95%</span>
-                </div>
-                <div className="svc-bar-track">
-                  <div className="svc-bar-fill" style={{ width: '95%', backgroundColor: 'var(--status-normal)' }} />
+              <div className="key-impact-tile tile-gold">
+                <div className="tile-icon-wrap icon-gold"><Box size={15} /></div>
+                <div className="tile-info">
+                  <span className="tile-num font-mono">12</span>
+                  <span className="tile-lbl">Affected Assets</span>
                 </div>
               </div>
 
-              <div className="svc-impact-bar-item">
-                <div className="svc-bar-label-row font-mono">
-                  <span>Emergency Trauma (ER)</span>
-                  <span>90%</span>
-                </div>
-                <div className="svc-bar-track">
-                  <div className="svc-bar-fill" style={{ width: '90%', backgroundColor: 'var(--accent-cyan)' }} />
+              <div className="key-impact-tile tile-blue">
+                <div className="tile-icon-wrap icon-blue"><Clock size={15} /></div>
+                <div className="tile-info">
+                  <span className="tile-num font-mono">~8 min</span>
+                  <span className="tile-lbl">Time to First Impact</span>
                 </div>
               </div>
 
-              <div className="svc-impact-bar-item">
-                <div className="svc-bar-label-row font-mono">
-                  <span>General Care Wards</span>
-                  <span>75%</span>
-                </div>
-                <div className="svc-bar-track">
-                  <div className="svc-bar-fill" style={{ width: '75%', backgroundColor: 'var(--status-warning)' }} />
+              <div className="key-impact-tile tile-green">
+                <div className="tile-icon-wrap icon-green"><ShieldCheck size={15} /></div>
+                <div className="tile-info">
+                  <span className="tile-num font-mono">76</span>
+                  <span className="tile-lbl">Resilience Index</span>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Recommended Strategy Card with CTA */}
-          <div className="whatif-panel-card recommended-card">
-            <div className="panel-header-row">
-              <div className="rec-badge-group">
-                <Award size={15} style={{ color: '#f59e0b' }} />
-                <span className="panel-heading">Recommended Strategy</span>
+          {/* Service Level Impact (Strategy A) */}
+          <div className="whatif-panel-card">
+            <div className="panel-title-with-legend">
+              <span className="whatif-panel-title">Service Level Impact (Strategy A)</span>
+              <div className="service-impact-legend">
+                <span><span className="dot-g" /> Normal</span>
+                <span><span className="dot-y" /> Degraded</span>
+                <span><span className="dot-r" /> At Risk</span>
+                <span><span className="dot-dr" /> Failed</span>
               </div>
-              <span className="badge badge-normal font-mono">TOP RANKED</span>
             </div>
 
-            <div className="recommended-body">
-              <span className="rec-title">
-                Strategy {activeStrategy?.strategy_code} — {activeStrategy?.strategy_name}
-              </span>
-              <p className="rec-desc">
-                Multi-criteria decision analysis (TOPSIS) identified this strategy as optimal.
-                Preserves 100% ICU life-support continuity while maintaining 3.5 hours of emergency runtime.
-              </p>
+            {/* Stacked Vertical Bars */}
+            <div className="service-bars-chart">
+              <div className="chart-y-axis-nums font-mono">
+                <span>100</span>
+                <span>75</span>
+                <span>50</span>
+                <span>25</span>
+                <span>0</span>
+              </div>
+              <div className="service-bars-container">
+                {/* Emergency: 100% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-normal" style={{ height: '70%' }} />
+                    <div className="bar-seg-deg" style={{ height: '20%' }} />
+                    <div className="bar-seg-risk" style={{ height: '10%' }} />
+                  </div>
+                  <span className="bar-lbl">Emergency</span>
+                </div>
 
-              <button
-                type="button"
-                className="apply-strategy-btn"
-                onClick={handleApplyStrategy}
-              >
-                {isApplied ? (
-                  <>
-                    <Check size={14} style={{ color: '#ffffff' }} />
-                    <span>Strategy Dispatched!</span>
-                  </>
-                ) : (
-                  <>
-                    <Zap size={14} />
-                    <span>Apply Strategy</span>
-                  </>
-                )}
-              </button>
+                {/* ICU: 65% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-deg" style={{ height: '40%' }} />
+                    <div className="bar-seg-risk" style={{ height: '25%' }} />
+                  </div>
+                  <span className="bar-lbl">ICU</span>
+                </div>
+
+                {/* OT: 50% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-risk" style={{ height: '50%' }} />
+                  </div>
+                  <span className="bar-lbl">OT</span>
+                </div>
+
+                {/* Ward: 65% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-normal" style={{ height: '65%' }} />
+                  </div>
+                  <span className="bar-lbl">Ward</span>
+                </div>
+
+                {/* OPD: 70% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-normal" style={{ height: '70%' }} />
+                  </div>
+                  <span className="bar-lbl">OPD</span>
+                </div>
+
+                {/* Lab: 75% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-normal" style={{ height: '75%' }} />
+                  </div>
+                  <span className="bar-lbl">Lab</span>
+                </div>
+
+                {/* Radiology: 75% */}
+                <div className="service-bar-col">
+                  <div className="bar-stacked-track">
+                    <div className="bar-seg-normal" style={{ height: '75%' }} />
+                  </div>
+                  <span className="bar-lbl">Radiology</span>
+                </div>
+              </div>
             </div>
+          </div>
+
+          {/* Recommended Strategy Box */}
+          <div className="whatif-panel-card rec-strategy-card">
+            <div className="rec-header-row">
+              <span className="whatif-panel-title">Recommended Strategy</span>
+              <span className="rec-badge font-mono">Recommended</span>
+            </div>
+
+            <div className="rec-title-row">
+              <span className="rec-star">⭐</span>
+              <span className="rec-strat-name">Strategy A - Use Backup Generator</span>
+            </div>
+
+            <div className="rec-bullets-list">
+              <div className="rec-bullet-item">
+                <Check size={13} className="rec-check-icon" />
+                <span>Maintains critical services (ICU, Emergency)</span>
+              </div>
+              <div className="rec-bullet-item">
+                <Check size={13} className="rec-check-icon" />
+                <span>Lower immediate risk to patient care</span>
+              </div>
+              <div className="rec-bullet-item">
+                <Check size={13} className="rec-check-icon" />
+                <span>Recovery time within acceptable window</span>
+              </div>
+              <div className="rec-bullet-item">
+                <Check size={13} className="rec-check-icon" />
+                <span>Minimal service disruption</span>
+              </div>
+            </div>
+
+            <button
+              type="button"
+              className="apply-strategy-cta-btn"
+              onClick={handleApply}
+            >
+              <Play size={14} fill="currentColor" />
+              <span>{isApplied ? 'Strategy Applied!' : 'Apply This Strategy'}</span>
+            </button>
           </div>
         </aside>
       </section>

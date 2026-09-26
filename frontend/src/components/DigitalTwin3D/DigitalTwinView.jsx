@@ -9,9 +9,16 @@ import {
   EyeOff,
   Maximize2,
   RotateCcw,
-  Activity
+  Plus,
+  Minus,
+  Navigation,
+  X,
+  Building,
+  Activity,
+  Layers
 } from 'lucide-react'
 import TwinContainer from './TwinContainer'
+import hospitalCampusImg from '../../assets/hospital_campus_twin.jpg'
 import './DigitalTwinView.css'
 
 export default function DigitalTwinView({
@@ -24,29 +31,29 @@ export default function DigitalTwinView({
   const [activeFilter, setActiveFilter] = useState('all')
   const [viewMode, setViewMode] = useState('3d') // '3d' | '2d'
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'dependencies' | 'live'
+  const [isDetailsOpen, setIsDetailsOpen] = useState(true)
   const [activeLayers, setActiveLayers] = useState({
-    power: true,
+    services: true,
+    electrical: true,
     water: true,
     hvac: true,
-    gas: true,
-    services: true
+    gas: true
   })
 
-  // Selected asset or default to GEN_01 / first asset
+  // Selected asset or default to Main Hospital / first asset
   const selectedAsset =
     assets.find((a) => a.id === selectedAssetId) ||
-    assets.find((a) => a.id === 'GEN_01') ||
-    assets[0] ||
-    {
-      id: 'GEN_01',
-      name: 'Diesel Generator 1',
-      type: 'generator',
-      subsystem: 'Power Generation',
+    assets.find((a) => a.id === 'MAIN_HOSPITAL') ||
+    assets[0] || {
+      id: 'MAIN_HOSPITAL',
+      name: 'Main Hospital',
+      type: 'hospital_building',
+      subsystem: 'Critical Infrastructure',
       status: 'normal',
-      health_score: 100,
-      current_load: 750,
-      capacity: 1500,
-      location: 'Energy Center - Level B1'
+      health_score: 98,
+      current_load: 1850,
+      capacity: 2500,
+      location: 'Campus Central Block'
     }
 
   const toggleLayer = (layerKey) => {
@@ -54,71 +61,84 @@ export default function DigitalTwinView({
   }
 
   const filterButtons = [
-    { id: 'all', label: 'All Systems' },
-    { id: 'electrical', label: 'Electrical' },
-    { id: 'water', label: 'Water' },
-    { id: 'hvac', label: 'HVAC' },
-    { id: 'gas', label: 'Medical Gas' },
-    { id: 'services', label: 'Critical Services' }
+    { id: 'all', label: 'All Systems', icon: Building },
+    { id: 'electrical', label: 'Electrical', icon: Zap },
+    { id: 'water', label: 'Water', icon: Droplets },
+    { id: 'hvac', label: 'HVAC', icon: Wind },
+    { id: 'gas', label: 'Medical Gas', icon: Flame },
+    { id: 'services', label: 'Critical Services', icon: HeartPulse }
   ]
 
   const layerCards = [
     {
-      id: 'power',
-      name: 'Power Grid',
-      nodes: '12 Nodes Active',
+      id: 'services',
+      name: 'Buildings & Services',
+      desc: 'Hospital areas and key services',
+      icon: Building,
+      color: '#00F0FF'
+    },
+    {
+      id: 'electrical',
+      name: 'Electrical System',
+      desc: 'Grid, Transformer, DG, UPS, ATS',
       icon: Zap,
-      color: 'var(--accent-cyan)'
+      color: '#00F0FF'
     },
     {
       id: 'water',
-      name: 'Water Distribution',
-      nodes: '8 Nodes Active',
+      name: 'Water System',
+      desc: 'Storage, Pumps, Distribution',
       icon: Droplets,
-      color: '#0284c7'
+      color: '#00A3FF'
     },
     {
       id: 'hvac',
       name: 'HVAC System',
-      nodes: '10 Nodes Active',
+      desc: 'Chillers, AHUs, Ducts',
       icon: Wind,
-      color: '#10b981'
+      color: '#FFB800'
     },
     {
       id: 'gas',
-      name: 'Medical Gas',
-      nodes: '6 Nodes Active',
+      name: 'Medical Gas System',
+      desc: 'Oxygen, Air, Vacuum',
       icon: Flame,
-      color: '#14b8a6'
-    },
-    {
-      id: 'services',
-      name: 'Emergency Services',
-      nodes: '5 Units Active',
-      icon: HeartPulse,
-      color: '#ef4444'
+      color: '#A855F7'
     }
   ]
 
-  const statusLabel = selectedAsset?.status?.toUpperCase() || 'OPERATIONAL'
-  const isFailed = selectedAsset?.status === 'failed' || selectedAsset?.status === 'critical'
-  const isDegraded = selectedAsset?.status === 'degraded' || selectedAsset?.status === 'starting'
+  // Exact 9 interactive HUD pins matching Design Reference
+  const twinPins = [
+    { id: 'GEN_01', label: 'Generator', status: 'Normal', top: '26%', left: '27%', color: 'cyan' },
+    { id: 'WATER_TANK', label: 'Water Tank', status: 'Normal', top: '27%', left: '45%', color: 'cyan' },
+    { id: 'CHILLER_PLANT', label: 'HVAC Plant', status: 'At Risk', top: '31%', left: '65%', color: 'amber' },
+    { id: 'UTILITY_BLOCK', label: 'Utility Block', status: 'Normal', top: '38%', left: '22%', color: 'cyan' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Normal', top: '47%', left: '44%', color: 'red-cross' },
+    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '51%', left: '67%', color: 'cyan' },
+    { id: 'SERVICE_ICU', label: 'ICU', status: 'Normal', top: '53%', left: '27%', color: 'cyan' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Normal', top: '63%', left: '40%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: 'Normal', top: '63%', left: '59%', color: 'cyan' }
+  ]
 
   return (
     <div className="digital-twin-page">
       {/* 1. TOP SUBSYSTEM FILTER STRIP */}
       <section className="twin-top-filter-bar">
         <div className="twin-filters-group">
-          {filterButtons.map((btn) => (
-            <button
-              key={btn.id}
-              type="button"
-              className={`twin-filter-pill ${activeFilter === btn.id ? 'is-active' : ''}`}
-              onClick={() => setActiveFilter(btn.id)}
-            >
-              {btn.label}
-            </button>
-          ))}
+          {filterButtons.map((btn) => {
+            const Icon = btn.icon
+            return (
+              <button
+                key={btn.id}
+                type="button"
+                className={`twin-filter-pill ${activeFilter === btn.id ? 'is-active' : ''}`}
+                onClick={() => setActiveFilter(btn.id)}
+              >
+                <Icon size={14} className="filter-pill-icon" />
+                <span>{btn.label}</span>
+              </button>
+            )
+          })}
         </div>
 
         <div className="twin-controls-group">
@@ -138,258 +158,241 @@ export default function DigitalTwinView({
               2D Schematic
             </button>
           </div>
-
-          <button
-            type="button"
-            className="twin-icon-btn"
-            title="Reset Camera View"
-            onClick={() => onSelectAsset && onSelectAsset(null)}
-          >
-            <RotateCcw size={14} />
-          </button>
-          <button
-            type="button"
-            className="twin-icon-btn"
-            title="Maximize Viewport"
-          >
-            <Maximize2 size={14} />
-          </button>
         </div>
       </section>
 
-      {/* 2. MAIN WORKSPACE: 3D Twin Viewport (Left) + Asset Details (Right) */}
-      <section className="twin-main-split-grid">
-        {/* 3D Digital Twin BIM Canvas */}
-        <div className="twin-viewport-container">
-          <TwinContainer
-            assets={assets}
-            services={services}
-            selectedAssetId={selectedAssetId}
-            onSelectAsset={onSelectAsset}
-            filterSubsystem={activeFilter}
-          />
+      {/* 2. CENTER CANVAS & RIGHT ASSET DETAILS SPLIT */}
+      <section className="twin-main-workspace">
+        {/* 3D Visual Canvas Viewport */}
+        <div className="twin-canvas-card">
+          <div className="twin-viewport-container">
+            {/* Embedded 3D Scene / Visual Model */}
+            <TwinContainer
+              assets={assets}
+              services={services}
+              selectedAssetId={selectedAsset?.id}
+              onSelectAsset={onSelectAsset}
+              filterSubsystem={activeFilter}
+              viewMode={viewMode}
+              activeLayers={activeLayers}
+            />
+
+            {/* Interactive Pins Overlay */}
+            <div className="twin-pins-overlay">
+              {twinPins.map((pin) => (
+                <div
+                  key={pin.id}
+                  className={`twin-hud-pin pin-${pin.color} ${selectedAsset?.id === pin.id ? 'is-selected' : ''}`}
+                  style={{ top: pin.top, left: pin.left }}
+                  onClick={() => onSelectAsset && onSelectAsset(pin.id)}
+                >
+                  <span className="hud-pin-icon">
+                    {pin.color === 'red-cross' ? '+' : pin.color === 'amber' ? '❄' : '●'}
+                  </span>
+                  <div className="hud-pin-text-col">
+                    <span className="hud-pin-name">{pin.label}</span>
+                    <span className="hud-pin-status font-mono">
+                      <span className={`hud-dot ${pin.status === 'At Risk' ? 'dot-amber' : 'dot-cyan'}`} />
+                      {pin.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Utility Network Legend Box on bottom left */}
+            <div className="twin-utility-legend-box">
+              <div className="legend-box-title">Utility Network</div>
+              <div className="legend-box-items">
+                <div className="legend-pipe-item">
+                  <span className="pipe-line" style={{ backgroundColor: '#00F0FF' }} />
+                  <span>Electrical</span>
+                </div>
+                <div className="legend-pipe-item">
+                  <span className="pipe-line" style={{ backgroundColor: '#00A3FF' }} />
+                  <span>Water</span>
+                </div>
+                <div className="legend-pipe-item">
+                  <span className="pipe-line" style={{ backgroundColor: '#FFB800' }} />
+                  <span>HVAC</span>
+                </div>
+                <div className="legend-pipe-item">
+                  <span className="pipe-line" style={{ backgroundColor: '#A855F7' }} />
+                  <span>Medical Gas</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Top-Left Compass HUD */}
+            <div className="twin-compass-hud">
+              <div className="compass-circle">
+                <span className="compass-dir compass-n">N</span>
+                <span className="compass-dir compass-e">E</span>
+                <span className="compass-dir compass-s">S</span>
+                <span className="compass-dir compass-w">W</span>
+                <div className="compass-needle" />
+              </div>
+            </div>
+
+            {/* Right Zoom / Camera Controls */}
+            <div className="twin-floating-camera-controls">
+              <button type="button" className="camera-ctrl-btn" title="Fullscreen">
+                <Maximize2 size={13} />
+              </button>
+              <button
+                type="button"
+                className="camera-ctrl-btn"
+                title="Reset Camera"
+                onClick={() => onSelectAsset && onSelectAsset(null)}
+              >
+                <Navigation size={13} />
+              </button>
+              <button type="button" className="camera-ctrl-btn" title="Zoom In">
+                <Plus size={13} />
+              </button>
+              <button type="button" className="camera-ctrl-btn" title="Zoom Out">
+                <Minus size={13} />
+              </button>
+            </div>
+          </div>
         </div>
 
-        {/* Right: Asset Details Inspection Panel */}
-        <aside className="twin-asset-inspection-card">
-          <div className="asset-card-header">
-            <div className="asset-header-left">
-              <h3 className="asset-name-title">
-                {selectedAsset.name || selectedAsset.id}
-              </h3>
-              <span className="asset-id-tag font-mono">{selectedAsset.id}</span>
+        {/* Right Asset Details Panel matching Design Reference */}
+        {isDetailsOpen && (
+          <aside className="twin-asset-details-panel">
+            <div className="details-panel-header">
+              <span className="details-panel-title">Asset Details</span>
+              <button
+                type="button"
+                className="details-close-btn"
+                onClick={() => setIsDetailsOpen(false)}
+                title="Close details"
+              >
+                <X size={14} />
+              </button>
             </div>
-            <span
-              className={`badge font-mono ${
-                isFailed ? 'badge-critical' : isDegraded ? 'badge-warning' : 'badge-normal'
-              }`}
-            >
-              {statusLabel}
-            </span>
-          </div>
 
-          <div className="asset-subsystem-row">
-            <span className="asset-meta-label">Subsystem:</span>
-            <span className="asset-meta-val font-mono">{selectedAsset.type || 'Power Grid'}</span>
-            <span className="meta-sep">•</span>
-            <span className="asset-meta-label">Location:</span>
-            <span className="asset-meta-val">{selectedAsset.location || 'Central Utility Plant'}</span>
-          </div>
-
-          {/* Inspection Tabs */}
-          <div className="asset-tabs-header">
-            <button
-              type="button"
-              className={`asset-tab-btn ${activeTab === 'overview' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('overview')}
-            >
-              Overview
-            </button>
-            <button
-              type="button"
-              className={`asset-tab-btn ${activeTab === 'dependencies' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('dependencies')}
-            >
-              Dependencies
-            </button>
-            <button
-              type="button"
-              className={`asset-tab-btn ${activeTab === 'live' ? 'is-active' : ''}`}
-              onClick={() => setActiveTab('live')}
-            >
-              Live State
-            </button>
-          </div>
-
-          <div className="asset-tab-body">
-            {activeTab === 'overview' && (
-              <div className="asset-overview-tab">
-                <div className="asset-stat-field">
-                  <span className="stat-label">Health Score</span>
-                  <div className="stat-bar-row">
-                    <div className="stat-bar-track">
-                      <div
-                        className="stat-bar-fill"
-                        style={{
-                          width: `${selectedAsset.health_score ?? 100}%`,
-                          backgroundColor: isFailed
-                            ? 'var(--status-critical)'
-                            : isDegraded
-                            ? 'var(--status-warning)'
-                            : 'var(--status-normal)'
-                        }}
-                      />
-                    </div>
-                    <span className="stat-bar-num font-mono">
-                      {selectedAsset.health_score?.toFixed(0) ?? 100}%
-                    </span>
-                  </div>
+            {/* Preview Card Banner */}
+            <div className="details-asset-banner-card">
+              <img src={hospitalCampusImg} alt="Asset Thumbnail" className="asset-thumb-img" />
+              <div className="asset-banner-info">
+                <div className="asset-banner-title-row">
+                  <span className="asset-red-cross">+</span>
+                  <span className="asset-banner-name">{selectedAsset?.name || 'Main Hospital'}</span>
                 </div>
-
-                <div className="asset-specs-grid">
-                  <div className="spec-item">
-                    <span className="spec-label">Current Load</span>
-                    <span className="spec-val font-mono">
-                      {selectedAsset.current_load ? `${selectedAsset.current_load.toFixed(0)} kW` : 'Nominal'}
-                    </span>
-                  </div>
-                  <div className="spec-item">
-                    <span className="spec-label">Rated Capacity</span>
-                    <span className="spec-val font-mono">
-                      {selectedAsset.capacity ? `${selectedAsset.capacity} kW` : '1,500 kW'}
-                    </span>
-                  </div>
-                  <div className="spec-item">
-                    <span className="spec-label">Redundancy</span>
-                    <span className="spec-val font-mono">N+1 Dual Feed</span>
-                  </div>
-                  <div className="spec-item">
-                    <span className="spec-label">Operational Mode</span>
-                    <span className="spec-val font-mono">Automatic Standby</span>
-                  </div>
+                <div className="asset-banner-status font-mono">
+                  <span className="status-dot status-dot-normal" />
+                  <span>Normal</span>
                 </div>
+                <div className="asset-banner-sub">Primary care building</div>
+              </div>
+            </div>
 
-                <p className="asset-desc-text">
-                  Critical primary infrastructure node providing uninterrupted hospital utility continuity.
-                  Monitored via 1s telemetry synchronization.
+            {/* 3 Tabs */}
+            <div className="details-tabs-row">
+              <button
+                type="button"
+                className={`details-tab-btn ${activeTab === 'overview' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('overview')}
+              >
+                Overview
+              </button>
+              <button
+                type="button"
+                className={`details-tab-btn ${activeTab === 'dependencies' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('dependencies')}
+              >
+                Dependencies
+              </button>
+              <button
+                type="button"
+                className={`details-tab-btn ${activeTab === 'live' ? 'is-active' : ''}`}
+                onClick={() => setActiveTab('live')}
+              >
+                Live State
+              </button>
+            </div>
+
+            {/* Spec Fields */}
+            <div className="details-fields-body">
+              <div className="details-field-row">
+                <span className="field-lbl">Type</span>
+                <span className="field-val">Hospital Building</span>
+              </div>
+              <div className="details-field-row">
+                <span className="field-lbl">Category</span>
+                <span className="field-val">Critical Infrastructure</span>
+              </div>
+              <div className="details-field-row">
+                <span className="field-lbl">Connected Systems</span>
+                <div className="connected-systems-val">
+                  <span className="sys-badge" style={{ color: '#00F0FF' }}><Zap size={11} /> Electrical</span>
+                  <span className="sys-badge" style={{ color: '#00A3FF' }}><Droplets size={11} /> Water</span>
+                  <span className="sys-badge" style={{ color: '#FFB800' }}><Wind size={11} /> HVAC</span>
+                  <span className="sys-badge" style={{ color: '#A855F7' }}><Flame size={11} /> Medical Gas</span>
+                </div>
+              </div>
+              <div className="details-field-row">
+                <span className="field-lbl">Key Services</span>
+                <span className="field-val">Emergency, ICU, OT, Wards</span>
+              </div>
+              <div className="details-field-row desc-row">
+                <span className="field-lbl">Description</span>
+                <p className="field-val-desc">
+                  Main hospital building housing critical and non-critical services. Connected to all major infrastructure systems.
                 </p>
               </div>
-            )}
 
-            {activeTab === 'dependencies' && (
-              <div className="asset-dependencies-tab">
-                <div className="dep-section">
-                  <span className="dep-section-title">Upstream Suppliers</span>
-                  <div className="dep-node-pill">
-                    <Zap size={12} style={{ color: 'var(--accent-cyan)' }} />
-                    <span className="font-mono">GRID_MAIN (11kV Feeder)</span>
-                    <span className="dep-status-dot dot-normal" />
-                  </div>
-                </div>
-
-                <div className="dep-section">
-                  <span className="dep-section-title">Downstream Clinical Services</span>
-                  <div className="dep-nodes-list">
-                    <div className="dep-node-pill">
-                      <HeartPulse size={12} style={{ color: '#ef4444' }} />
-                      <span className="font-mono">SERVICE_ICU (Intensive Care)</span>
-                      <span className="dep-status-dot dot-normal" />
-                    </div>
-                    <div className="dep-node-pill">
-                      <HeartPulse size={12} style={{ color: '#ef4444' }} />
-                      <span className="font-mono">SERVICE_OT (Operating Theatres)</span>
-                      <span className="dep-status-dot dot-normal" />
-                    </div>
-                    <div className="dep-node-pill">
-                      <HeartPulse size={12} style={{ color: '#ef4444' }} />
-                      <span className="font-mono">SERVICE_ER (Emergency Care)</span>
-                      <span className="dep-status-dot dot-normal" />
-                    </div>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'live' && (
-              <div className="asset-live-tab">
-                <div className="live-metric-row">
-                  <span className="live-metric-label">Output Frequency</span>
-                  <span className="live-metric-val font-mono">50.0 Hz</span>
-                </div>
-                <div className="live-metric-row">
-                  <span className="live-metric-label">Bus Voltage</span>
-                  <span className="live-metric-val font-mono">415 V</span>
-                </div>
-                <div className="live-metric-row">
-                  <span className="live-metric-label">Operating Temperature</span>
-                  <span className="live-metric-val font-mono">68.4 °C</span>
-                </div>
-                <div className="live-metric-row">
-                  <span className="live-metric-label">Vibration Index</span>
-                  <span className="live-metric-val font-mono">0.08 mm/s (Normal)</span>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="asset-card-footer">
-            <button
-              type="button"
-              className="asset-action-btn primary-action"
-              onClick={() => onOpenExplainability && onOpenExplainability()}
-            >
-              <Activity size={14} />
-              <span>Inspect Causal Path</span>
-            </button>
-          </div>
-        </aside>
+              {onOpenExplainability && (
+                <button
+                  type="button"
+                  className="details-causal-btn"
+                  onClick={() => onOpenExplainability('SERVICE_ICU')}
+                >
+                  <Activity size={13} />
+                  <span>Inspect Causal Dependencies</span>
+                </button>
+              )}
+            </div>
+          </aside>
+        )}
       </section>
 
       {/* 3. BOTTOM ROW: INFRASTRUCTURE LAYERS */}
-      <section className="twin-bottom-layers-row">
-        {layerCards.map((layer) => {
-          const Icon = layer.icon
-          const isEnabled = activeLayers[layer.id]
+      <section className="twin-bottom-layers-section">
+        <div className="layers-section-header">
+          <span className="layers-section-title">Infrastructure Layers</span>
+          <span className="layers-section-sub">Toggle systems to visualize infrastructure networks and dependencies</span>
+        </div>
 
-          return (
-            <div
-              key={layer.id}
-              className={`layer-toggle-card ${isEnabled ? 'is-layer-active' : 'is-layer-disabled'}`}
-              onClick={() => toggleLayer(layer.id)}
-              role="button"
-              tabIndex={0}
-            >
-              <div className="layer-card-left">
-                <div
-                  className="layer-icon-box"
-                  style={{
-                    color: layer.color,
-                    backgroundColor: `${layer.color}18`,
-                    borderColor: `${layer.color}35`
-                  }}
-                >
-                  <Icon size={16} />
+        <div className="layers-cards-row">
+          {layerCards.map((card) => {
+            const Icon = card.icon
+            const isToggled = activeLayers[card.id]
+
+            return (
+              <div
+                key={card.id}
+                className={`layer-toggle-card ${isToggled ? 'is-toggled' : ''}`}
+                onClick={() => toggleLayer(card.id)}
+              >
+                <div className="layer-card-left">
+                  <div className="layer-card-icon" style={{ color: card.color }}>
+                    <Icon size={16} />
+                  </div>
+                  <div className="layer-card-meta">
+                    <span className="layer-card-name">{card.name}</span>
+                    <span className="layer-card-desc">{card.desc}</span>
+                  </div>
                 </div>
-                <div className="layer-meta">
-                  <span className="layer-name">{layer.name}</span>
-                  <span className="layer-count font-mono">{layer.nodes}</span>
+
+                <div className="layer-eye-btn" style={{ color: isToggled ? card.color : 'var(--text-muted)' }}>
+                  {isToggled ? <Eye size={15} /> : <EyeOff size={15} />}
                 </div>
               </div>
-
-              <button
-                type="button"
-                className="layer-eye-btn"
-                title={isEnabled ? 'Hide Layer' : 'Show Layer'}
-              >
-                {isEnabled ? (
-                  <Eye size={15} style={{ color: layer.color }} />
-                ) : (
-                  <EyeOff size={15} style={{ color: 'var(--text-muted)' }} />
-                )}
-              </button>
-            </div>
-          )
-        })}
+            )
+          })}
+        </div>
       </section>
     </div>
   )

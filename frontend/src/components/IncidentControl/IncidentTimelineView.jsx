@@ -1,18 +1,45 @@
+import { useState } from 'react'
 import {
-  Clock,
-  CheckCircle2,
+  Zap,
+  Play,
   RotateCcw,
-  Activity,
-  Layers,
-  ChevronRight
+  CheckCircle2,
+  AlertTriangle,
+  Clock,
+  Maximize2,
+  Settings as CogIcon,
+  ChevronRight,
+  Info
 } from 'lucide-react'
 import TwinContainer from '../DigitalTwin3D/TwinContainer'
 import './IncidentTimelineView.css'
 
+const TIMELINE_MILESTONES = [
+  { t: 'T+0 min', label: 'Incident Triggered', color: '#FF4D4D' },
+  { t: 'T+2 min', label: 'Initial Impact', color: '#FF7A00' },
+  { t: 'T+5 min', label: 'Cascade Propagation', color: '#FFB800' },
+  { t: 'T+10 min', label: 'Critical Services Affected', color: '#FFD600' },
+  { t: 'T+18 min', label: 'Intervention Applied', color: '#00A3FF' },
+  { t: 'T+30 min', label: 'Recovery in Progress', color: '#00F0FF' },
+  { t: 'T+45 min', label: 'Stabilized', color: '#00E5A3' }
+]
+
+const EVENT_LOGS = [
+  { time: '10:24 AM (T+0)', title: 'Primary transformer Failure detected', desc: 'Main transformer offline. Grid supply lost.', type: 'cog' },
+  { time: '10:25 AM (T+1)', title: 'UPS supplying critical loads', desc: 'ICU, Emergency and OT shifted to UPS.', type: 'cog' },
+  { time: '10:26 AM (T+2)', title: 'Generator auto-start initiated', desc: 'Generator starting (estimated 3 minutes).', type: 'cog' },
+  { time: '10:29 AM (T+5)', title: 'HVAC capacity reduced', desc: 'Chillers running at limited capacity. Non-critical areas affected.', type: 'warn' },
+  { time: '10:32 AM (T+8)', title: 'Medical gas pressure drop', desc: 'Pressure below threshold in secondary line.', type: 'warn' },
+  { time: '10:34 AM (T+10)', title: 'ICU services at risk', desc: 'Temperature and air handling outside safe range.', type: 'critical' },
+  { time: '10:42 AM (T+18)', title: 'Intervention applied', desc: 'Strategy A: Use Backup Generator.', type: 'cog' },
+  { time: '10:50 AM (T+26)', title: 'Systems stabilizing', desc: 'HVAC and medical gas recovering.', type: 'cog' },
+  { time: '11:09 AM (T+45)', title: 'Incident stabilized', desc: 'All critical services restored to normal.', type: 'check' }
+]
+
 export default function IncidentTimelineView({
   incident,
   timeline = [],
-  activeCheckpointIndex = 0,
+  activeCheckpointIndex = 3,
   onSelectCheckpoint,
   onNextCheckpoint,
   onOpenExplainability,
@@ -21,412 +48,382 @@ export default function IncidentTimelineView({
   services = [],
   resilience
 }) {
-  const isIncidentActive = incident?.is_active || false
-  const sourceAsset = incident?.source_asset_id || 'GRID_MAIN'
-  const severity = incident?.severity || 'HIGH'
-  const affectedAssets = incident?.affected_asset_ids || (isIncidentActive ? [sourceAsset] : [])
-  const affectedServices = incident?.affected_service_ids || []
+  const [selectedEventFilter, setSelectedEventFilter] = useState('all')
+  const [currentTimeStep, setCurrentTimeStep] = useState('T+10m')
+  const [viewMode, setViewMode] = useState('3d') // '3d' | '2d'
 
-  const activeStep = timeline[activeCheckpointIndex] || timeline[0] || {
-    t_offset_min: 0,
-    title: 'Baseline Operational State',
-    description: 'All hospital infrastructure systems operating within nominal design tolerances.',
-    system_resilience_score: 94.5
-  }
-
-  // Pre-configured 5 milestones for timeline progression bar
-  const milestones = [
-    { t: 0, label: 'Initial Fault', sub: 'Primary node failure' },
-    { t: 5, label: 'Cascade Triggered', sub: 'Chiller offline, UPS active' },
-    { t: 15, label: 'Backup Engaged', sub: 'Emergency gen online' },
-    { t: 30, label: 'Secondary Impact', sub: 'Clinical throttling' },
-    { t: 45, label: 'Stabilization', sub: 'Mitigation applied' }
+  // Temporal 3D HUD Pins at T+10m
+  const temporalPins = [
+    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '38%', left: '44%', color: 'red' },
+    { id: 'GEN_01', label: 'Generator', status: 'Starting', top: '32%', left: '53%', color: 'orange' },
+    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'Degraded', top: '32%', left: '69%', color: 'orange' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Partial Power', top: '40%', left: '59%', color: 'orange' },
+    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '43%', left: '73%', color: 'cyan' },
+    { id: 'SERVICE_ICU', label: 'ICU', status: 'At Risk', top: '50%', left: '48%', color: 'red' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Stable', top: '56%', left: '56%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '51%', left: '68%', color: 'orange' }
   ]
 
-  // Chronological event logs
-  const eventLogs = isIncidentActive && incident?.timeline?.length > 0
-    ? incident.timeline.map((step, idx) => ({
-        id: `log-${idx}`,
-        time: `T+${String(step.t_offset_min ?? idx * 5).padStart(2, '0')}:00`,
-        title: step.title || 'Cascade Step',
-        desc: step.description,
-        type: idx === 0 ? 'critical' : idx === 1 ? 'warning' : 'normal',
-        node: step.target_node_id || sourceAsset
-      }))
-    : [
-        {
-          id: 'l1',
-          time: 'T+00:00',
-          title: `Primary Disruption: ${sourceAsset}`,
-          desc: 'Sudden loss of primary power feed from utility substation.',
-          type: 'critical',
-          node: sourceAsset
-        },
-        {
-          id: 'l2',
-          time: 'T+02:15',
-          title: 'UPS Battery Bank Engaged',
-          desc: 'Critical care circuits transferred seamlessly without power gap.',
-          type: 'warning',
-          node: 'UPS_CRITICAL'
-        },
-        {
-          id: 'l3',
-          time: 'T+05:00',
-          title: 'Chiller Plant Secondary Trip',
-          desc: 'HVAC compressors shut down to conserve emergency battery capacity.',
-          type: 'warning',
-          node: 'CHILLER_PLANT'
-        },
-        {
-          id: 'l4',
-          time: 'T+12:30',
-          title: 'Emergency Generator 1 Online',
-          desc: 'Diesel generator reaches nominal speed and synchronizes to emergency bus.',
-          type: 'normal',
-          node: 'GEN_01'
-        }
-      ]
+  // Service impact matrix rows
+  const serviceMatrixRows = [
+    { name: 'Emergency', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
+    { name: 'ICU', t0: 'normal', t5: 'degraded', t10: 'risk', t15: 'risk', t30: 'degraded', t45: 'normal' },
+    { name: 'OT', t0: 'normal', t5: 'degraded', t10: 'risk', t15: 'risk', t30: 'degraded', t45: 'normal' },
+    { name: 'Wards', t0: 'normal', t5: 'normal', t10: 'degraded', t15: 'degraded', t30: 'normal', t45: 'normal' },
+    { name: 'OPD', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
+    { name: 'Laboratory', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
+    { name: 'Radiology', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' }
+  ]
 
   return (
     <div className="incident-timeline-page">
       {/* 1. TOP MILESTONE PROGRESSION BAR */}
       <section className="timeline-progression-bar-card">
-        <div className="progression-header">
-          <div className="progression-title-group">
-            <Clock size={16} style={{ color: 'var(--accent-cyan)' }} />
-            <span className="progression-title">Cascade Horizon Progression</span>
-            <span className="progression-sub font-mono">
-              {isIncidentActive
-                ? `Active Simulation • T+${activeStep.t_offset_min ?? 0}m Current`
-                : 'Deterministic Operational Horizon'}
-            </span>
-          </div>
-
-          <div className="progression-controls">
-            <button
-              type="button"
-              className="prog-btn prog-next-btn"
-              onClick={onNextCheckpoint}
-              disabled={!isIncidentActive || activeCheckpointIndex >= timeline.length - 1}
+        <div className="milestone-gradient-line" />
+        <div className="milestones-nodes-row">
+          {TIMELINE_MILESTONES.map((m, idx) => (
+            <div
+              key={m.t}
+              className={`prog-milestone-node ${idx <= 3 ? 'is-past' : ''} ${idx === 3 ? 'is-active' : ''}`}
             >
-              <span>Next Checkpoint</span>
-              <ChevronRight size={14} />
-            </button>
-            <button
-              type="button"
-              className="prog-btn prog-reset-btn"
-              onClick={onReset}
-              title="Reset simulation to T+0 baseline"
-            >
-              <RotateCcw size={13} />
-            </button>
-          </div>
-        </div>
-
-        {/* Sequential Milestone Track */}
-        <div className="milestones-track">
-          {milestones.map((m, idx) => {
-            const isCompleted = activeCheckpointIndex > idx
-            const isCurrent = activeCheckpointIndex === idx
-            const isLast = idx === milestones.length - 1
-
-            return (
-              <div
-                key={m.t}
-                className={`milestone-node ${isCurrent ? 'is-current' : ''} ${
-                  isCompleted ? 'is-completed' : ''
-                }`}
-                onClick={() => onSelectCheckpoint && onSelectCheckpoint(idx)}
-                role="button"
-                tabIndex={0}
-              >
-                <div className="milestone-indicator-row">
-                  <div className="milestone-dot">
-                    {isCompleted ? (
-                      <CheckCircle2 size={12} />
-                    ) : isCurrent ? (
-                      <span className="current-pulse-dot" />
-                    ) : (
-                      <span className="font-mono">{idx + 1}</span>
-                    )}
-                  </div>
-                  {!isLast && <div className="milestone-line" />}
-                </div>
-
-                <div className="milestone-content">
-                  <span className="milestone-time font-mono">T+{m.t}m</span>
-                  <span className="milestone-label">{m.label}</span>
-                  <span className="milestone-sub">{m.sub}</span>
-                </div>
+              <div className="milestone-dot-wrap">
+                <span className="milestone-dot" style={{ backgroundColor: m.color }} />
               </div>
-            )
-          })}
+              <span className="milestone-time font-mono">{m.t}</span>
+              <span className="milestone-label">{m.label}</span>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* 2. MIDDLE 3-COLUMN WORKSPACE: Active Incident + 3D Viewport + Event Log */}
+      {/* 2. MIDDLE 3-COLUMN WORKSPACE: 1. Active Incident, 2. 3D View with Scrubber, 3. Event Log */}
       <section className="timeline-middle-grid">
-        {/* Column 1: Active Incident Card */}
-        <div className="timeline-col-card active-incident-panel">
-          <div className="card-header-row">
-            <span className="card-heading">Active Incident</span>
-            <span
-              className={`badge font-mono ${
-                isIncidentActive ? 'badge-critical' : 'badge-normal'
-              }`}
-            >
-              {isIncidentActive ? 'OUTAGE ACTIVE' : 'NOMINAL'}
-            </span>
+        {/* Column 1: 1. Active Incident */}
+        <aside className="timeline-active-incident-card">
+          <div className="incident-card-header">
+            <span className="incident-card-title">1. Active Incident</span>
           </div>
 
-          <div className="incident-id-box">
-            <span className="incident-code font-mono">
-              {incident?.incident_id || 'INC-2026-0926-01'}
-            </span>
-            <span className="incident-name-sub">
-              {incident?.title || `Primary Disruption on ${sourceAsset}`}
-            </span>
+          <div className="incident-title-box">
+            <div className="incident-title-left">
+              <Zap size={16} className="incident-lightning-icon" />
+              <span className="incident-main-name">Primary Transformer Failure</span>
+            </div>
+            <span className="incident-critical-badge font-mono">Critical</span>
           </div>
 
-          <div className="incident-specs-list">
+          <p className="incident-description-text">
+            Loss of main transformer supply in electrical system causing cascading impact on hospital infrastructure.
+          </p>
+
+          <div className="incident-specs-table font-mono">
             <div className="spec-row">
-              <span className="spec-k">Source Node:</span>
-              <span className="spec-v font-mono">{sourceAsset}</span>
+              <span className="spec-k">Start Time</span>
+              <span className="spec-v">20 Sep 2026, 10:24 AM (T+0)</span>
             </div>
             <div className="spec-row">
-              <span className="spec-k">Severity Level:</span>
-              <span
-                className="spec-v font-mono"
-                style={{ color: isIncidentActive ? 'var(--status-critical)' : 'var(--status-normal)' }}
-              >
-                {severity.toUpperCase()}
-              </span>
+              <span className="spec-k">Duration</span>
+              <span className="spec-v">2 Hours (Simulated)</span>
             </div>
             <div className="spec-row">
-              <span className="spec-k">Cascade Depth:</span>
-              <span className="spec-v font-mono">
-                {isIncidentActive ? `${affectedAssets.length} Nodes Impacted` : '0 Nodes (Nominal)'}
-              </span>
+              <span className="spec-k">Severity</span>
+              <span className="spec-v text-red">High</span>
             </div>
             <div className="spec-row">
-              <span className="spec-k">Current Resilience:</span>
-              <span
-                className="spec-v font-mono"
-                style={{ color: resilience?.status_color || '#10b981' }}
-              >
-                {resilience?.overall_score?.toFixed(1) || '94.5'}%
-              </span>
+              <span className="spec-k">Status</span>
+              <span className="spec-v text-red">In Progress</span>
+            </div>
+            <div className="spec-row">
+              <span className="spec-k">Affected Systems</span>
+              <span className="spec-v font-sans">Electrical, HVAC, Medical Gas</span>
+            </div>
+            <div className="spec-row">
+              <span className="spec-k">Affected Services</span>
+              <span className="spec-v font-sans">ICU, OT, Emergency, Wards</span>
+            </div>
+            <div className="spec-row">
+              <span className="spec-k">Simulation ID</span>
+              <span className="spec-v">SIM-20260920-001</span>
             </div>
           </div>
+        </aside>
 
-          {/* Affected Services Impact List */}
-          <div className="affected-services-section">
-            <span className="affected-section-title">Clinical Risk Assessment</span>
-            <div className="services-chips-wrap">
-              {services.map((svc) => (
-                <div
-                  key={svc.id}
-                  className={`service-status-chip ${svc.at_risk ? 'is-at-risk' : 'is-nominal'}`}
+        {/* Column 2: 2. Temporal Infrastructure State (3D View) with Scrubber */}
+        <div className="timeline-temporal-card">
+          <div className="temporal-card-header">
+            <span className="temporal-card-title">2. Temporal Infrastructure State (3D View)</span>
+            <div className="temporal-controls-right">
+              <div className="twin-view-mode-toggle">
+                <button
+                  type="button"
+                  className={`view-mode-btn ${viewMode === '3d' ? 'is-active' : ''}`}
+                  onClick={() => setViewMode('3d')}
                 >
-                  <span className="chip-dot" />
-                  <span className="chip-name font-mono">{(svc.id || '').replace('SERVICE_', '')}</span>
-                  <span className="chip-status">
-                    {svc.at_risk ? 'At Risk' : '100%'}
-                  </span>
+                  3D View
+                </button>
+                <button
+                  type="button"
+                  className={`view-mode-btn ${viewMode === '2d' ? 'is-active' : ''}`}
+                  onClick={() => setViewMode('2d')}
+                >
+                  2D Schematic
+                </button>
+              </div>
+              <button type="button" className="temporal-expand-btn"><Maximize2 size={12} /></button>
+            </div>
+          </div>
+
+          <div className="temporal-canvas-viewport">
+            <TwinContainer
+              assets={assets}
+              services={services}
+              incident={incident}
+            />
+
+            {/* Top-left Time Indicator Badge */}
+            <div className="temporal-time-badge font-mono">
+              <span>T + 10 min</span>
+            </div>
+
+            {/* Temporal HUD Pins */}
+            <div className="temporal-pins-layer">
+              {temporalPins.map((pin) => (
+                <div key={pin.id} className={`temporal-hud-pin pin-${pin.color}`} style={{ top: pin.top, left: pin.left }}>
+                  <span className="t-pin-icon">{pin.color === 'red' ? '⚡' : '●'}</span>
+                  <div className="t-pin-text">
+                    <span className="t-pin-name">{pin.label}</span>
+                    <span className="t-pin-status font-mono">{pin.status}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Bottom Scrubber Bar */}
+            <div className="temporal-scrubber-bar">
+              <button type="button" className="scrubber-play-btn">
+                <Play size={12} fill="currentColor" />
+              </button>
+
+              <div className="scrubber-track-wrap">
+                <div className="scrubber-track-line">
+                  <div className="scrubber-progress-fill" style={{ width: '45%' }} />
+                  <span className="scrubber-thumb" style={{ left: '45%' }} />
+                </div>
+                <div className="scrubber-ticks font-mono">
+                  <span className={currentTimeStep === 'T+0' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+0')}>T+0</span>
+                  <span className={currentTimeStep === 'T+5m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+5m')}>T+5m</span>
+                  <span className={currentTimeStep === 'T+10m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+10m')}>T+10m</span>
+                  <span className={currentTimeStep === 'T+15m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+15m')}>T+15m</span>
+                  <span className={currentTimeStep === 'T+20m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+20m')}>T+20m</span>
+                  <span className={currentTimeStep === 'T+30m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+30m')}>T+30m</span>
+                  <span className={currentTimeStep === 'T+45m' ? 'active-tick' : ''} onClick={() => setCurrentTimeStep('T+45m')}>T+45m</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Column 3: 3. Event Log */}
+        <aside className="timeline-event-log-card">
+          <div className="event-log-header">
+            <span className="event-log-title">3. Event Log</span>
+            <select
+              className="event-filter-select font-mono"
+              value={selectedEventFilter}
+              onChange={(e) => setSelectedEventFilter(e.target.value)}
+            >
+              <option value="all">All Events</option>
+              <option value="critical">Critical Only</option>
+              <option value="warnings">Warnings</option>
+            </select>
+          </div>
+
+          <div className="event-logs-list-scroll">
+            {EVENT_LOGS.map((evt, idx) => (
+              <div key={idx} className="event-log-item">
+                <div className="event-log-left-col">
+                  <span className="event-time-tag font-mono">{evt.time}</span>
+                  <div className={`event-icon-circle ${evt.type}`}>
+                    {evt.type === 'cog' && <CogIcon size={12} />}
+                    {evt.type === 'warn' && <AlertTriangle size={12} />}
+                    {evt.type === 'critical' && <AlertTriangle size={12} />}
+                    {evt.type === 'check' && <CheckCircle2 size={12} />}
+                  </div>
+                </div>
+                <div className="event-log-content">
+                  <span className="event-item-title">{evt.title}</span>
+                  <span className="event-item-desc">{evt.desc}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </aside>
+      </section>
+
+      {/* 3. BOTTOM 3 CARDS: 4. System Status, 5. Service Impact Timeline, 6. Key Metrics */}
+      <section className="timeline-bottom-grid">
+        {/* Card 4: System Status Over Time Step Chart */}
+        <div className="timeline-panel-card">
+          <div className="panel-header-with-legend">
+            <span className="timeline-panel-title">4. System Status Over Time</span>
+            <div className="chart-legend-row font-mono">
+              <span><span className="dot" style={{ backgroundColor: '#00F0FF' }} /> Electrical</span>
+              <span><span className="dot" style={{ backgroundColor: '#00A3FF' }} /> Water</span>
+              <span><span className="dot" style={{ backgroundColor: '#FFB800' }} /> HVAC</span>
+              <span><span className="dot" style={{ backgroundColor: '#A855F7' }} /> Medical Gas</span>
+            </div>
+          </div>
+
+          <div className="step-chart-container">
+            <div className="step-y-axis">
+              <span>Normal</span>
+              <span>Degraded</span>
+              <span>At Risk</span>
+              <span>Failed</span>
+            </div>
+            <div className="step-svg-wrap">
+              <svg className="step-chart-svg" viewBox="0 0 300 100" preserveAspectRatio="none">
+                <line x1="0" y1="10" x2="300" y2="10" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                <line x1="0" y1="40" x2="300" y2="40" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                <line x1="0" y1="70" x2="300" y2="70" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                <line x1="0" y1="95" x2="300" y2="95" stroke="var(--border-subtle)" />
+
+                {/* Electrical (Cyan): Normal -> Failed -> Step Recovery */}
+                <path
+                  d="M0,10 L30,10 L30,95 L120,95 L120,70 L180,70 L180,40 L240,40 L240,10 L300,10"
+                  fill="none"
+                  stroke="#00F0FF"
+                  strokeWidth="2"
+                />
+
+                {/* HVAC (Orange): Normal -> Degraded -> Normal */}
+                <path
+                  d="M0,10 L60,10 L60,70 L180,70 L180,40 L260,40 L260,10 L300,10"
+                  fill="none"
+                  stroke="#FFB800"
+                  strokeWidth="2"
+                />
+
+                {/* Medical Gas (Purple): Normal -> At Risk -> Normal */}
+                <path
+                  d="M0,10 L100,10 L100,40 L200,40 L200,10 L300,10"
+                  fill="none"
+                  stroke="#A855F7"
+                  strokeWidth="2"
+                />
+
+                {/* Water (Blue): Remains Normal */}
+                <path
+                  d="M0,10 L300,10"
+                  fill="none"
+                  stroke="#00A3FF"
+                  strokeWidth="2"
+                />
+              </svg>
+
+              <div className="step-x-axis font-mono">
+                <span>T+0</span>
+                <span>T+5m</span>
+                <span>T+10m</span>
+                <span>T+15m</span>
+                <span>T+20m</span>
+                <span>T+30m</span>
+                <span>T+45m</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Card 5: Service Impact Timeline Heatmap Matrix */}
+        <div className="timeline-panel-card">
+          <div className="panel-header-with-legend">
+            <span className="timeline-panel-title">5. Service Impact Timeline</span>
+            <div className="chart-legend-row font-mono">
+              <span><span className="dot" style={{ backgroundColor: '#00E5A3' }} /> Normal</span>
+              <span><span className="dot" style={{ backgroundColor: '#FFB800' }} /> Degraded</span>
+              <span><span className="dot" style={{ backgroundColor: '#FF7A00' }} /> At Risk</span>
+              <span><span className="dot" style={{ backgroundColor: '#FF4D4D' }} /> Failed</span>
+            </div>
+          </div>
+
+          <div className="heatmap-matrix-wrapper">
+            <div className="matrix-grid font-mono">
+              <div className="matrix-header-row">
+                <span className="matrix-cell-empty" />
+                <span>T+0</span>
+                <span>T+5m</span>
+                <span>T+10m</span>
+                <span>T+15m</span>
+                <span>T+30m</span>
+                <span>T+45m</span>
+              </div>
+              {serviceMatrixRows.map((row) => (
+                <div key={row.name} className="matrix-data-row">
+                  <span className="matrix-row-label font-sans">{row.name}</span>
+                  <span className={`matrix-block block-${row.t0}`} />
+                  <span className={`matrix-block block-${row.t5}`} />
+                  <span className={`matrix-block block-${row.t10}`} />
+                  <span className={`matrix-block block-${row.t15}`} />
+                  <span className={`matrix-block block-${row.t30}`} />
+                  <span className={`matrix-block block-${row.t45}`} />
                 </div>
               ))}
             </div>
           </div>
-
-          <button
-            type="button"
-            className="incident-explain-btn"
-            onClick={onOpenExplainability}
-          >
-            <Activity size={14} />
-            <span>Open Causal Explanation</span>
-          </button>
         </div>
 
-        {/* Column 2: Temporal State (3D View) Preview */}
-        <div className="timeline-col-card temporal-twin-panel">
-          <div className="card-header-row">
-            <div className="twin-title-group">
-              <Layers size={14} style={{ color: 'var(--accent-cyan)' }} />
-              <span className="card-heading">Temporal State (3D Twin)</span>
-            </div>
-            <span className="badge badge-cyan font-mono">
-              T+{activeStep.t_offset_min ?? 0}m Snapshot
-            </span>
-          </div>
-
-          <div className="temporal-canvas-wrapper">
-            <TwinContainer
-              assets={assets}
-              services={services}
-              selectedAssetId={sourceAsset}
-            />
-          </div>
-
-          {/* Scrubber slider bar */}
-          <div className="temporal-scrubber-row">
-            <span className="scrubber-label font-mono">T+0</span>
-            <input
-              type="range"
-              min="0"
-              max={Math.max(timeline.length - 1, 4)}
-              value={activeCheckpointIndex}
-              onChange={(e) => onSelectCheckpoint && onSelectCheckpoint(Number(e.target.value))}
-              className="temporal-slider"
-            />
-            <span className="scrubber-label font-mono">T+45m</span>
-          </div>
-        </div>
-
-        {/* Column 3: Event Log Card */}
-        <div className="timeline-col-card event-log-panel">
-          <div className="card-header-row">
-            <span className="card-heading">Cascade Event Log</span>
-            <span className="badge badge-subtle font-mono">CHRONOLOGICAL</span>
-          </div>
-
-          <div className="event-log-list">
-            {eventLogs.map((log) => (
-              <div key={log.id} className="event-log-item">
-                <div className="log-top-row">
-                  <span className="log-time-tag font-mono">{log.time}</span>
-                  <span className="log-node font-mono">{log.node}</span>
-                </div>
-                <div className="log-title-row">
-                  <span
-                    className={`log-status-dot ${
-                      log.type === 'critical'
-                        ? 'dot-critical'
-                        : log.type === 'warning'
-                        ? 'dot-warning'
-                        : 'dot-normal'
-                    }`}
-                  />
-                  <span className="log-title">{log.title}</span>
-                </div>
-                <p className="log-desc">{log.desc}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* 3. BOTTOM ROW: Status Over Time + Service Impact + Key Metrics */}
-      <section className="timeline-bottom-grid">
-        {/* Card 1: System Status Over Time */}
-        <div className="timeline-col-card bottom-card">
-          <div className="card-header-row">
-            <span className="card-heading">System Status Over Time</span>
-            <div className="timeline-chart-legend font-mono">
-              <span className="leg-cyan">● Power</span>
-              <span className="leg-blue">● Water</span>
-              <span className="leg-green">● HVAC</span>
-            </div>
-          </div>
-
-          <div className="timeline-chart-wrap">
-            <svg className="timeline-chart-svg" viewBox="0 0 320 80" preserveAspectRatio="none">
-              <line x1="0" y1="20" x2="320" y2="20" stroke="var(--border-subtle)" strokeDasharray="3 3" />
-              <line x1="0" y1="45" x2="320" y2="45" stroke="var(--border-subtle)" strokeDasharray="3 3" />
-              <line x1="0" y1="70" x2="320" y2="70" stroke="var(--border-subtle)" strokeDasharray="3 3" />
-
-              {/* Power curve (drop and recover) */}
-              <polyline
-                fill="none"
-                stroke="var(--accent-cyan)"
-                strokeWidth="2"
-                points="0,15 60,18 100,68 180,62 260,35 320,20"
-              />
-              {/* Water curve */}
-              <polyline
-                fill="none"
-                stroke="#0284c7"
-                strokeWidth="2"
-                points="0,22 80,24 140,40 220,38 320,24"
-              />
-              {/* HVAC curve */}
-              <polyline
-                fill="none"
-                stroke="#10b981"
-                strokeWidth="2"
-                points="0,25 70,25 120,55 240,50 320,30"
-              />
-            </svg>
-            <div className="timeline-chart-axis font-mono">
-              <span>T+0</span>
-              <span>T+15m</span>
-              <span>T+30m</span>
-              <span>T+45m</span>
-              <span>T+60m</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card 2: Service Impact Timeline */}
-        <div className="timeline-col-card bottom-card">
-          <div className="card-header-row">
-            <span className="card-heading">Service Impact Timeline</span>
-            <span className="card-sub font-mono">CLINICAL CONTINUITY</span>
-          </div>
-
-          <div className="service-heatmap-grid">
-            {['ICU', 'Surgery (OT)', 'Emergency (ER)', 'Neonatal (NICU)'].map((svcName, idx) => (
-              <div key={svcName} className="heatmap-row">
-                <span className="heatmap-svc-label font-mono">{svcName}</span>
-                <div className="heatmap-cells-track">
-                  <div className={`hm-cell ${idx === 0 && isIncidentActive ? 'hm-critical' : 'hm-nominal'}`} title="T+0" />
-                  <div className={`hm-cell ${idx <= 1 && isIncidentActive ? 'hm-warning' : 'hm-nominal'}`} title="T+15m" />
-                  <div className={`hm-cell ${idx <= 2 && isIncidentActive ? 'hm-warning' : 'hm-nominal'}`} title="T+30m" />
-                  <div className="hm-cell hm-nominal" title="T+45m" />
-                  <div className="hm-cell hm-nominal" title="T+60m" />
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Card 3: Key Metrics */}
-        <div className="timeline-col-card bottom-card">
-          <div className="card-header-row">
-            <span className="card-heading">Key Metrics</span>
-            <span className="card-sub font-mono">IMPACT ASSESSMENT</span>
-          </div>
-
-          <div className="timeline-metrics-grid">
-            <div className="tm-metric-box">
-              <span className="tm-metric-val font-mono">
-                {isIncidentActive ? affectedAssets.length : 0}
-              </span>
-              <span className="tm-metric-lbl">Affected Assets</span>
-            </div>
-            <div className="tm-metric-box">
-              <span
-                className="tm-metric-val font-mono"
-                style={{ color: affectedServices.length > 0 ? 'var(--status-critical)' : 'var(--text-primary)' }}
-              >
-                {affectedServices.length}
-              </span>
-              <span className="tm-metric-lbl">At-Risk Services</span>
-            </div>
-            <div className="tm-metric-box">
-              <span className="tm-metric-val font-mono">42 min</span>
-              <span className="tm-metric-lbl">Est. Recovery</span>
-            </div>
-            <div className="tm-metric-box">
-              <span
-                className="tm-metric-val font-mono"
-                style={{ color: isIncidentActive ? 'var(--status-critical)' : 'var(--status-normal)' }}
-              >
-                {isIncidentActive ? '-28.5' : '0.0'} pts
-              </span>
-              <span className="tm-metric-lbl">Resilience Impact</span>
-            </div>
+        {/* Card 6: Key Metrics at Selected Times Table */}
+        <div className="timeline-panel-card">
+          <span className="timeline-panel-title">6. Key Metrics at Selected Times</span>
+          <div className="metrics-table-scroll font-mono">
+            <table className="timeline-metrics-table">
+              <thead>
+                <tr>
+                  <th className="th-left font-sans">Metric</th>
+                  <th>T+0</th>
+                  <th>T+10m</th>
+                  <th>T+30m</th>
+                  <th>T+45m</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td className="td-left font-sans">Total Services At Risk</td>
+                  <td>2</td>
+                  <td>5</td>
+                  <td>3</td>
+                  <td>0</td>
+                </tr>
+                <tr>
+                  <td className="td-left font-sans">Affected Assets</td>
+                  <td>6</td>
+                  <td>12</td>
+                  <td>8</td>
+                  <td>2</td>
+                </tr>
+                <tr>
+                  <td className="td-left font-sans">Resilience Index</td>
+                  <td style={{ color: '#00E5A3' }}>82</td>
+                  <td style={{ color: '#FF4D4D' }}>38</td>
+                  <td style={{ color: '#FFB800' }}>62</td>
+                  <td style={{ color: '#00E5A3' }}>78</td>
+                </tr>
+                <tr>
+                  <td className="td-left font-sans">Time to First Impact</td>
+                  <td>-</td>
+                  <td>~8 min</td>
+                  <td>-</td>
+                  <td>-</td>
+                </tr>
+                <tr>
+                  <td className="td-left font-sans">Estimated Recovery</td>
+                  <td>-</td>
+                  <td>~4 hours</td>
+                  <td>~1.5 hours</td>
+                  <td>-</td>
+                </tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </section>

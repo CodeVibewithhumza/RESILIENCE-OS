@@ -161,3 +161,62 @@
   font-size: 10px;
   color: var(--text-secondary);
 }
+
+/* ==========================================================================
+   Light Theme Overrides for Asset Catalog (AssetCatalog)
+   ========================================================================== */
+
+[data-theme="light"] .asset-catalog-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 1px 3px rgba(11, 28, 46, 0.04);
+}
+
+[data-theme="light"] .subsystem-heading {
+  color: var(--text-primary);
+  border-bottom-color: var(--border-secondary);
+}
+
+[data-theme="light"] .subsystem-count {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .asset-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .asset-card:hover {
+  border-color: #B8D8F2;
+  background-color: var(--bg-hover);
+}
+
+[data-theme="light"] .asset-card.is-selected {
+  border-color: var(--brand-primary);
+  background-color: #E5F2FE;
+}
+
+[data-theme="light"] .asset-card-id {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .asset-card-name {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .asset-load-title {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .asset-meter-track {
+  background-color: #E3ECF3;
+}
+
+[data-theme="light"] .asset-meta-badge {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+

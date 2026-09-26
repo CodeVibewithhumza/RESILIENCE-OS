@@ -1,14 +1,12 @@
 import {
-  LayoutDashboard,
-  Layers,
+  Home,
+  Box,
   PlayCircle,
-  Sliders,
+  TrendingUp,
   Clock,
   ShieldCheck,
   FileText,
-  Settings,
-  Building2,
-  Radio
+  Settings
 } from 'lucide-react'
 import './Sidebar.css'
 
@@ -21,45 +19,37 @@ export default function Sidebar({
     {
       id: 'dashboard',
       label: 'Dashboard',
-      icon: LayoutDashboard,
-      badge: null
+      icon: Home
     },
     {
       id: 'digital-twin',
       label: 'Digital Twin',
-      icon: Layers,
-      badge: '3D'
+      icon: Box
     },
     {
       id: 'start-simulation',
       label: 'Start Simulation',
-      icon: PlayCircle,
-      badge: incidentActive ? 'ACTIVE' : null,
-      badgeType: incidentActive ? 'critical' : 'normal'
+      icon: PlayCircle
     },
     {
       id: 'what-if',
-      label: 'What-if Analysis',
-      icon: Sliders,
-      badge: '6 Labs'
+      label: 'What-If Analysis',
+      icon: TrendingUp
     },
     {
       id: 'incident-timeline',
       label: 'Incident Timeline',
-      icon: Clock,
-      badge: null
+      icon: Clock
     },
     {
       id: 'risk-resilience',
       label: 'Risk & Resilience',
-      icon: ShieldCheck,
-      badge: null
+      icon: ShieldCheck
     },
     {
       id: 'reports',
       label: 'Reports',
-      icon: FileText,
-      badge: null
+      icon: FileText
     }
   ]
 
@@ -67,8 +57,7 @@ export default function Sidebar({
     {
       id: 'settings',
       label: 'Settings',
-      icon: Settings,
-      badge: null
+      icon: Settings
     }
   ]
 
@@ -80,24 +69,85 @@ export default function Sidebar({
 
   return (
     <aside className="command-sidebar">
-      {/* 1. Sidebar Top Domain Brand Header */}
-      <div className="sidebar-top">
-        <div className="sidebar-domain-info">
-          <div className="sidebar-domain-badge">
-            <Building2 size={18} className="sidebar-domain-icon" />
+      {/* 1. Sidebar Top Domain Brand Header & Vector Hospital Skyline Logo */}
+      <div className="sidebar-top-branding">
+        <div className="sidebar-logo-graphic">
+          <svg
+            width="48"
+            height="48"
+            viewBox="0 0 48 48"
+            fill="none"
+            xmlns="http://www.w3.org/2000/svg"
+            className="sidebar-brand-svg-logo"
+          >
+            {/* Left Wing Building */}
+            <path
+              d="M6 21H15V40H6V21Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+              fill="currentColor"
+              fillOpacity="0.08"
+            />
+            <rect x="8.5" y="25" width="2.5" height="3" rx="0.5" fill="currentColor" />
+            <rect x="8.5" y="30" width="2.5" height="3" rx="0.5" fill="currentColor" />
+            <rect x="8.5" y="35" width="2.5" height="3" rx="0.5" fill="currentColor" />
+
+            {/* Right Wing Building */}
+            <path
+              d="M33 18H42V40H33V18Z"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+              fill="currentColor"
+              fillOpacity="0.08"
+            />
+            <rect x="36.5" y="22" width="2.5" height="3" rx="0.5" fill="currentColor" />
+            <rect x="36.5" y="27.5" width="2.5" height="3" rx="0.5" fill="currentColor" />
+            <rect x="36.5" y="33" width="2.5" height="3" rx="0.5" fill="currentColor" />
+
+            {/* Center Main Hospital Tower */}
+            <path
+              d="M15 9H33V40H15V9Z"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinejoin="round"
+              fill="currentColor"
+              fillOpacity="0.12"
+            />
+            
+            {/* Medical Cross */}
+            <rect x="22.25" y="13.5" width="3.5" height="11" rx="0.75" fill="currentColor" />
+            <rect x="18.5" y="17.25" width="11" height="3.5" rx="0.75" fill="currentColor" />
+
+            {/* Center Windows */}
+            <rect x="18.5" y="27.5" width="3" height="3" rx="0.5" fill="currentColor" />
+            <rect x="26.5" y="27.5" width="3" height="3" rx="0.5" fill="currentColor" />
+            <rect x="18.5" y="33.5" width="3" height="3" rx="0.5" fill="currentColor" />
+            <rect x="26.5" y="33.5" width="3" height="3" rx="0.5" fill="currentColor" />
+
+            {/* Ground Baseline with Pulse / ECG Rhythm */}
+            <path
+              d="M3 41H12L14 38L16.5 44L19 39.5L21 41H45"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </div>
+
+        <div className="sidebar-brand-text">
+          <div className="brand-main-title">
+            Resilience<span className="brand-accent-text">OS</span>
           </div>
-          <div className="domain-meta">
-            <span className="domain-title">
-              Resilience<span className="domain-title-accent">OS</span>
-            </span>
-            <span className="domain-sub">Hospital Infrastructure Digital Twin</span>
-          </div>
+          <div className="brand-sub-line1">Hospital Infrastructure</div>
+          <div className="brand-sub-line2">Digital Twin</div>
         </div>
       </div>
 
       {/* 2. Main Navigation Section */}
       <nav className="sidebar-nav">
-        {/* CORE OPERATIONS */}
         <div className="sidebar-nav-group">
           <ul className="sidebar-menu">
             {navItems.map((item) => {
@@ -111,19 +161,8 @@ export default function Sidebar({
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
                   >
-                    <Icon size={17} className="nav-btn-icon" />
+                    <Icon size={18} className="nav-btn-icon" />
                     <span className="nav-btn-label">{item.label}</span>
-                    {item.badge && (
-                      <span
-                        className={`nav-btn-badge ${
-                          item.badgeType === 'critical'
-                            ? 'badge-critical'
-                            : 'badge-subtle'
-                        }`}
-                      >
-                        {item.badge}
-                      </span>
-                    )}
                   </button>
                 </li>
               )
@@ -131,8 +170,9 @@ export default function Sidebar({
           </ul>
         </div>
 
-        {/* SYSTEM */}
-        <div className="sidebar-nav-group">
+        {/* SYSTEM Header & Settings link */}
+        <div className="sidebar-nav-group system-group">
+          <div className="system-group-divider" />
           <span className="sidebar-group-label">SYSTEM</span>
           <ul className="sidebar-menu">
             {systemItems.map((item) => {
@@ -146,13 +186,8 @@ export default function Sidebar({
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
                   >
-                    <Icon size={17} className="nav-btn-icon" />
+                    <Icon size={18} className="nav-btn-icon" />
                     <span className="nav-btn-label">{item.label}</span>
-                    {item.badge && (
-                      <span className="nav-btn-badge badge-subtle">
-                        {item.badge}
-                      </span>
-                    )}
                   </button>
                 </li>
               )
@@ -161,14 +196,15 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* 3. Bottom Simulation Mode Card */}
+      {/* 3. Bottom Simulation Mode Badge Container */}
       <div className="sidebar-footer">
         <div className="sidebar-sim-mode-card">
           <div className="sim-mode-status-row">
             <span className="sim-mode-dot" />
             <span className="sim-mode-title">SIMULATION MODE</span>
           </div>
-          <span className="sim-mode-sub">Synthetic Infrastructure Data</span>
+          <div className="sim-mode-sub">Synthetic Infrastructure Data</div>
+          <div className="sim-mode-version">v0.1 • Prototype</div>
         </div>
       </div>
     </aside>

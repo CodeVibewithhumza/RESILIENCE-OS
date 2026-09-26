@@ -383,12 +383,12 @@ export default function App() {
   }, [isResetting, showToast, fetchWhatIfAnalysis])
 
   // Event callback: Synchronize incoming real-time telemetry and resilience score
-  const handleTelemetryTick = useCallback(({ telemetry: tel, resilienceScore: score, statusLabel: label, deltaFromBaseline: delta }) => {
+  const handleTelemetryTick = useCallback(({ telemetry: tel, resilienceScore: score, statusLabel: label, deltaFromBaseline: delta, subScores }) => {
     if (typeof score === 'number') {
       setResilience((prev) => {
         const lbl = label || prev.status_label || 'OPTIMAL'
         const color = getStatusColor(lbl)
-        // Fix 4: Prefer backend-provided delta_from_baseline; do not fabricate frontend baseline
+        // Prefer backend-provided delta_from_baseline; do not fabricate frontend baseline
         const effectiveDelta = typeof delta === 'number'
           ? delta
           : prev.delta_from_baseline
@@ -397,7 +397,8 @@ export default function App() {
           overall_score: score,
           status_label: lbl,
           status_color: color,
-          delta_from_baseline: effectiveDelta
+          delta_from_baseline: effectiveDelta,
+          ...(subScores ? { sub_scores: subScores } : {})
         }
       })
     }
@@ -551,6 +552,82 @@ export default function App() {
         const data = await res.json()
         if (isCancelled || !data) return
 
+        // 1. Unconditionally sync authoritative Resilience Index from backend
+        if (data.resilience_index) {
+          setResilience((prev) => ({
+            ...prev,
+            overall_score: typeof data.resilience_index.overall_score === 'number'
+              ? data.resilience_index.overall_score
+              : prev.overall_score,
+            status_label: data.resilience_index.status_label || prev.status_label,
+            status_color: data.resilience_index.status_color || prev.status_color,
+            delta_from_baseline: typeof data.resilience_index.delta_from_baseline === 'number'
+              ? data.resilience_index.delta_from_baseline
+              : prev.delta_from_baseline,
+            sub_scores: data.resilience_index.sub_scores || prev.sub_scores
+          }))
+        }
+
+        // 2. Unconditionally sync telemetry onto assets
+        if (data.telemetry) {
+          setAssets((prev) => updateAssetsWithTelemetry(prev, data.telemetry))
+        }
+
+        // 3. Unconditionally fetch and synchronize live assets and services from backend
+        try {
+          const [assetsRes, servicesRes] = await Promise.all([
+            fetch(`${baseUrl}/api/assets`),
+            fetch(`${baseUrl}/api/services`)
+          ])
+
+          if (assetsRes.ok) {
+            const liveAssets = await assetsRes.json()
+            if (!isCancelled && Array.isArray(liveAssets) && liveAssets.length > 0) {
+              const liveMap = new Map(liveAssets.map((a) => [a.id, a]))
+              setAssets((prev) =>
+                prev.map((asset) => {
+                  const live = liveMap.get(asset.id)
+                  if (live) {
+                    return {
+                      ...asset,
+                      status: live.status || asset.status,
+                      health_score: typeof live.health_score === 'number' ? live.health_score : asset.health_score,
+                      current_load: typeof live.current_load === 'number' ? live.current_load : asset.current_load,
+                      available_capacity: typeof live.available_capacity === 'number' ? live.available_capacity : asset.available_capacity
+                    }
+                  }
+                  return asset
+                })
+              )
+            }
+          }
+
+          if (servicesRes.ok) {
+            const liveServices = await servicesRes.json()
+            if (!isCancelled && Array.isArray(liveServices) && liveServices.length > 0) {
+              const liveSvcMap = new Map(liveServices.map((s) => [s.id, s]))
+              setServices((prev) =>
+                prev.map((svc) => {
+                  const live = liveSvcMap.get(svc.id)
+                  if (live) {
+                    return {
+                      ...svc,
+                      status: live.status || svc.status,
+                      service_continuity_pct: typeof live.service_continuity_pct === 'number' ? live.service_continuity_pct : svc.service_continuity_pct,
+                      at_risk: typeof live.at_risk === 'boolean' ? live.at_risk : svc.at_risk,
+                      risk_reason: live.risk_reason !== undefined ? live.risk_reason : svc.risk_reason
+                    }
+                  }
+                  return svc
+                })
+              )
+            }
+          }
+        } catch {
+          // Handled defensively
+        }
+
+        // 4. Synchronize incident state
         if (data.is_incident_active && data.active_incident) {
           const inc = data.active_incident
           const sourceAssetId = inc.source_asset_id || 'GRID_MAIN'
@@ -574,64 +651,11 @@ export default function App() {
             current_time_offset_min: inc.current_time_offset_min || 0,
             estimated_unmitigated_blackout_min: inc.estimated_unmitigated_blackout_min || 20.0
           }))
-
-          try {
-            const [assetsRes, servicesRes] = await Promise.all([
-              fetch(`${baseUrl}/api/assets`),
-              fetch(`${baseUrl}/api/services`)
-            ])
-
-            if (assetsRes.ok) {
-              const liveAssets = await assetsRes.json()
-              if (!isCancelled && Array.isArray(liveAssets) && liveAssets.length > 0) {
-                const liveMap = new Map(liveAssets.map((a) => [a.id, a]))
-                setAssets((prev) =>
-                  prev.map((asset) => {
-                    const live = liveMap.get(asset.id)
-                    if (live) {
-                      return {
-                        ...asset,
-                        status: live.status || asset.status,
-                        health_score: typeof live.health_score === 'number' ? live.health_score : asset.health_score,
-                        current_load: typeof live.current_load === 'number' ? live.current_load : asset.current_load,
-                        available_capacity: typeof live.available_capacity === 'number' ? live.available_capacity : asset.available_capacity
-                      }
-                    }
-                    return asset
-                  })
-                )
-              }
-            }
-
-            if (servicesRes.ok) {
-              const liveServices = await servicesRes.json()
-              if (!isCancelled && Array.isArray(liveServices) && liveServices.length > 0) {
-                const liveSvcMap = new Map(liveServices.map((s) => [s.id, s]))
-                setServices((prev) =>
-                  prev.map((svc) => {
-                    const live = liveSvcMap.get(svc.id)
-                    if (live) {
-                      return {
-                        ...svc,
-                        status: live.status || svc.status,
-                        service_continuity_pct: typeof live.service_continuity_pct === 'number' ? live.service_continuity_pct : svc.service_continuity_pct,
-                        at_risk: typeof live.at_risk === 'boolean' ? live.at_risk : svc.at_risk,
-                        risk_reason: live.risk_reason !== undefined ? live.risk_reason : svc.risk_reason
-                      }
-                    }
-                    return svc
-                  })
-                )
-              }
-            }
-          } catch {
-            // Fallback: Ensure source asset is marked failed from incident
-            if (!isCancelled) {
-              setAssets((prev) =>
-                prev.map((a) => (a.id === sourceAssetId ? { ...a, status: 'failed', health_score: 0.0 } : a))
-              )
-            }
-          }
+        } else if (!data.is_incident_active) {
+          setIncident((prev) => ({
+            ...prev,
+            is_active: false
+          }))
         }
       } catch {
         // Fallback to existing mock state on error
@@ -916,26 +940,6 @@ export default function App() {
               onNotify={showToast}
             />
           )}
-
-          {/* Footer Bar */}
-          <footer className="dashboard-footer">
-            <div className="footer-left-info">
-              <span className="footer-brand">RESILIENCE<span style={{ color: 'var(--accent-cyan)' }}>OS</span></span>
-              <span className="footer-badge font-mono">v1.0-PRODUCTION</span>
-              <span className="footer-disclaimer">Hospital Infrastructure Digital Twin & Resilience Decision Engine</span>
-            </div>
-            <div className="footer-right font-mono" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
-              <span>{assets.length} Monitored Graph Nodes</span>
-              <span style={{ margin: '0 8px' }}>•</span>
-              <span style={{ color: isLive ? 'var(--status-normal)' : 'var(--text-muted)' }}>
-                {isLive
-                  ? '● WebSocket Telemetry 1s Sync (LIVE)'
-                  : connectionStatus === 'connecting' || connectionStatus === 'reconnecting'
-                  ? '◐ Connecting Stream...'
-                  : '○ Offline (Fallback Demo Data)'}
-              </span>
-            </div>
-          </footer>
         </main>
       </div>
 

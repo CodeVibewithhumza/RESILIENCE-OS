@@ -875,3 +875,72 @@
   color: #94a3b8;
   font-size: 12px;
 }
+
+/* ==========================================================================
+   TwinContainer Light Theme Explicit Polish
+   ========================================================================== */
+[data-theme="light"] .twin-master-panel {
+  background-color: var(--bg-card);
+  border-color: var(--border-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .twin-header {
+  background: var(--bg-subtle);
+  border-bottom-color: var(--border-primary);
+}
+
+[data-theme="light"] .twin-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .twin-header-icon-badge {
+  background: #E5F2FE;
+  border-color: #DCE8F2;
+  color: #1682ED;
+  box-shadow: none;
+}
+
+[data-theme="light"] .live-telemetry-badge {
+  background: #E5F2FE;
+  border-color: #1682ED;
+  color: #1682ED;
+}
+
+[data-theme="light"] .twin-legend-card {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--border-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .legend-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .legend-item-name {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .twin-compass-overlay {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+  box-shadow: var(--shadow-sm);
+}
+
+[data-theme="light"] .compass-axis-label {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .twin-hud-ctrl-btn {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .twin-hud-ctrl-btn:hover {
+  background: var(--bg-hover);
+  color: var(--brand-primary);
+  border-color: var(--border-active);
+}
+

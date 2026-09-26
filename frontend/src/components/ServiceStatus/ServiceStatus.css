@@ -193,3 +193,55 @@
   padding: 1px 5px;
   border-radius: var(--radius-xs);
 }
+
+/* ==========================================================================
+   Light Theme Overrides for Service Status (ServiceStatus)
+   ========================================================================== */
+
+[data-theme="light"] .service-list-container {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 1px 3px rgba(11, 28, 46, 0.04);
+}
+
+[data-theme="light"] .service-card {
+  background-color: #FFFFFF;
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .service-card:hover {
+  border-color: #B8D8F2;
+  background-color: var(--bg-hover);
+}
+
+[data-theme="light"] .service-card.is-selected {
+  border-color: var(--brand-primary);
+  background-color: #E5F2FE;
+}
+
+[data-theme="light"] .service-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .service-location {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .continuity-title {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .service-meter-track {
+  background-color: #E3ECF3;
+}
+
+[data-theme="light"] .service-meta-footer {
+  border-top-color: var(--border-secondary);
+}
+
+[data-theme="light"] .demand-pill {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+

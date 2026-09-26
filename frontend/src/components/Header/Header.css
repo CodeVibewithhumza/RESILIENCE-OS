@@ -312,3 +312,82 @@
 .user-chevron {
   color: var(--text-muted);
 }
+
+/* ==========================================================================
+   Header Light Theme Explicit Polish
+   ========================================================================== */
+[data-theme="light"] .cmd-header {
+  background-color: var(--bg-primary);
+  border-bottom: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .header-page-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .header-page-subtitle {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .header-meta-item {
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .header-date {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .header-time {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+[data-theme="light"] .header-icon-btn {
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .header-icon-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--border-active);
+  color: var(--brand-primary);
+}
+
+[data-theme="light"] .theme-icon {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .header-bell-badge {
+  background-color: var(--critical);
+  border-color: var(--bg-card);
+}
+
+[data-theme="light"] .header-user-pill {
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+}
+
+[data-theme="light"] .user-avatar-circle {
+  background: #D7EAFB;
+  color: #0B1C2E;
+  border: 1px solid #C2DCF2;
+}
+
+[data-theme="light"] .user-team-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .header-reset-btn {
+  background: var(--bg-card);
+  border-color: var(--border-primary);
+  color: var(--brand-primary);
+}
+
+[data-theme="light"] .header-reset-btn:hover:not(:disabled) {
+  background: var(--bg-hover);
+  border-color: var(--border-active);
+  box-shadow: 0 1px 4px rgba(22, 130, 237, 0.15);
+}

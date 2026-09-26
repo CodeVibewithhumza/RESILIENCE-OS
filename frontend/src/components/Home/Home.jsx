@@ -1,14 +1,26 @@
-import { useMemo } from 'react'
+import { useState, useMemo } from 'react'
 import {
   Zap,
   Droplets,
   Wind,
-  Flame,
   HeartPulse,
-  Activity
+  Info,
+  ChevronRight,
+  ChevronDown,
+  Maximize2,
+  AlertTriangle,
+  ShieldCheck,
+  ArrowUpRight
 } from 'lucide-react'
+import TwinContainer from '../DigitalTwin3D/TwinContainer'
 import hospitalCampusImg from '../../assets/hospital_campus_twin.jpg'
 import './Home.css'
+
+// Helper function to build sharp polyline path (no curves, sharp up/down points)
+function buildSharpPath(points) {
+  if (!points || points.length === 0) return ''
+  return points.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ')
+}
 
 export default function Home({
   resilience,
@@ -22,19 +34,23 @@ export default function Home({
   onNavigate,
   onSelectAsset
 }) {
-  const statusColor = resilience?.status_color || '#10B981'
-  const statusLabel = resilience?.status_label || 'OPTIMAL'
-  const overallScore = typeof resilience?.overall_score === 'number'
-    ? resilience.overall_score
-    : 94.5
+  const [campusViewMode, setCampusViewMode] = useState('campus') // 'campus' | 'building'
+  const [activePinInspect, setActivePinInspect] = useState(null)
+
+  // 4 Interactive Filter States for Dashboard Cards
+  const [resilienceHorizon, setResilienceHorizon] = useState('24h') // '24h' | '12h' | '6h' | '1h'
+  const [perfHorizon, setPerfHorizon] = useState('24h') // '24h' | '12h' | '7d' | '1h'
+  const [utilizationFilter, setUtilizationFilter] = useState('current') // 'current' | 'peak' | 'avg' | 'min'
+  const [riskFilter, setRiskFilter] = useState('by_system') // 'by_system' | 'by_severity' | 'by_dept'
 
   const totalAssets = assets.length || 52
   const totalServices = services.length || 8
-  const operationalServices = services.filter((s) => s.status === 'full_operation' || !s.at_risk).length || 8
-  const atRiskServices = services.filter((s) => s.at_risk).length
+  const operationalServices = services.filter((s) => s.status === 'full_operation' || (!s.at_risk && s.status !== 'suspended')).length || 8
+  const atRiskServices = services.filter((s) => s.at_risk || s.status === 'reduced_capacity' || s.status === 'suspended').length
+  const failedAssetsCount = assets.filter((a) => a.status === 'failed' || a.status === 'critical').length
+  const degradedAssetsCount = assets.filter((a) => a.status === 'degraded' || a.status === 'starting').length
 
-  const activeAlertsCount =
-    (incident?.is_active ? incident.affected_asset_ids?.length || 1 : 0) + atRiskServices
+  const activeAlertsCount = (incident?.is_active ? (incident.affected_asset_ids?.length || 1) : 0) + atRiskServices + failedAssetsCount
 
   // Map assets for quick lookup
   const assetMap = useMemo(() => {
@@ -45,694 +61,1233 @@ export default function Home({
     return map
   }, [assets])
 
-  // 1. Top 5 Subsystem Cards
+  // Subsystem Resilience and KPI values derived directly from live backend
   const powerAssets = assets.filter((a) =>
-    ['grid', 'transformer', 'main_bus', 'emergency_bus', 'generator', 'ups'].includes(a.type)
+    ['grid', 'transformer', 'main_bus', 'emergency_bus', 'generator', 'ups'].includes(a.type) || a.subsystem === 'power'
   )
   const powerFailed = powerAssets.some((a) => a.status === 'failed' || a.status === 'critical')
   const powerDegraded = powerAssets.some((a) => a.status === 'degraded' || a.status === 'starting')
-  const powerPct = powerFailed ? 42 : powerDegraded ? 68 : 91
+  const powerPct = typeof resilience?.subsystem_scores?.power === 'number'
+    ? Math.round(resilience.subsystem_scores.power)
+    : (powerFailed ? 42 : powerDegraded ? 68 : 91)
 
   const waterAsset = assetMap['WATER_PUMP_STATION']
   const waterFailed = waterAsset?.status === 'failed' || waterAsset?.status === 'critical'
-  const waterPct = waterFailed ? 35 : 86
+  const waterDegraded = waterAsset?.status === 'degraded'
+  const waterPct = typeof resilience?.subsystem_scores?.water === 'number'
+    ? Math.round(resilience.subsystem_scores.water)
+    : (waterFailed ? 35 : waterDegraded ? 65 : 86)
 
   const hvacAsset = assetMap['CHILLER_PLANT']
-  const hvacAtRisk = hvacAsset?.status === 'degraded' || hvacAsset?.status === 'failed'
-  const hvacPct = hvacAtRisk ? 78 : 92
+  const hvacFailed = hvacAsset?.status === 'failed' || hvacAsset?.status === 'critical'
+  const hvacDegraded = hvacAsset?.status === 'degraded'
+  const hvacPct = typeof resilience?.subsystem_scores?.hvac === 'number'
+    ? Math.round(resilience.subsystem_scores.hvac)
+    : (hvacFailed ? 30 : hvacDegraded ? 62 : 78)
 
   const gasAsset = assetMap['OXYGEN_MANIFOLD']
-  const gasDegraded = gasAsset?.status === 'degraded' || gasAsset?.status === 'failed'
-  const gasPct = gasDegraded ? 60 : 94
+  const gasFailed = gasAsset?.status === 'failed' || gasAsset?.status === 'critical'
+  const gasDegraded = gasAsset?.status === 'degraded'
+  const gasPct = typeof resilience?.subsystem_scores?.medical_gas === 'number'
+    ? Math.round(resilience.subsystem_scores.medical_gas)
+    : (gasFailed ? 25 : gasDegraded ? 60 : 94)
 
+  // 1. DYNAMIC RESILIENCE INDEX DATA BASED ON FILTER
+  const resilienceData = useMemo(() => {
+    const liveScore = typeof resilience?.overall_score === 'number'
+      ? Math.round(resilience.overall_score)
+      : 82
+
+    if (resilienceHorizon === '1h') {
+      return {
+        score: liveScore,
+        status: incident?.is_active ? 'Degraded' : 'Stable',
+        delta: '↑ 1%',
+        sublabel: 'Overall infrastructure resilience (Last 1 Hour)',
+        wavePath: 'M 2,11 L 24,11 L 42,6 L 58,14 L 76,5 L 94,14 L 112,6 L 130,13 L 148,5 L 166,14 L 184,6 L 202,14 L 220,5 L 238,13 L 256,6 L 274,14 L 292,7 L 306,12 L 318,11'
+      }
+    }
+    if (resilienceHorizon === '6h') {
+      return {
+        score: Math.max(20, liveScore - 2),
+        status: liveScore < 75 ? 'At Risk' : 'Stable',
+        delta: '↓ 2%',
+        sublabel: 'Overall infrastructure resilience (Last 6 Hours)',
+        wavePath: 'M 2,11 L 22,11 L 38,4 L 52,15 L 68,5 L 84,14 L 100,4 L 116,16 L 132,5 L 148,14 L 164,3 L 180,16 L 196,4 L 212,14 L 228,5 L 244,15 L 260,4 L 276,14 L 292,6 L 306,13 L 318,11'
+      }
+    }
+    if (resilienceHorizon === '12h') {
+      return {
+        score: Math.min(99, liveScore + 2),
+        status: 'Stable',
+        delta: '↑ 4%',
+        sublabel: 'Overall infrastructure resilience (Last 12 Hours)',
+        wavePath: 'M 2,11 L 20,11 L 34,5 L 48,14 L 62,6 L 76,13 L 92,4 L 106,15 L 122,6 L 136,14 L 152,4 L 168,15 L 184,5 L 198,13 L 214,6 L 228,14 L 244,4 L 258,14 L 274,6 L 290,13 L 304,7 L 318,11'
+      }
+    }
+    // Default '24h'
+    return {
+      score: liveScore,
+      status: resilience?.status_label === 'CRITICAL' ? 'Critical' : (resilience?.status_label === 'DEGRADED' || incident?.is_active) ? 'Degraded' : 'Stable',
+      delta: typeof resilience?.delta_from_baseline === 'number'
+        ? `${resilience.delta_from_baseline >= 0 ? '↑' : '↓'} ${Math.abs(Math.round(resilience.delta_from_baseline))}%`
+        : '↑ 6%',
+      sublabel: 'Overall infrastructure resilience (Last 24 Hours)',
+      wavePath: 'M 2,11 L 16,11 L 28,6 L 40,14 L 54,5 L 68,13 L 82,7 L 96,15 L 110,4 L 124,14 L 138,6 L 152,13 L 166,3 L 180,15 L 194,6 L 208,14 L 222,5 L 236,13 L 250,7 L 264,15 L 278,5 L 292,13 L 306,7 L 318,11'
+    }
+  }, [resilience, incident, resilienceHorizon])
+
+  // 2. DYNAMIC SYSTEM PERFORMANCE MULTI-LINE SHARP GRAPH DATA BASED ON FILTER
+  const perfChartData = useMemo(() => {
+    // Width 500, Height 262. Mathematical mapping: Y = 236 - (val / 100) * 220
+    // Respective Y-axis levels:
+    // Power -> 100 (Y=16), Water -> 75 (Y=71), HVAC -> 50 (Y=126), Medical Gas -> 25 (Y=181)
+    if (perfHorizon === '12h') {
+      const xPoints = [
+        { x: 38, label: '8 AM' },
+        { x: 111, label: '10 AM' },
+        { x: 184, label: '12 PM' },
+        { x: 258, label: '2 PM' },
+        { x: 331, label: '4 PM' },
+        { x: 404, label: '6 PM' },
+        { x: 478, label: '8 PM' }
+      ]
+      const powerPts = [{ x: 38, y: 20.4 }, { x: 111, y: 16.0 }, { x: 184, y: 18.2 }, { x: 258, y: 16.0 }, { x: 331, y: 20.4 }, { x: 404, y: 16.0 }, { x: 478, y: 18.2 }]
+      const waterPts = [{ x: 38, y: 73.2 }, { x: 111, y: 66.6 }, { x: 184, y: 71.0 }, { x: 258, y: 68.8 }, { x: 331, y: 75.4 }, { x: 404, y: 71.0 }, { x: 478, y: 68.8 }]
+      const hvacPts  = [{ x: 38, y: 130.4 }, { x: 111, y: 121.6 }, { x: 184, y: 117.2 }, { x: 258, y: 119.4 }, { x: 331, y: 126.0 }, { x: 404, y: 130.4 }, { x: 478, y: 126.0 }]
+      const gasPts   = [{ x: 38, y: 183.2 }, { x: 111, y: 176.6 }, { x: 184, y: 174.4 }, { x: 258, y: 181.0 }, { x: 331, y: 178.8 }, { x: 404, y: 185.4 }, { x: 478, y: 181.0 }]
+      return {
+        xPoints,
+        power: { path: buildSharpPath(powerPts), points: powerPts },
+        water: { path: buildSharpPath(waterPts), points: waterPts },
+        hvac:  { path: buildSharpPath(hvacPts),  points: hvacPts },
+        gas:   { path: buildSharpPath(gasPts),   points: gasPts }
+      }
+    }
+    if (perfHorizon === '7d') {
+      const xPoints = [
+        { x: 38, label: 'Mon' },
+        { x: 111, label: 'Tue' },
+        { x: 184, label: 'Wed' },
+        { x: 258, label: 'Thu' },
+        { x: 331, label: 'Fri' },
+        { x: 404, label: 'Sat' },
+        { x: 478, label: 'Sun' }
+      ]
+      const powerPts = [{ x: 38, y: 18.2 }, { x: 111, y: 16.0 }, { x: 184, y: 20.4 }, { x: 258, y: 16.0 }, { x: 331, y: 18.2 }, { x: 404, y: 22.6 }, { x: 478, y: 16.0 }]
+      const waterPts = [{ x: 38, y: 71.0 }, { x: 111, y: 68.8 }, { x: 184, y: 75.4 }, { x: 258, y: 66.6 }, { x: 331, y: 73.2 }, { x: 404, y: 68.8 }, { x: 478, y: 71.0 }]
+      const hvacPts  = [{ x: 38, y: 126.0 }, { x: 111, y: 121.6 }, { x: 184, y: 128.2 }, { x: 258, y: 117.2 }, { x: 331, y: 123.8 }, { x: 404, y: 130.4 }, { x: 478, y: 126.0 }]
+      const gasPts   = [{ x: 38, y: 181.0 }, { x: 111, y: 176.6 }, { x: 184, y: 185.4 }, { x: 258, y: 174.4 }, { x: 331, y: 183.2 }, { x: 404, y: 178.8 }, { x: 478, y: 181.0 }]
+      return {
+        xPoints,
+        power: { path: buildSharpPath(powerPts), points: powerPts },
+        water: { path: buildSharpPath(waterPts), points: waterPts },
+        hvac:  { path: buildSharpPath(hvacPts),  points: hvacPts },
+        gas:   { path: buildSharpPath(gasPts),   points: gasPts }
+      }
+    }
+    if (perfHorizon === '1h') {
+      const xPoints = [
+        { x: 38, label: '10:00' },
+        { x: 111, label: '10:15' },
+        { x: 184, label: '10:30' },
+        { x: 258, label: '10:45' },
+        { x: 331, label: '11:00' },
+        { x: 404, label: '11:15' },
+        { x: 478, label: '11:30' }
+      ]
+      const powerPts = [{ x: 38, y: 18.2 }, { x: 111, y: 18.2 }, { x: 184, y: 16.0 }, { x: 258, y: 20.4 }, { x: 331, y: 18.2 }, { x: 404, y: 16.0 }, { x: 478, y: 18.2 }]
+      const waterPts = [{ x: 38, y: 71.0 }, { x: 111, y: 73.2 }, { x: 184, y: 71.0 }, { x: 258, y: 68.8 }, { x: 331, y: 71.0 }, { x: 404, y: 68.8 }, { x: 478, y: 71.0 }]
+      const hvacPts  = [{ x: 38, y: 126.0 }, { x: 111, y: 126.0 }, { x: 184, y: 123.8 }, { x: 258, y: 128.2 }, { x: 331, y: 126.0 }, { x: 404, y: 128.2 }, { x: 478, y: 126.0 }]
+      const gasPts   = [{ x: 38, y: 181.0 }, { x: 111, y: 183.2 }, { x: 184, y: 181.0 }, { x: 258, y: 178.8 }, { x: 331, y: 181.0 }, { x: 404, y: 183.2 }, { x: 478, y: 181.0 }]
+      return {
+        xPoints,
+        power: { path: buildSharpPath(powerPts), points: powerPts },
+        water: { path: buildSharpPath(waterPts), points: waterPts },
+        hvac:  { path: buildSharpPath(hvacPts),  points: hvacPts },
+        gas:   { path: buildSharpPath(gasPts),   points: gasPts }
+      }
+    }
+    // Default '24h' — Exact 2 Hours Gap (12 Timestamps across 24h timeline)
+    // 12 AM, 2 AM, 4 AM, 6 AM, 8 AM, 10 AM, 12 PM, 2 PM, 4 PM, 6 PM, 8 PM, 10 PM
+    const xPoints = [
+      { x: 38, label: '12 AM' },
+      { x: 78, label: '2 AM' },
+      { x: 118, label: '4 AM' },
+      { x: 158, label: '6 AM' },
+      { x: 198, label: '8 AM' },
+      { x: 238, label: '10 AM' },
+      { x: 278, label: '12 PM' },
+      { x: 318, label: '2 PM' },
+      { x: 358, label: '4 PM' },
+      { x: 398, label: '6 PM' },
+      { x: 438, label: '8 PM' },
+      { x: 478, label: '10 PM' }
+    ]
+    // Power -> Matches 100 level (Grid Y=16)
+    const powerPts = [
+      { x: 38, y: 20.4 },
+      { x: 78, y: 16.0 },
+      { x: 118, y: 22.6 },
+      { x: 158, y: 18.2 },
+      { x: 198, y: 16.0 },
+      { x: 238, y: 20.4 },
+      { x: 278, y: 16.0 },
+      { x: 318, y: 18.2 },
+      { x: 358, y: 22.6 },
+      { x: 398, y: 16.0 },
+      { x: 438, y: 20.4 },
+      { x: 478, y: 16.0 }
+    ]
+    // Water -> Matches 75 level (Grid Y=71)
+    const waterPts = [
+      { x: 38, y: 73.2 },
+      { x: 78, y: 66.6 },
+      { x: 118, y: 71.0 },
+      { x: 158, y: 75.4 },
+      { x: 198, y: 68.8 },
+      { x: 238, y: 71.0 },
+      { x: 278, y: 64.4 },
+      { x: 318, y: 68.8 },
+      { x: 358, y: 75.4 },
+      { x: 398, y: 71.0 },
+      { x: 438, y: 73.2 },
+      { x: 478, y: 68.8 }
+    ]
+    // HVAC -> Matches 50 level (Grid Y=126)
+    const hvacPts = [
+      { x: 38, y: 130.4 },
+      { x: 78, y: 123.8 },
+      { x: 118, y: 132.6 },
+      { x: 158, y: 128.2 },
+      { x: 198, y: 121.6 },
+      { x: 238, y: 117.2 },
+      { x: 278, y: 119.4 },
+      { x: 318, y: 123.8 },
+      { x: 358, y: 130.4 },
+      { x: 398, y: 126.0 },
+      { x: 438, y: 132.6 },
+      { x: 478, y: 126.0 }
+    ]
+    // Medical Gas -> Matches 25 level (Grid Y=181)
+    const gasPts = [
+      { x: 38, y: 183.2 },
+      { x: 78, y: 178.8 },
+      { x: 118, y: 185.4 },
+      { x: 158, y: 181.0 },
+      { x: 198, y: 176.6 },
+      { x: 238, y: 183.2 },
+      { x: 278, y: 174.4 },
+      { x: 318, y: 181.0 },
+      { x: 358, y: 185.4 },
+      { x: 398, y: 178.8 },
+      { x: 438, y: 183.2 },
+      { x: 478, y: 178.8 }
+    ]
+    return {
+      xPoints,
+      power: { path: buildSharpPath(powerPts), points: powerPts },
+      water: { path: buildSharpPath(waterPts), points: waterPts },
+      hvac:  { path: buildSharpPath(hvacPts),  points: hvacPts },
+      gas:   { path: buildSharpPath(gasPts),   points: gasPts }
+    }
+  }, [perfHorizon])
+
+  // 3. DYNAMIC INFRASTRUCTURE UTILIZATION DATA BASED ON FILTER
+  const utilizationData = useMemo(() => {
+    const livePower = typeof telemetry?.grid_power_kw === 'number'
+      ? Math.min(100, Math.max(10, Math.round((telemetry.grid_power_kw / 1200) * 100)))
+      : 68
+    const liveWater = typeof telemetry?.water_tank_level_pct === 'number'
+      ? Math.round(telemetry.water_tank_level_pct)
+      : 54
+    const liveHvac = typeof telemetry?.chiller_cooling_output_kw === 'number'
+      ? Math.min(100, Math.max(15, Math.round((telemetry.chiller_cooling_output_kw / 650) * 100)))
+      : 72
+    const liveGas = typeof telemetry?.oxygen_manifold_psi === 'number'
+      ? Math.min(100, Math.max(10, Math.round((telemetry.oxygen_manifold_psi / 60) * 100)))
+      : 48
+
+    if (utilizationFilter === 'peak') {
+      return { power: 92, water: 88, hvac: 94, gas: 78 }
+    }
+    if (utilizationFilter === 'avg') {
+      return { power: 64, water: 52, hvac: 68, gas: 46 }
+    }
+    if (utilizationFilter === 'min') {
+      return { power: 35, water: 28, hvac: 40, gas: 22 }
+    }
+    // Default 'current' (matches Dark_Dashboard.jpeg: 68%, 54%, 72%, 48%)
+    return { power: livePower, water: liveWater, hvac: liveHvac, gas: liveGas }
+  }, [telemetry, utilizationFilter])
+
+  // 4. DYNAMIC RISK DISTRIBUTION DATA BASED ON FILTER (BAR CHART / HISTOGRAM)
+  const riskDistributionData = useMemo(() => {
+    if (riskFilter === 'by_severity') {
+      const bars = [
+        { key: 'high', label: 'Critical (L1)', count: 2, color: '#EF4444', rgb: '239, 68, 68', pct: 17 },
+        { key: 'med', label: 'Warning (L2)', count: 4, color: '#F59E0B', rgb: '245, 158, 11', pct: 33 },
+        { key: 'low', label: 'Advisory (L3)', count: 6, color: '#00E5A3', rgb: '0, 229, 163', pct: 50 }
+      ]
+      return {
+        total: 12,
+        high: bars[0],
+        med: bars[1],
+        low: bars[2],
+        bars
+      }
+    }
+    if (riskFilter === 'by_dept') {
+      const bars = [
+        { key: 'icu', label: 'ICU & ER', count: 3, color: '#EF4444', rgb: '239, 68, 68', pct: 25 },
+        { key: 'plant', label: 'Central Plant', count: 4, color: '#F59E0B', rgb: '245, 158, 11', pct: 33 },
+        { key: 'wards', label: 'Inpatient', count: 5, color: '#00E5A3', rgb: '0, 229, 163', pct: 42 }
+      ]
+      return {
+        total: 12,
+        high: bars[0],
+        med: bars[1],
+        low: bars[2],
+        bars
+      }
+    }
+    // Default 'by_system' (matches Dark_Dashboard.jpeg: High Risk 3, Medium Risk 5, Low Risk 4, Total 12)
+    const highCount = failedAssetsCount + (incident?.is_active ? 2 : 0) || 3
+    const medCount = degradedAssetsCount + atRiskServices || 5
+    const lowCount = Math.max(1, 12 - (highCount + medCount)) || 4
+    const total = highCount + medCount + lowCount
+    const bars = [
+      { key: 'high', label: 'High Risk', count: highCount, color: '#EF4444', rgb: '239, 68, 68', pct: Math.round((highCount / total) * 100) },
+      { key: 'med', label: 'Medium Risk', count: medCount, color: '#F59E0B', rgb: '245, 158, 11', pct: Math.round((medCount / total) * 100) },
+      { key: 'low', label: 'Low Risk', count: lowCount, color: '#00E5A3', rgb: '0, 229, 163', pct: Math.round((lowCount / total) * 100) }
+    ]
+    return {
+      total,
+      high: bars[0],
+      med: bars[1],
+      low: bars[2],
+      bars
+    }
+  }, [failedAssetsCount, incident, degradedAssetsCount, atRiskServices, riskFilter])
+
+  // Top 5 KPI Cards (Exact match to Dark_Dashboard.jpeg)
   const topCards = [
     {
       id: 'power',
-      name: 'Power',
-      icon: Zap,
+      name: 'Power System',
+      icon: 'zap',
+      iconClass: 'icon-cyan',
       pct: `${powerPct}%`,
-      status: powerFailed ? 'CRITICAL' : powerDegraded ? 'DEGRADED' : 'OPERATIONAL',
-      statusClass: powerFailed ? 'badge-critical' : powerDegraded ? 'badge-warning' : 'badge-normal',
-      sparkPoints: '0,20 15,18 30,22 45,15 60,19 75,12 90,14 105,8 120,10',
-      sparkColor: powerFailed ? '#ef4444' : powerDegraded ? '#f59e0b' : '#10b981'
+      statusText: powerFailed ? 'Critical' : powerDegraded ? 'Degraded' : 'Normal',
+      statusClass: powerFailed ? 'status-dot-critical' : powerDegraded ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: '0,18 12,24 25,14 38,20 50,8 63,16 75,10 88,14 100,6',
+      sparkColor: '#00F0FF',
+      targetSec: 'digital-twin'
     },
     {
       id: 'water',
-      name: 'Water',
-      icon: Droplets,
+      name: 'Water System',
+      icon: 'water',
+      iconClass: 'icon-blue',
       pct: `${waterPct}%`,
-      status: waterFailed ? 'CRITICAL' : 'OPERATIONAL',
-      statusClass: waterFailed ? 'badge-critical' : 'badge-normal',
-      sparkPoints: '0,18 15,16 30,19 45,14 60,15 75,16 90,12 105,14 120,11',
-      sparkColor: waterFailed ? '#ef4444' : '#10b981'
+      statusText: waterFailed ? 'Critical' : waterDegraded ? 'Degraded' : 'Normal',
+      statusClass: waterFailed ? 'status-dot-critical' : waterDegraded ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: '0,16 12,22 25,12 38,18 50,10 63,20 75,12 88,18 100,10',
+      sparkColor: '#00A8FF',
+      targetSec: 'digital-twin'
     },
     {
       id: 'hvac',
-      name: 'HVAC',
-      icon: Wind,
+      name: 'HVAC System',
+      icon: 'fan',
+      iconClass: 'icon-teal',
       pct: `${hvacPct}%`,
-      status: hvacAtRisk ? 'AT RISK' : 'OPERATIONAL',
-      statusClass: hvacAtRisk ? 'badge-warning' : 'badge-normal',
-      sparkPoints: '0,12 15,14 30,15 45,18 60,20 75,22 90,21 105,24 120,25',
-      sparkColor: hvacAtRisk ? '#f59e0b' : '#10b981'
+      statusText: hvacFailed ? 'Critical' : hvacDegraded || hvacPct < 85 ? 'At Risk' : 'Normal',
+      statusClass: hvacFailed ? 'status-dot-critical' : hvacDegraded || hvacPct < 85 ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: '0,12 12,14 25,10 38,22 50,16 63,26 75,18 88,24 100,20',
+      sparkColor: '#F59E0B',
+      targetSec: 'digital-twin'
     },
     {
       id: 'gas',
       name: 'Medical Gas',
-      icon: Flame,
+      icon: 'cylinder',
+      iconClass: 'icon-cyan',
       pct: `${gasPct}%`,
-      status: gasDegraded ? 'DEGRADED' : 'OPERATIONAL',
-      statusClass: gasDegraded ? 'badge-warning' : 'badge-normal',
-      sparkPoints: '0,14 15,12 30,13 45,11 60,12 75,10 90,11 105,9 120,8',
-      sparkColor: gasDegraded ? '#f59e0b' : '#10b981'
+      statusText: gasFailed ? 'Critical' : gasDegraded ? 'Degraded' : 'Normal',
+      statusClass: gasFailed ? 'status-dot-critical' : gasDegraded ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: '0,20 12,16 25,24 38,12 50,18 63,10 75,16 88,8 100,6',
+      sparkColor: '#00F0FF',
+      targetSec: 'digital-twin'
     },
     {
       id: 'services',
       name: 'Critical Services',
-      icon: HeartPulse,
-      pct: `${operationalServices}/${totalServices}`,
-      status: atRiskServices > 0 ? `${atRiskServices} AT RISK` : 'OPERATIONAL',
-      statusClass: atRiskServices > 0 ? 'badge-critical' : 'badge-normal',
-      sparkPoints: '0,10 15,10 30,10 45,10 60,12 75,10 90,14 105,10 120,10',
-      sparkColor: atRiskServices > 0 ? '#ef4444' : '#10b981'
+      icon: 'heart',
+      iconClass: 'icon-red',
+      pct: `${operationalServices} / ${totalServices}`,
+      statusText: operationalServices < totalServices ? 'Degraded' : 'Online',
+      statusClass: operationalServices < totalServices ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: '0,14 12,16 25,12 38,18 50,12 63,16 75,12 88,14 100,12',
+      sparkColor: '#00E5A3',
+      targetSec: 'digital-twin'
     }
   ]
 
-  // 8 Interactive HUD pins on campus twin
-  const overlayPins = [
-    { id: 'SERVICE_ER', label: 'Emergency Care', sub: 'L1 Trauma Unit', top: '48%', left: '18%', type: 'service' },
-    { id: 'SERVICE_ICU', label: 'ICU Center', sub: 'L3 Intensive Care', top: '34%', left: '32%', type: 'service' },
-    { id: 'SERVICE_OT', label: 'Surgery Block', sub: 'L4 Operating Suites', top: '28%', left: '50%', type: 'service' },
-    { id: 'CHILLER_PLANT', label: 'Chiller Plant', sub: 'HVAC Cooling Tower', top: '22%', left: '68%', type: 'asset' },
-    { id: 'GRID_MAIN', label: 'Substation', sub: '11kV Main Feeder', top: '64%', left: '26%', type: 'asset' },
-    { id: 'WATER_PUMP_STATION', label: 'Water Treatment', sub: 'Booster Pump Station', top: '74%', left: '55%', type: 'asset' },
-    { id: 'OXYGEN_MANIFOLD', label: 'Oxygen Tank', sub: 'Cryogenic Liquid O2', top: '46%', left: '80%', type: 'asset' },
-    { id: 'GEN_01', label: 'Backup Generator', sub: '1.5 MVA Diesel Gen 1', top: '58%', left: '72%', type: 'asset' }
-  ]
+  // Dynamic live-bound pins for campus twin
+  const overlayPins = useMemo(() => {
+    const isTransformerDown = incident?.is_active && (incident.source_asset_id === 'TRANSFORMER_01' || incident.source_asset_id === 'GRID_MAIN')
+    const isChillerDown = incident?.is_active && incident.source_asset_id === 'CHILLER_PLANT'
+    const isIcuAtRisk = services.some((s) => s.id === 'SERVICE_ICU' && (s.at_risk || s.status === 'reduced_capacity'))
 
-  // Recent operational events list
-  const recentEvents = useMemo(() => {
-    const list = []
-    if (latestTwinEvent) {
-      if (latestTwinEvent.type === 'failure_injected') {
-        list.push({
-          id: 'live-evt-failure',
-          text: `Fault on ${latestTwinEvent.target_node_id || 'node'} (${latestTwinEvent.payload?.failure_type || 'failure'})`,
-          time: 'Just now',
-          type: 'critical'
-        })
-      } else if (latestTwinEvent.type === 'hospital_reset') {
-        list.push({
-          id: 'live-evt-reset',
-          text: 'Twin state restored to 100% operational baseline',
-          time: 'Just now',
-          type: 'normal'
-        })
+    return [
+      // 1. Helipad (Rooftop landing pad)
+      {
+        id: 'HELIPAD',
+        assetKey: 'HELIPAD',
+        label: 'Helipad',
+        icon: 'H',
+        top: '27%',
+        left: '63%',
+        badgeClass: 'pin-helipad',
+        dotColor: '#00F0FF',
+        status: 'Operational',
+        desc: 'Emergency Medical Aviation Bay'
+      },
+      // 2. Utility Block (Electrical Substation & Diesel Gens)
+      {
+        id: 'UTILITY_BLOCK',
+        assetKey: 'GRID_MAIN',
+        label: 'Utility Block',
+        icon: '⚙',
+        top: '37%',
+        left: '23%',
+        badgeClass: isTransformerDown ? 'pin-critical' : 'pin-utility',
+        dotColor: isTransformerDown ? '#FF4D4D' : '#00F0FF',
+        status: isTransformerDown ? 'Trip / Degraded' : '11kV Substation Active',
+        desc: 'Substation & Standby Diesel Gens'
+      },
+      // 3. Emergency (Trauma Entrance Canopy)
+      {
+        id: 'EMERGENCY',
+        assetKey: 'SERVICE_ER',
+        label: 'Emergency',
+        icon: '🚨',
+        top: '52%',
+        left: '57%',
+        badgeClass: 'pin-er',
+        dotColor: '#00F0FF',
+        status: 'Trauma Unit Active',
+        desc: 'Level 1 Trauma & Resuscitation'
+      },
+      // 4. OT (East Clinical Suites)
+      {
+        id: 'OT',
+        assetKey: 'SERVICE_OT',
+        label: 'OT',
+        icon: '⚕',
+        top: '43%',
+        left: '63%',
+        badgeClass: isTransformerDown ? 'pin-warning' : 'pin-ot',
+        dotColor: isTransformerDown ? '#FFB800' : '#00F0FF',
+        status: isTransformerDown ? 'Priority Bus Feed' : 'Surgical Suites Online',
+        desc: 'Operating Theatres & Sterile Supply'
+      },
+      // 5. ICU (West Clinical Wing)
+      {
+        id: 'ICU',
+        assetKey: 'SERVICE_ICU',
+        label: 'ICU',
+        icon: '♥',
+        top: '42%',
+        left: '39%',
+        badgeClass: isIcuAtRisk ? 'pin-critical' : 'pin-icu',
+        dotColor: isIcuAtRisk ? '#FF4D4D' : '#00F0FF',
+        status: isIcuAtRisk ? 'At Risk (UPS Protected)' : '100% Operational',
+        desc: 'Intensive Care Unit (Level 3)'
+      },
+      // 6. Main Hospital (Front Entrance & Reception)
+      {
+        id: 'MAIN_HOSPITAL',
+        assetKey: 'MAIN_HOSPITAL',
+        label: 'Main Hospital',
+        icon: '+',
+        top: '56%',
+        left: '42%',
+        badgeClass: 'pin-main-hospital',
+        dotColor: isTransformerDown ? '#FFB800' : '#00F0FF',
+        status: isTransformerDown ? 'Partial UPS Power' : 'Nominal Power',
+        desc: 'Central Clinical Inpatient Building'
+      },
+      // 7. Utility Block (Liquid Oxygen Cryogenic Storage Bay)
+      {
+        id: 'MED_GAS_PLANT',
+        assetKey: 'OXYGEN_MANIFOLD',
+        label: 'Utility Block',
+        icon: '🧪',
+        top: '50%',
+        left: '89%',
+        badgeClass: 'pin-gas',
+        dotColor: '#00F0FF',
+        status: '94% Safe Line Pressure',
+        desc: 'Cryogenic O2 Storage & Utility Bay'
+      },
+      // 8. HVAC Plant (Rooftop Chiller Plant & AHU Units)
+      {
+        id: 'HVAC_PLANT',
+        assetKey: 'CHILLER_PLANT',
+        label: 'HVAC Plant',
+        icon: '⚙',
+        top: '19%',
+        left: '42.5%',
+        badgeClass: isChillerDown ? 'pin-critical' : 'pin-hvac',
+        dotColor: isChillerDown ? '#FF4D4D' : '#FFB800',
+        status: isChillerDown ? 'Critical Trip' : '78% Capacity (At Risk)',
+        desc: 'Chillers, AHUs & Air Handling'
       }
-    }
+    ]
+  }, [incident, services])
 
-    if (incident?.is_active) {
-      const source = incident.source_asset_id || 'Subsystem'
-      list.push(
-        { id: 'e1', text: `Primary cascade failure: ${source}`, time: 'Active', type: 'critical' },
-        { id: 'e2', text: `${incident.affected_asset_ids?.length || 1} downstream node(s) compromised`, time: 'T+0m', type: 'warning' },
-        { id: 'e3', text: 'Automatic mitigation strategy optimization active', time: 'Active', type: 'normal' }
-      )
-    } else {
-      list.push(
-        { id: 'e1', text: 'All infrastructure subsystems operating normally', time: '2m ago', type: 'normal' },
-        { id: 'e2', text: 'Realtime telemetry sync stream established', time: '1s interval', type: 'normal' },
-        { id: 'e3', text: 'Subsystem resilience audit completed', time: '14m ago', type: 'normal' }
-      )
+  const handlePinClick = (pin) => {
+    if (onSelectAsset) {
+      onSelectAsset(pin.assetKey)
     }
-    return list.slice(0, 3)
-  }, [incident, latestTwinEvent])
-
-  const getPinColor = (pin) => {
-    if (pin.type === 'asset') {
-      const a = assetMap[pin.id]
-      if (a?.status === 'failed' || a?.status === 'critical') return 'var(--status-critical)'
-      if (a?.status === 'degraded' || a?.status === 'starting') return 'var(--status-warning)'
-      return 'var(--status-normal)'
-    }
-    const s = services.find((srv) => srv.id === pin.id)
-    if (s?.at_risk || s?.status === 'compromised') return 'var(--status-critical)'
-    if (s?.status === 'reduced_capacity') return 'var(--status-warning)'
-    return 'var(--status-normal)'
+    setActivePinInspect(pin)
   }
 
-  // Radial calculation for Resilience Index
-  const dialRadius = 54
-  const dialCircumference = 2 * Math.PI * dialRadius
-  const dialStrokeDashoffset = dialCircumference - (overallScore / 100) * dialCircumference
+  const handleNavigateToTwin = (assetKey) => {
+    if (onSelectAsset && assetKey) {
+      onSelectAsset(assetKey)
+    }
+    if (onNavigate) {
+      onNavigate('digital-twin')
+    }
+  }
 
   return (
     <div className="dashboard-page">
-      {/* 1. TOP SUBSYSTEM KPI CARDS ROW */}
+      {/* 1. TOP 5 SUBSYSTEM KPI CARDS ROW */}
       <section className="dashboard-top-cards-row">
         {topCards.map((card) => {
-          const Icon = card.icon
           return (
-            <div key={card.id} className="subsystem-kpi-card">
-              <div className="subsystem-kpi-header">
-                <div className="subsystem-title-group">
-                  <Icon size={14} className="subsystem-icon" />
-                  <span className="subsystem-name">{card.name}</span>
+            <div
+              key={card.id}
+              className="subsystem-kpi-card"
+              onClick={() => onNavigate && onNavigate(card.targetSec)}
+              role="button"
+              tabIndex={0}
+            >
+              <div className="subsystem-kpi-left-group">
+                <div className={`subsystem-icon-box ${card.iconClass}`}>
+                  {card.icon === 'zap' && <Zap size={20} className="kpi-icon-svg" />}
+                  {card.icon === 'water' && <Droplets size={20} className="kpi-icon-svg" />}
+                  {card.icon === 'fan' && <Wind size={20} className="kpi-icon-svg" />}
+                  {card.icon === 'cylinder' && (
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="kpi-icon-svg">
+                      <path d="M9 3h6v2H9z" />
+                      <path d="M12 5v2" />
+                      <rect x="7" y="7" width="10" height="14" rx="4" />
+                      <line x1="7" y1="13" x2="17" y2="13" strokeDasharray="1 2" />
+                    </svg>
+                  )}
+                  {card.icon === 'heart' && <HeartPulse size={20} className="kpi-icon-svg" />}
                 </div>
-                <span className={`badge ${card.statusClass} font-mono`}>
-                  {card.status}
-                </span>
+                <div className="subsystem-info-col">
+                  <div className="subsystem-header-row">
+                    <span className="subsystem-name">{card.name}</span>
+                    <ChevronRight size={13} className="subsystem-chevron" />
+                  </div>
+                  <div className="subsystem-val">{card.pct}</div>
+                  <div className="subsystem-status-row">
+                    <span className={`status-dot ${card.statusClass}`} />
+                    <span className="subsystem-status-label">{card.statusText}</span>
+                  </div>
+                </div>
               </div>
 
-              <div className="subsystem-kpi-body">
-                <div className="subsystem-metric-val font-mono">{card.pct}</div>
-                {/* Micro sparkline visual */}
-                <div className="subsystem-sparkline-wrap">
-                  <svg className="subsystem-sparkline" viewBox="0 0 120 30" preserveAspectRatio="none">
-                    <polyline
-                      fill="none"
-                      stroke={card.sparkColor}
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      points={card.sparkPoints}
-                    />
-                  </svg>
-                </div>
+              {/* Sparkline Visual at bottom */}
+              <div className="subsystem-sparkline-wrap">
+                <svg className="subsystem-sparkline" viewBox="0 0 100 30" preserveAspectRatio="none">
+                  <polyline
+                    fill="none"
+                    stroke={card.sparkColor}
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    points={card.sparkPoints}
+                  />
+                </svg>
               </div>
             </div>
           )
         })}
       </section>
 
-      {/* 2. MIDDLE TWO-COLUMN WORKSPACE: Campus Twin (Left) + Resilience Index & System Performance (Right) */}
+      {/* 2. MIDDLE TWO-COLUMN GRID: Campus Visual (Left) + Resilience Index & Performance (Right) */}
       <section className="dashboard-middle-grid">
-        {/* Left: Campus Twin Visual with glowing interactive pins & overlay panels */}
+        {/* Left: Campus Twin Card with Header toggles, interactive pins & Compass */}
         <div className="dashboard-campus-card">
           <div className="campus-card-header">
             <div className="campus-header-title-group">
-              <span className="campus-card-title">Hospital Campus Twin (Simulated)</span>
-              <span className="campus-card-subtitle font-mono">Central Metropolitan Medical Center</span>
+              <div className="campus-title-with-icon">
+                <div className="campus-header-icon-wrap">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 3v15" />
+                  </svg>
+                </div>
+                <span className="campus-card-title">
+                  {campusViewMode === 'campus'
+                    ? 'Hospital Digital Twin (Campus View)'
+                    : 'Hospital Digital Twin (Interactive 3D Building View)'}
+                </span>
+              </div>
+              <span className="campus-card-subtitle">
+                {campusViewMode === 'campus'
+                  ? 'Live infrastructure state and key hospital services'
+                  : 'Interactive 3D WebGL building & real-time telemetry model'}
+              </span>
             </div>
-            <div className="campus-quick-tags">
+
+            <div className="campus-header-controls">
+              <div className="campus-view-toggles">
+                <button
+                  type="button"
+                  className={`campus-view-pill ${campusViewMode === 'campus' ? 'is-active' : ''}`}
+                  onClick={() => setCampusViewMode('campus')}
+                >
+                  Campus View
+                </button>
+                <button
+                  type="button"
+                  className={`campus-view-pill ${campusViewMode === 'building' ? 'is-active' : ''}`}
+                  onClick={() => setCampusViewMode('building')}
+                >
+                  Building View
+                </button>
+              </div>
               <button
                 type="button"
-                className="campus-tag-btn is-active"
+                className="campus-expand-btn"
+                title="Open Full 3D Digital Twin Workspace"
                 onClick={() => onNavigate && onNavigate('digital-twin')}
               >
-                All Systems
-              </button>
-              <button
-                type="button"
-                className="campus-tag-btn"
-                onClick={() => onNavigate && onNavigate('digital-twin')}
-              >
-                Critical Care
-              </button>
-              <button
-                type="button"
-                className="campus-tag-btn"
-                onClick={() => onNavigate && onNavigate('start-simulation')}
-              >
-                Simulate Fault
+                <Maximize2 size={13} />
               </button>
             </div>
           </div>
 
           <div className="campus-visual-container">
-            <img
-              src={hospitalCampusImg}
-              alt="Hospital Campus Infrastructure Twin"
-              className="campus-image"
-            />
-            <div className="campus-vignette-overlay" />
+            {campusViewMode === 'campus' ? (
+              <>
+                <img
+                  src={hospitalCampusImg}
+                  alt="Hospital Campus Infrastructure Twin"
+                  className="campus-image"
+                />
+                <div className="campus-vignette-overlay" />
 
-            {/* Interactive Campus Pins */}
-            {overlayPins.map((pin) => {
-              const pinColor = getPinColor(pin)
-              return (
-                <div
-                  key={pin.id}
-                  className="campus-hud-pin"
-                  style={{ top: pin.top, left: pin.left }}
-                  onClick={() => {
-                    if (pin.type === 'asset' && onSelectAsset) {
-                      onSelectAsset(pin.id)
-                    }
-                    if (onNavigate) {
-                      onNavigate('digital-twin')
-                    }
-                  }}
-                  title={`Inspect ${pin.label} (${pin.sub})`}
-                >
-                  <span
-                    className="pin-core-dot"
-                    style={{
-                      backgroundColor: pinColor,
-                      boxShadow: `0 0 10px ${pinColor}`
-                    }}
-                  />
-                  <div className="pin-tag-card">
-                    <span className="pin-label">{pin.label}</span>
-                    <span className="pin-sub">{pin.sub}</span>
-                  </div>
-                </div>
-              )
-            })}
-
-            {/* Floating Live System Overview HUD Overlay */}
-            <div className="campus-hud-overview">
-              <div className="hud-overview-header">
-                <div className="hud-title-group">
-                  <Activity size={13} style={{ color: 'var(--accent-cyan)' }} />
-                  <span className="hud-title">LIVE SYSTEM OVERVIEW</span>
-                </div>
-                <span className="hud-badge font-mono" style={{ color: statusColor }}>
-                  {statusLabel}
-                </span>
-              </div>
-              <div className="hud-metrics-row">
-                <div className="hud-stat-cell">
-                  <span className="hud-stat-lbl">Resilience</span>
-                  <span className="hud-stat-val font-mono" style={{ color: statusColor }}>
-                    {overallScore.toFixed(1)}%
-                  </span>
-                </div>
-                <div className="hud-stat-cell">
-                  <span className="hud-stat-lbl">Alerts</span>
-                  <span
-                    className="hud-stat-val font-mono"
-                    style={{ color: activeAlertsCount > 0 ? 'var(--status-critical)' : 'var(--status-normal)' }}
+                {/* 8 Interactive Pins */}
+                {overlayPins.map((pin) => (
+                  <div
+                    key={pin.id}
+                    className={`campus-pin-pill ${pin.badgeClass} ${activePinInspect?.id === pin.id ? 'is-active-pin' : ''}`}
+                    style={{ top: pin.top, left: pin.left }}
+                    onClick={() => handlePinClick(pin)}
+                    title={`Click to inspect ${pin.label}`}
                   >
-                    {activeAlertsCount}
-                  </span>
-                </div>
-                <div className="hud-stat-cell">
-                  <span className="hud-stat-lbl">Services</span>
-                  <span className="hud-stat-val font-mono">
-                    {operationalServices}/{totalServices}
-                  </span>
-                </div>
-                <div className="hud-stat-cell">
-                  <span className="hud-stat-lbl">Assets</span>
-                  <span className="hud-stat-val font-mono">
-                    {totalAssets}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Floating Recent Events Overlay */}
-            <div className="campus-hud-events">
-              <div className="hud-events-header">
-                <span className="hud-events-title">Recent Events</span>
-                <button
-                  type="button"
-                  className="hud-events-link"
-                  onClick={() => onNavigate && onNavigate('incident-timeline')}
-                >
-                  Timeline →
-                </button>
-              </div>
-              <div className="hud-events-items">
-                {recentEvents.map((evt) => (
-                  <div key={evt.id} className="hud-event-entry">
-                    <span
-                      className="hud-entry-dot"
-                      style={{
-                        backgroundColor:
-                          evt.type === 'critical'
-                            ? 'var(--status-critical)'
-                            : evt.type === 'warning'
-                            ? 'var(--status-warning)'
-                            : 'var(--status-normal)'
-                      }}
-                    />
-                    <span className="hud-entry-text">{evt.text}</span>
-                    <span className="hud-entry-time font-mono">{evt.time}</span>
+                    <span className="pin-icon-tag">{pin.icon}</span>
+                    <span className="pin-title-text">{pin.label}</span>
+                    <span className="pin-dot-indicator" style={{ backgroundColor: pin.dotColor }} />
                   </div>
                 ))}
+
+                {/* Pin Inspection Popover HUD */}
+                {activePinInspect && (
+                  <div className="pin-inspect-popover font-mono">
+                    <div className="popover-header">
+                      <span className="popover-title">{activePinInspect.label}</span>
+                      <button
+                        type="button"
+                        className="popover-close"
+                        onClick={() => setActivePinInspect(null)}
+                      >
+                        ✕
+                      </button>
+                    </div>
+                    <div className="popover-desc">{activePinInspect.desc}</div>
+                    <div className="popover-status">
+                      <span className="popover-dot" style={{ backgroundColor: activePinInspect.dotColor }} />
+                      <span>{activePinInspect.status}</span>
+                    </div>
+                    <button
+                      type="button"
+                      className="popover-cta-btn"
+                      onClick={() => handleNavigateToTwin(activePinInspect.assetKey)}
+                    >
+                      <span>Open in 3D Digital Twin</span>
+                      <ArrowUpRight size={12} />
+                    </button>
+                  </div>
+                )}
+
+                {/* Compass Rose Widget on Bottom-Left */}
+                <div className="campus-compass-hud">
+                  <div className="compass-circle">
+                    <span className="compass-dir compass-n">N</span>
+                    <span className="compass-dir compass-e">E</span>
+                    <span className="compass-dir compass-s">S</span>
+                    <span className="compass-dir compass-w">W</span>
+                    <div className="compass-needle-wrapper">
+                      <div className="compass-needle-north" />
+                      <div className="compass-needle-south" />
+                    </div>
+                  </div>
+                </div>
+              </>
+            ) : (
+              /* LIVE 3D TWIN EMBEDDED DIRECTLY IN DASHBOARD */
+              <div className="dashboard-embedded-twin-wrap">
+                <TwinContainer
+                  assets={assets}
+                  services={services}
+                  incident={incident}
+                  onSelectAsset={onSelectAsset}
+                />
               </div>
-            </div>
+            )}
           </div>
         </div>
 
-        {/* Right Stack: Resilience Index + System Performance Chart */}
+        {/* Right Stack: Resilience Index + System Performance */}
         <div className="dashboard-right-stack">
-          {/* Card 1: Resilience Index Dial & Subsystem Breakdown */}
-          <div className="dashboard-panel-card resilience-index-card">
+          {/* Card 1: Resilience Index */}
+          <div className="dashboard-panel-card resilience-card">
             <div className="panel-card-header">
-              <span className="panel-card-title">Resilience Index</span>
-              <span className="badge badge-normal font-mono" style={{ color: statusColor }}>
-                {statusLabel}
-              </span>
+              <div className="panel-title-with-info">
+                <span className="panel-card-title">Resilience Index</span>
+                <Info size={17} className="panel-info-icon" />
+              </div>
+              <div className="panel-select-wrapper">
+                <select
+                  className="panel-dropdown-select"
+                  value={resilienceHorizon}
+                  onChange={(e) => setResilienceHorizon(e.target.value)}
+                  aria-label="Filter Resilience Index Timeframe"
+                >
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="12h">Last 12 Hours</option>
+                  <option value="6h">Last 6 Hours</option>
+                  <option value="1h">Last 1 Hour</option>
+                </select>
+                <ChevronDown size={16} className="select-chevron-icon" />
+              </div>
             </div>
 
-            <div className="resilience-dial-body">
-              {/* Radial dial */}
-              <div className="radial-dial-wrap">
-                <svg className="radial-svg" viewBox="0 0 130 130">
-                  <circle
-                    className="radial-bg"
-                    cx="65"
-                    cy="65"
-                    r={dialRadius}
-                  />
-                  <circle
-                    className="radial-fg"
-                    cx="65"
-                    cy="65"
-                    r={dialRadius}
-                    style={{
-                      strokeDasharray: dialCircumference,
-                      strokeDashoffset: dialStrokeDashoffset,
-                      stroke: statusColor
-                    }}
-                  />
-                </svg>
-                <div className="radial-center-content">
-                  <span className="radial-val font-mono" style={{ color: statusColor }}>
-                    {overallScore.toFixed(1)}%
-                  </span>
-                  <span className="radial-sub font-mono">INDEX</span>
+            <div className="resilience-card-body">
+              <div className="resilience-main-gauge-row">
+                {/* Radial Semi-Circle / Full Gauge */}
+                <div className="resilience-radial-gauge">
+                  <svg className="radial-svg" viewBox="0 0 120 120">
+                    <circle
+                      className="radial-track"
+                      cx="60"
+                      cy="60"
+                      r="46"
+                      strokeWidth="11"
+                      fill="none"
+                    />
+                    <circle
+                      className="radial-progress"
+                      cx="60"
+                      cy="60"
+                      r="46"
+                      strokeWidth="11"
+                      stroke="#00F0FF"
+                      strokeLinecap="round"
+                      fill="none"
+                      strokeDasharray="289"
+                      strokeDashoffset={289 - (resilienceData.score / 100) * 289}
+                    />
+                  </svg>
+                  <div className="radial-center-stats">
+                    <span className="radial-big-score font-mono">{resilienceData.score}</span>
+                    <span className="radial-status-text">{resilienceData.status}</span>
+                    <span className="radial-trend-text font-mono">{resilienceData.delta}</span>
+                  </div>
+                </div>
+
+                {/* 4 Subsystem Progress Bars */}
+                <div className="resilience-bars-col">
+                  <div className="resilience-bar-item">
+                    <div className="resilience-bar-meta">
+                      <div className="bar-icon-name">
+                        <Zap size={13} style={{ color: '#00F0FF' }} />
+                        <span>Power</span>
+                      </div>
+                      <span className="bar-pct font-mono">{powerPct}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${powerPct}%`, backgroundColor: '#00F0FF' }} />
+                    </div>
+                  </div>
+
+                  <div className="resilience-bar-item">
+                    <div className="resilience-bar-meta">
+                      <div className="bar-icon-name">
+                        <Droplets size={13} style={{ color: '#00A8FF' }} />
+                        <span>Water</span>
+                      </div>
+                      <span className="bar-pct font-mono">{waterPct}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${waterPct}%`, backgroundColor: '#00A8FF' }} />
+                    </div>
+                  </div>
+
+                  <div className="resilience-bar-item">
+                    <div className="resilience-bar-meta">
+                      <div className="bar-icon-name">
+                        <Wind size={13} style={{ color: '#F59E0B' }} />
+                        <span>HVAC</span>
+                      </div>
+                      <span className="bar-pct font-mono">{hvacPct}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${hvacPct}%`, backgroundColor: '#F59E0B' }} />
+                    </div>
+                  </div>
+
+                  <div className="resilience-bar-item">
+                    <div className="resilience-bar-meta">
+                      <div className="bar-icon-name">
+                        <div className="mini-gas-icon" style={{ color: '#A855F7' }}>🧪</div>
+                        <span>Medical Gas</span>
+                      </div>
+                      <span className="bar-pct font-mono">{gasPct}%</span>
+                    </div>
+                    <div className="bar-track">
+                      <div className="bar-fill" style={{ width: `${gasPct}%`, backgroundColor: '#A855F7' }} />
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              {/* 4 Horizontal subsystem bars */}
-              <div className="subsystem-bars-wrap">
-                <div className="subsystem-bar-item">
-                  <div className="subsystem-bar-label-row">
-                    <span>Power</span>
-                    <span className="font-mono">{powerPct}%</span>
-                  </div>
-                  <div className="subsystem-bar-track">
-                    <div
-                      className="subsystem-bar-fill"
-                      style={{
-                        width: `${powerPct}%`,
-                        backgroundColor: powerFailed ? 'var(--status-critical)' : 'var(--accent-cyan)'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="subsystem-bar-item">
-                  <div className="subsystem-bar-label-row">
-                    <span>Water</span>
-                    <span className="font-mono">{waterPct}%</span>
-                  </div>
-                  <div className="subsystem-bar-track">
-                    <div
-                      className="subsystem-bar-fill"
-                      style={{
-                        width: `${waterPct}%`,
-                        backgroundColor: waterFailed ? 'var(--status-critical)' : '#0284c7'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="subsystem-bar-item">
-                  <div className="subsystem-bar-label-row">
-                    <span>HVAC</span>
-                    <span className="font-mono">{hvacPct}%</span>
-                  </div>
-                  <div className="subsystem-bar-track">
-                    <div
-                      className="subsystem-bar-fill"
-                      style={{
-                        width: `${hvacPct}%`,
-                        backgroundColor: hvacAtRisk ? 'var(--status-warning)' : '#10b981'
-                      }}
-                    />
-                  </div>
-                </div>
-
-                <div className="subsystem-bar-item">
-                  <div className="subsystem-bar-label-row">
-                    <span>Medical Gas</span>
-                    <span className="font-mono">{gasPct}%</span>
-                  </div>
-                  <div className="subsystem-bar-track">
-                    <div
-                      className="subsystem-bar-fill"
-                      style={{
-                        width: `${gasPct}%`,
-                        backgroundColor: gasDegraded ? 'var(--status-warning)' : '#14b8a6'
-                      }}
-                    />
-                  </div>
-                </div>
+              {/* Bottom wave trendline */}
+              <div className="resilience-trend-subrow">
+                <span className="resilience-trend-subtext">{resilienceData.sublabel}</span>
+                <svg className="resilience-wave-svg" viewBox="0 0 320 20">
+                  <path
+                    d={resilienceData.wavePath}
+                    fill="none"
+                    stroke="#00E5A3"
+                    strokeWidth="1.8"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="4"
+                    strokeLinecap="round"
+                  />
+                </svg>
               </div>
             </div>
           </div>
 
-          {/* Card 2: System Performance Line Chart */}
+          {/* Card 2: System Performance Multi-line Chart */}
           <div className="dashboard-panel-card system-perf-card">
             <div className="panel-card-header">
               <span className="panel-card-title">System Performance</span>
-              <div className="chart-legend-group font-mono">
-                <span className="legend-item legend-cyan">● Resilience</span>
-                <span className="legend-item legend-blue">● Load</span>
+              <div className="panel-select-wrapper">
+                <select
+                  className="panel-dropdown-select"
+                  value={perfHorizon}
+                  onChange={(e) => setPerfHorizon(e.target.value)}
+                  aria-label="Filter System Performance Timeframe"
+                >
+                  <option value="24h">Last 24 Hours</option>
+                  <option value="12h">Last 12 Hours</option>
+                  <option value="7d">Last 7 Days</option>
+                  <option value="1h">Real-time Live</option>
+                </select>
+                <ChevronDown size={16} className="select-chevron-icon" />
               </div>
             </div>
 
-            <div className="perf-chart-wrap">
-              <svg className="perf-chart-svg" viewBox="0 0 340 110" preserveAspectRatio="none">
-                <defs>
-                  <linearGradient id="resilienceGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.25" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.0" />
-                  </linearGradient>
-                  <linearGradient id="loadGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#3b82f6" stopOpacity="0.15" />
-                    <stop offset="100%" stopColor="#3b82f6" stopOpacity="0.0" />
-                  </linearGradient>
-                </defs>
-                {/* Horizontal grid lines */}
-                <line x1="0" y1="25" x2="340" y2="25" stroke="var(--border-subtle)" strokeDasharray="3 3" />
-                <line x1="0" y1="55" x2="340" y2="55" stroke="var(--border-subtle)" strokeDasharray="3 3" />
-                <line x1="0" y1="85" x2="340" y2="85" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+            <div className="system-perf-chart-body">
+              {/* Full-width Expanded SVG Chart */}
+              <div className="chart-canvas-wrapper">
+                <svg className="perf-lines-svg" viewBox="0 0 500 262">
+                  {/* Y-Axis Labels aligned with grid lines (55px expanded vertical spacing!) */}
+                  <text x="24" y="16" dominantBaseline="central" textAnchor="end" className="chart-axis-label chart-y-label">100</text>
+                  <text x="24" y="71" dominantBaseline="central" textAnchor="end" className="chart-axis-label chart-y-label">75</text>
+                  <text x="24" y="126" dominantBaseline="central" textAnchor="end" className="chart-axis-label chart-y-label">50</text>
+                  <text x="24" y="181" dominantBaseline="central" textAnchor="end" className="chart-axis-label chart-y-label">25</text>
+                  <text x="24" y="236" dominantBaseline="central" textAnchor="end" className="chart-axis-label chart-y-label">0</text>
 
-                {/* Area fills */}
-                <path
-                  d="M0,30 Q80,25 170,28 T340,24 L340,110 L0,110 Z"
-                  fill="url(#resilienceGrad)"
-                />
-                <path
-                  d="M0,60 Q80,68 170,62 T340,58 L340,110 L0,110 Z"
-                  fill="url(#loadGrad)"
-                />
+                  {/* Grid lines */}
+                  <line x1="30" y1="16" x2="488" y2="16" className="chart-grid-line" strokeDasharray="3 3" />
+                  <line x1="30" y1="71" x2="488" y2="71" className="chart-grid-line" strokeDasharray="3 3" />
+                  <line x1="30" y1="126" x2="488" y2="126" className="chart-grid-line" strokeDasharray="3 3" />
+                  <line x1="30" y1="181" x2="488" y2="181" className="chart-grid-line" strokeDasharray="3 3" />
+                  <line x1="30" y1="236" x2="488" y2="236" className="chart-grid-baseline" />
 
-                {/* Lines */}
-                <path
-                  d="M0,30 Q80,25 170,28 T340,24"
-                  fill="none"
-                  stroke="#06b6d4"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-                <path
-                  d="M0,60 Q80,68 170,62 T340,58"
-                  fill="none"
-                  stroke="#3b82f6"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                />
-              </svg>
+                  {/* 1. Power Line (Cyan #00F0FF) - sharp up/down telemetry points */}
+                  <path
+                    d={perfChartData.power.path}
+                    fill="none"
+                    stroke="#00F0FF"
+                    strokeWidth="1.8"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="4"
+                    strokeLinecap="round"
+                    className="perf-line-cyan"
+                  />
+                  {perfChartData.power.points.map((pt, idx) => (
+                    <g key={`power-pt-${idx}`}>
+                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke="#00F0FF" strokeWidth="0.8" opacity="0.3" />
+                      <circle cx={pt.x} cy={pt.y} r="1.8" fill="#00F0FF" />
+                    </g>
+                  ))}
 
-              <div className="chart-x-axis font-mono">
-                <span>00:00</span>
-                <span>06:00</span>
-                <span>12:00</span>
-                <span>18:00</span>
-                <span>Now</span>
+                  {/* 2. Water Line (Blue #00A8FF) - sharp up/down telemetry points */}
+                  <path
+                    d={perfChartData.water.path}
+                    fill="none"
+                    stroke="#00A8FF"
+                    strokeWidth="1.8"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="4"
+                    strokeLinecap="round"
+                    className="perf-line-blue"
+                  />
+                  {perfChartData.water.points.map((pt, idx) => (
+                    <g key={`water-pt-${idx}`}>
+                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke="#00A8FF" strokeWidth="0.8" opacity="0.3" />
+                      <circle cx={pt.x} cy={pt.y} r="1.8" fill="#00A8FF" />
+                    </g>
+                  ))}
+
+                  {/* 3. HVAC Line (Amber #F59E0B) - sharp up/down telemetry points */}
+                  <path
+                    d={perfChartData.hvac.path}
+                    fill="none"
+                    stroke="#F59E0B"
+                    strokeWidth="1.8"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="4"
+                    strokeLinecap="round"
+                    className="perf-line-amber"
+                  />
+                  {perfChartData.hvac.points.map((pt, idx) => (
+                    <g key={`hvac-pt-${idx}`}>
+                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke="#F59E0B" strokeWidth="0.8" opacity="0.3" />
+                      <circle cx={pt.x} cy={pt.y} r="1.8" fill="#F59E0B" />
+                    </g>
+                  ))}
+
+                  {/* 4. Medical Gas Line (Purple #A855F7) - sharp up/down telemetry points */}
+                  <path
+                    d={perfChartData.gas.path}
+                    fill="none"
+                    stroke="#A855F7"
+                    strokeWidth="1.8"
+                    strokeLinejoin="miter"
+                    strokeMiterlimit="4"
+                    strokeLinecap="round"
+                    className="perf-line-purple"
+                  />
+                  {perfChartData.gas.points.map((pt, idx) => (
+                    <g key={`gas-pt-${idx}`}>
+                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke="#A855F7" strokeWidth="0.8" opacity="0.3" />
+                      <circle cx={pt.x} cy={pt.y} r="1.8" fill="#A855F7" />
+                    </g>
+                  ))}
+
+                  {/* X-Axis Labels aligned with nodes (2 Hours gap) */}
+                  {perfChartData.xPoints.map((item, idx) => (
+                    <text
+                      key={`x-lbl-${idx}`}
+                      x={item.x}
+                      y="254"
+                      textAnchor="middle"
+                      className="chart-axis-label chart-x-label"
+                    >
+                      {item.label}
+                    </text>
+                  ))}
+                </svg>
+              </div>
+
+              {/* Chart Legend directly below the graph in a single line */}
+              <div className="chart-legend-row">
+                <div className="legend-item">
+                  <span className="legend-dot" style={{ backgroundColor: '#00F0FF', boxShadow: '0 0 8px #00F0FF' }} />
+                  <span>Power</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot" style={{ backgroundColor: '#00A8FF', boxShadow: '0 0 8px #00A8FF' }} />
+                  <span>Water</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot" style={{ backgroundColor: '#F59E0B', boxShadow: '0 0 8px #F59E0B' }} />
+                  <span>HVAC</span>
+                </div>
+                <div className="legend-item">
+                  <span className="legend-dot" style={{ backgroundColor: '#A855F7', boxShadow: '0 0 8px #A855F7' }} />
+                  <span>Medical Gas</span>
+                </div>
               </div>
             </div>
           </div>
         </div>
       </section>
 
-      {/* 3. BOTTOM ROW: Utilization (Left) + Risk Distribution (Center) + Key Metrics (Right) */}
+      {/* 3. BOTTOM THREE-CARD ROW: Utilization + Risk Distribution + Key Metrics */}
       <section className="dashboard-bottom-grid">
-        {/* Card 1: Infrastructure Utilization (4 Dials) */}
+        {/* Card 1: Infrastructure Utilization (4 Ring Dials) */}
         <div className="dashboard-panel-card utilization-card">
           <div className="panel-card-header">
-            <span className="panel-card-title">Infrastructure Utilization</span>
-            <span className="panel-card-sub font-mono">CURRENT LOAD</span>
+            <div className="panel-title-with-info">
+              <span className="panel-card-title">Infrastructure Utilization</span>
+              <Info size={13} className="panel-info-icon" />
+            </div>
+            <div className="panel-select-wrapper">
+              <select
+                className="panel-dropdown-select"
+                value={utilizationFilter}
+                onChange={(e) => setUtilizationFilter(e.target.value)}
+                aria-label="Filter Infrastructure Utilization Mode"
+              >
+                <option value="current">Current</option>
+                <option value="peak">Peak Load</option>
+                <option value="avg">Average (24h)</option>
+                <option value="min">Minimum Load</option>
+              </select>
+              <ChevronDown size={11} className="select-chevron-icon" />
+            </div>
           </div>
 
-          <div className="utilization-dials-row">
-            {/* Power Dial 68% */}
-            <div className="util-dial-item">
-              <svg className="util-svg" viewBox="0 0 60 60">
-                <circle className="util-bg" cx="30" cy="30" r="24" />
-                <circle
-                  className="util-fg"
-                  cx="30"
-                  cy="30"
-                  r="24"
-                  stroke="#06b6d4"
-                  strokeDasharray="150.8"
-                  strokeDashoffset={150.8 - (68 / 100) * 150.8}
-                />
-              </svg>
-              <span className="util-val font-mono">68%</span>
-              <span className="util-name">Power</span>
+          <div className="utilization-rings-row">
+            {/* Ring 1: Power Load */}
+            <div className="util-ring-item">
+              <div className="ring-svg-wrapper">
+                <svg className="ring-svg" viewBox="0 0 70 70">
+                  <circle className="ring-bg" cx="35" cy="35" r="28" strokeWidth="6" fill="none" />
+                  <circle
+                    className="ring-fg ring-cyan"
+                    cx="35"
+                    cy="35"
+                    r="28"
+                    strokeWidth="6"
+                    stroke="#00F0FF"
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray="175.9"
+                    strokeDashoffset={175.9 - (utilizationData.power / 100) * 175.9}
+                  />
+                </svg>
+                <span className="ring-center-val font-mono">{utilizationData.power}%</span>
+              </div>
+              <span className="ring-label-text">Power Load</span>
             </div>
 
-            {/* Water Dial 54% */}
-            <div className="util-dial-item">
-              <svg className="util-svg" viewBox="0 0 60 60">
-                <circle className="util-bg" cx="30" cy="30" r="24" />
-                <circle
-                  className="util-fg"
-                  cx="30"
-                  cy="30"
-                  r="24"
-                  stroke="#0284c7"
-                  strokeDasharray="150.8"
-                  strokeDashoffset={150.8 - (54 / 100) * 150.8}
-                />
-              </svg>
-              <span className="util-val font-mono">54%</span>
-              <span className="util-name">Water</span>
+            {/* Ring 2: Water Usage */}
+            <div className="util-ring-item">
+              <div className="ring-svg-wrapper">
+                <svg className="ring-svg" viewBox="0 0 70 70">
+                  <circle className="ring-bg" cx="35" cy="35" r="28" strokeWidth="6" fill="none" />
+                  <circle
+                    className="ring-fg ring-blue"
+                    cx="35"
+                    cy="35"
+                    r="28"
+                    strokeWidth="6"
+                    stroke="#00A8FF"
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray="175.9"
+                    strokeDashoffset={175.9 - (utilizationData.water / 100) * 175.9}
+                  />
+                </svg>
+                <span className="ring-center-val font-mono">{utilizationData.water}%</span>
+              </div>
+              <span className="ring-label-text">Water Usage</span>
             </div>
 
-            {/* HVAC Dial 72% */}
-            <div className="util-dial-item">
-              <svg className="util-svg" viewBox="0 0 60 60">
-                <circle className="util-bg" cx="30" cy="30" r="24" />
-                <circle
-                  className="util-fg"
-                  cx="30"
-                  cy="30"
-                  r="24"
-                  stroke="#f59e0b"
-                  strokeDasharray="150.8"
-                  strokeDashoffset={150.8 - (72 / 100) * 150.8}
-                />
-              </svg>
-              <span className="util-val font-mono">72%</span>
-              <span className="util-name">HVAC</span>
+            {/* Ring 3: HVAC Load */}
+            <div className="util-ring-item">
+              <div className="ring-svg-wrapper">
+                <svg className="ring-svg" viewBox="0 0 70 70">
+                  <circle className="ring-bg" cx="35" cy="35" r="28" strokeWidth="6" fill="none" />
+                  <circle
+                    className="ring-fg ring-amber"
+                    cx="35"
+                    cy="35"
+                    r="28"
+                    strokeWidth="6"
+                    stroke="#F59E0B"
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray="175.9"
+                    strokeDashoffset={175.9 - (utilizationData.hvac / 100) * 175.9}
+                  />
+                </svg>
+                <span className="ring-center-val font-mono">{utilizationData.hvac}%</span>
+              </div>
+              <span className="ring-label-text">HVAC Load</span>
             </div>
 
-            {/* Med Gas Dial 48% */}
-            <div className="util-dial-item">
-              <svg className="util-svg" viewBox="0 0 60 60">
-                <circle className="util-bg" cx="30" cy="30" r="24" />
-                <circle
-                  className="util-fg"
-                  cx="30"
-                  cy="30"
-                  r="24"
-                  stroke="#10b981"
-                  strokeDasharray="150.8"
-                  strokeDashoffset={150.8 - (48 / 100) * 150.8}
-                />
-              </svg>
-              <span className="util-val font-mono">48%</span>
-              <span className="util-name">Med Gas</span>
+            {/* Ring 4: Gas Usage */}
+            <div className="util-ring-item">
+              <div className="ring-svg-wrapper">
+                <svg className="ring-svg" viewBox="0 0 70 70">
+                  <circle className="ring-bg" cx="35" cy="35" r="28" strokeWidth="6" fill="none" />
+                  <circle
+                    className="ring-fg ring-purple"
+                    cx="35"
+                    cy="35"
+                    r="28"
+                    strokeWidth="6"
+                    stroke="#A855F7"
+                    strokeLinecap="round"
+                    fill="none"
+                    strokeDasharray="175.9"
+                    strokeDashoffset={175.9 - (utilizationData.gas / 100) * 175.9}
+                  />
+                </svg>
+                <span className="ring-center-val font-mono">{utilizationData.gas}%</span>
+              </div>
+              <span className="ring-label-text">Gas Usage</span>
             </div>
           </div>
         </div>
 
-        {/* Card 2: Risk Distribution Donut */}
+        {/* Card 2: Risk Distribution Bar Chart / Histogram */}
         <div className="dashboard-panel-card risk-dist-card">
           <div className="panel-card-header">
-            <span className="panel-card-title">Risk Distribution</span>
-            <span className="panel-card-sub font-mono">12 TOTAL RISKS</span>
-          </div>
-
-          <div className="risk-donut-body">
-            <div className="donut-chart-wrap">
-              <svg className="donut-svg" viewBox="0 0 100 100">
-                {/* Donut arcs for 12 risks: 3 High (25%), 5 Medium (41.6%), 4 Low (33.3%) */}
-                {/* Circumference for r=38 is 238.76 */}
-                <circle
-                  className="donut-arc arc-low"
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  stroke="#10b981"
-                  strokeDasharray="80 159"
-                  strokeDashoffset="0"
-                />
-                <circle
-                  className="donut-arc arc-med"
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  stroke="#f59e0b"
-                  strokeDasharray="100 139"
-                  strokeDashoffset="-80"
-                />
-                <circle
-                  className="donut-arc arc-high"
-                  cx="50"
-                  cy="50"
-                  r="38"
-                  stroke="#ef4444"
-                  strokeDasharray="60 179"
-                  strokeDashoffset="-180"
-                />
-              </svg>
-              <div className="donut-center-text">
-                <span className="donut-num font-mono">12</span>
-                <span className="donut-label">Total</span>
+            <div className="panel-title-with-info">
+              <span className="panel-card-title">Risk Distribution</span>
+              <Info size={15} className="panel-info-icon" />
+            </div>
+            <div className="risk-header-actions">
+              <span className="risk-total-chip font-mono">
+                <span className="risk-total-num">{riskDistributionData.total}</span> Total
+              </span>
+              <div className="panel-select-wrapper">
+                <select
+                  className="panel-dropdown-select"
+                  value={riskFilter}
+                  onChange={(e) => setRiskFilter(e.target.value)}
+                  aria-label="Filter Risk Distribution Breakdown"
+                >
+                  <option value="by_system">By System</option>
+                  <option value="by_severity">By Severity</option>
+                  <option value="by_dept">By Department</option>
+                </select>
+                <ChevronDown size={16} className="select-chevron-icon" />
               </div>
             </div>
+          </div>
 
-            <div className="risk-legend-list">
-              <div className="risk-legend-row">
-                <span className="risk-dot dot-high" />
-                <span className="risk-lbl">High Risk</span>
-                <span className="risk-count font-mono">3</span>
-              </div>
-              <div className="risk-legend-row">
-                <span className="risk-dot dot-med" />
-                <span className="risk-lbl">Medium Risk</span>
-                <span className="risk-count font-mono">5</span>
-              </div>
-              <div className="risk-legend-row">
-                <span className="risk-dot dot-low" />
-                <span className="risk-lbl">Low Risk</span>
-                <span className="risk-count font-mono">4</span>
+          <div className="risk-histogram-content">
+            <div className="risk-hist-y-axis font-mono">
+              <span>6</span>
+              <span>4</span>
+              <span>2</span>
+              <span>0</span>
+            </div>
+
+            <div className="risk-hist-canvas">
+              {/* Reference Grid lines */}
+              <div className="hist-grid-line line-6" />
+              <div className="hist-grid-line line-4" />
+              <div className="hist-grid-line line-2" />
+              <div className="hist-grid-baseline" />
+
+              {/* Vertical Histogram Bars */}
+              <div className="risk-hist-bars-row">
+                {riskDistributionData.bars.map((bar) => {
+                  const maxScale = 6
+                  const heightPct = Math.min(100, Math.max(14, Math.round((bar.count / maxScale) * 100)))
+                  return (
+                    <div key={bar.key} className="risk-hist-bar-col">
+                      <div className="risk-bar-track">
+                        <span className="risk-bar-val font-mono" style={{ color: bar.color }}>
+                          {bar.count}
+                        </span>
+                        <div
+                          className="risk-bar-pillar"
+                          style={{
+                            height: `${heightPct}%`,
+                            background: `linear-gradient(180deg, ${bar.color} 0%, rgba(${bar.rgb || '239,68,68'}, 0.25) 100%)`,
+                            borderTop: `2px solid ${bar.color}`,
+                            boxShadow: `0 0 12px ${bar.color}44`
+                          }}
+                        />
+                      </div>
+                      <div className="risk-bar-footer">
+                        <div className="risk-bar-tag">
+                          <span
+                            className="risk-color-dot"
+                            style={{ backgroundColor: bar.color, boxShadow: `0 0 6px ${bar.color}` }}
+                          />
+                          <span className="risk-type-label">{bar.label}</span>
+                        </div>
+                        <span className="risk-pct-pill font-mono">{bar.pct}%</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card 3: Key Metrics (4 Stat Boxes) */}
+        {/* Card 3: Key Metrics (4 Tiles) */}
         <div className="dashboard-panel-card key-metrics-card">
           <div className="panel-card-header">
             <span className="panel-card-title">Key Metrics</span>
-            <span className="panel-card-sub font-mono">SYSTEM SUMMARY</span>
           </div>
 
-          <div className="stat-boxes-grid">
-            <div className="stat-box-item">
-              <span className="stat-box-num font-mono">{totalAssets}</span>
-              <span className="stat-box-label">Monitored Assets</span>
+          <div className="key-metrics-tiles-grid">
+            <div className="metric-tile-item">
+              <div className="metric-tile-icon-wrap icon-cyan">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M3 21h18M5 21V7l8-4v18M13 21V3l6 3v15" />
+                </svg>
+              </div>
+              <div className="metric-tile-number font-mono">{totalAssets}</div>
+              <div className="metric-tile-name">Total Assets</div>
             </div>
-            <div className="stat-box-item">
-              <span className="stat-box-num font-mono">6</span>
-              <span className="stat-box-label">Subsystems</span>
+
+            <div className="metric-tile-item">
+              <div className="metric-tile-icon-wrap icon-blue">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="3" />
+                  <circle cx="19" cy="5" r="2" />
+                  <circle cx="5" cy="5" r="2" />
+                  <circle cx="19" cy="19" r="2" />
+                  <circle cx="5" cy="19" r="2" />
+                  <path d="M7 6.5l3.5 3.5M17 6.5l-3.5 3.5M7 17.5l3.5-3.5M17 17.5l-3.5-3.5" />
+                </svg>
+              </div>
+              <div className="metric-tile-number font-mono">6</div>
+              <div className="metric-tile-name">Sub-systems</div>
             </div>
-            <div className="stat-box-item">
-              <span
-                className="stat-box-num font-mono"
-                style={{ color: activeAlertsCount > 0 ? 'var(--status-critical)' : 'var(--text-primary)' }}
-              >
-                {activeAlertsCount}
-              </span>
-              <span className="stat-box-label">Active Alerts</span>
+
+            <div className="metric-tile-item">
+              <div className="metric-tile-icon-wrap icon-red">
+                <AlertTriangle size={18} />
+              </div>
+              <div className="metric-tile-number font-mono" style={{ color: '#EF4444' }}>{activeAlertsCount}</div>
+              <div className="metric-tile-name">Active Alerts</div>
             </div>
-            <div className="stat-box-item">
-              <span className="stat-box-num font-mono" style={{ color: 'var(--status-normal)' }}>
-                98.4%
-              </span>
-              <span className="stat-box-label">System Uptime</span>
+
+            <div className="metric-tile-item">
+              <div className="metric-tile-icon-wrap icon-green">
+                <ShieldCheck size={18} />
+              </div>
+              <div className="metric-tile-number font-mono" style={{ color: '#00E5A3' }}>
+                {incident?.is_active ? '88%' : '98%'}
+              </div>
+              <div className="metric-tile-name">System Uptime</div>
             </div>
           </div>
         </div>

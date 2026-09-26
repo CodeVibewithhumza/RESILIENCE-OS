@@ -308,3 +308,124 @@
   align-items: center;
   gap: 6px;
 }
+
+/* ==========================================================================
+   Light Theme Overrides for Causal Drawer (Explainability)
+   ========================================================================== */
+
+[data-theme="light"] .causal-drawer-backdrop {
+  background-color: rgba(11, 28, 46, 0.4);
+}
+
+[data-theme="light"] .causal-drawer-panel {
+  background-color: #FFFFFF;
+  border-left: 1px solid var(--border-primary);
+  box-shadow: -12px 0 30px rgba(11, 28, 46, 0.15);
+}
+
+[data-theme="light"] .causal-drawer-header {
+  background-color: #F5FAFE;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .causal-main-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .causal-sub-title {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .causal-close-btn {
+  background: #FFFFFF;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .causal-close-btn:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--brand-primary);
+}
+
+[data-theme="light"] .causal-tabs-row {
+  background-color: #FBFDFE;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .causal-tab-btn {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .causal-tab-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}
+
+[data-theme="light"] .causal-tab-btn.is-active-tab {
+  color: #0B6FD4;
+  background-color: #E5F2FE;
+  border-color: #7DBBF2;
+}
+
+[data-theme="light"] .causal-summary-card {
+  background: #F4F9FD;
+  border: 1px solid var(--border-primary);
+  border-left: 3px solid var(--brand-primary);
+}
+
+[data-theme="light"] .causal-summary-label {
+  color: var(--brand-primary);
+}
+
+[data-theme="light"] .causal-summary-text {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .causal-section-heading {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .dependency-path-flow {
+  background: #FFFFFF;
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .path-node-target {
+  color: #0B6FD4;
+  background-color: #E5F2FE;
+  border-color: #7DBBF2;
+}
+
+[data-theme="light"] .causal-step-item {
+  background: #FFFFFF;
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .causal-step-item:hover {
+  border-color: #B8D8F2;
+  background: var(--bg-hover);
+}
+
+[data-theme="light"] .causal-step-badge {
+  color: #0B6FD4;
+  background: #E5F2FE;
+  border: 1px solid #7DBBF2;
+}
+
+[data-theme="light"] .causal-step-text {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .decision-factor-item {
+  background: #FFFFFF;
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .causal-drawer-footer {
+  background-color: #F5FAFE;
+  border-top: 1px solid var(--border-primary);
+  color: var(--text-tertiary);
+}
+

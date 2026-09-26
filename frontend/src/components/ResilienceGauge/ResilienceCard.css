@@ -268,3 +268,83 @@
   border-radius: 2px;
   transition: width 0.4s ease;
 }
+
+/* ==========================================================================
+   Light Theme Overrides for ResilienceCard (ResilienceGauge)
+   ========================================================================== */
+
+[data-theme="light"] .resilience-card {
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-primary);
+  box-shadow: 0 1px 3px rgba(11, 28, 46, 0.04);
+}
+
+[data-theme="light"] .resilience-card-header {
+  background-color: #F5FAFE;
+  border-bottom: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .resilience-card-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .resilience-hero-section {
+  border-bottom-color: var(--border-secondary);
+}
+
+[data-theme="light"] .gauge-center-num {
+  color: #0B1C2E;
+  text-shadow: none;
+}
+
+[data-theme="light"] .gauge-center-scale {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .meta-summary-title {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .meta-summary-desc {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .resilience-delta-badge,
+[data-theme="light"] .resilience-state-badge {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border-primary);
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .subscores-heading {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .subscore-box {
+  background: #FFFFFF;
+  border: 1px solid var(--border-primary);
+}
+
+[data-theme="light"] .subscore-box:hover {
+  border-color: #B8D8F2;
+  background: var(--bg-hover);
+}
+
+[data-theme="light"] .subscore-name {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .subscore-symbol {
+  color: var(--text-tertiary);
+}
+
+[data-theme="light"] .subscore-weight {
+  color: #0B6FD4;
+  background: #E5F2FE;
+  border-color: #7DBBF2;
+}
+
+[data-theme="light"] .subscore-meter-track {
+  background-color: #E3ECF3;
+}
+

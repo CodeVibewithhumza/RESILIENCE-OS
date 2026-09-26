@@ -2,10 +2,7 @@ import { useState, useEffect } from 'react'
 import {
   Sun,
   Moon,
-  Bell,
-  RotateCcw,
-  Radio,
-  ChevronDown
+  Bell
 } from 'lucide-react'
 import './Header.css'
 
@@ -16,31 +13,31 @@ const PAGE_TITLES = {
   },
   'digital-twin': {
     title: 'Digital Twin',
-    subtitle: '3D BIM Visualization & Infrastructure Subsystem Topology'
+    subtitle: 'Interactive 3D model of hospital infrastructure and services'
   },
   'start-simulation': {
     title: 'Start Simulation',
-    subtitle: 'Configure and inject infrastructure failure cascades'
+    subtitle: 'Inject failures, simulate cascading impacts, and evaluate response strategies'
   },
   'what-if': {
-    title: 'What-if Analysis',
-    subtitle: 'Multi-Criteria Decision Analysis & Strategy Evaluation'
+    title: 'What-If Analysis',
+    subtitle: 'Compare response strategies and evaluate outcomes before taking action'
   },
   'incident-timeline': {
     title: 'Incident Timeline',
-    subtitle: 'Temporal cascade propagation & incident milestone tracking'
+    subtitle: 'Chronological view of events, state changes, and cascading impacts'
   },
   'risk-resilience': {
     title: 'Risk & Resilience',
-    subtitle: 'Infrastructure vulnerability assessment & resilience analytics'
+    subtitle: 'Assess risks, analyze vulnerabilities, and track resilience under different scenarios'
   },
   'reports': {
     title: 'Reports',
-    subtitle: 'Generate and export resilience & incident audit reports'
+    subtitle: 'Generate detailed reports, insights, and export analysis results'
   },
   'settings': {
     title: 'Settings',
-    subtitle: 'Hospital infrastructure configuration & simulation parameters'
+    subtitle: 'Configure hospital model, simulation parameters, visualizations and system preferences'
   }
 }
 
@@ -86,20 +83,8 @@ export default function Header({
         <span className="header-page-subtitle">{pageInfo.subtitle}</span>
       </div>
 
-      {/* RIGHT: Theme Toggle, Date, Time, Notifications, User/Team, Baseline Reset */}
+      {/* RIGHT: Live Stream Pill, Theme Toggle, Date, Time, Notifications */}
       <div className="cmd-header-right">
-        {/* Reset Baseline Action Button */}
-        <button
-          type="button"
-          className="header-action-btn header-reset-btn"
-          onClick={onReset}
-          disabled={isResetting}
-          title="Reset hospital digital twin to 100% operational baseline"
-        >
-          <RotateCcw size={13} className={`header-btn-icon ${isResetting ? 'animate-spin' : ''}`} />
-          <span>{isResetting ? 'Resetting...' : 'Reset Baseline'}</span>
-        </button>
-
         {/* Live Stream Status Pill */}
         <div
           className={`header-stream-pill ${isLive ? 'is-live' : 'is-standby'}`}
@@ -145,13 +130,6 @@ export default function Header({
               <span className="header-bell-badge">{alertsCount}</span>
             )}
           </button>
-        </div>
-
-        {/* User / Team Avatar Pill */}
-        <div className="header-user-pill">
-          <div className="user-avatar-circle">RH</div>
-          <span className="user-team-name">Team Mode</span>
-          <ChevronDown size={14} className="user-chevron" />
         </div>
       </div>
     </header>

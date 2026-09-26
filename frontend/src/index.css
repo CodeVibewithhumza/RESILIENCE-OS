@@ -5,68 +5,159 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;0,800;1,400&display=swap');
 
-:root {
-  /* Canvas & Obsidian Surfaces (Dark Theme Default) */
-  --bg-base: #070e1b;
-  --bg-surface: #0c182b;
-  --bg-panel: #0d192d;
-  --bg-panel-elevated: #11223b;
-  --bg-panel-glass: rgba(13, 25, 45, 0.88);
-  --bg-card-glass: rgba(16, 30, 54, 0.82);
-  --bg-subtle: rgba(255, 255, 255, 0.04);
-  --bg-hover: rgba(0, 240, 255, 0.08);
-  --bg-active: rgba(0, 240, 255, 0.16);
+:root,
+[data-theme="dark"] {
+  /* ==========================================================================
+     RESILIENCE OS — DARK THEME MASTER COLOR SYSTEM
+     Exact match to 8 Dark Theme master design specifications
+     ========================================================================== */
 
-  /* Luminous Border Hierarchy */
-  --border-subtle: rgba(30, 58, 95, 0.55);
-  --border-default: #1b2e4b;
-  --border-bright: rgba(56, 189, 248, 0.5);
-  --border-focus: #00f0ff;
-  --border-cyan-glow: rgba(0, 240, 255, 0.4);
-  --border-cyan-bright: rgba(34, 211, 238, 0.8);
+  /* 1. Core UI / Background Palette */
+  --bg-primary: #021422;
+  --bg-secondary: #010912;
+  --bg-tertiary: #061D2D;
+  --bg-card: #061D2D;
+  --bg-card-alt: #082438;
+  --bg-subtle: #082438;
+  --bg-elevated: #0A2B42;
+  --bg-active: #0A3550;
+  --bg-hover: #0B3D5C;
+  --bg-selected: #0A3550;
+  --bg-disabled: #030E17;
 
-  /* Primary Brand & Cyber Accents */
-  --accent-cyan: #00f0ff;
-  --accent-cyan-light: #38bdf8;
-  --accent-cyan-dim: rgba(0, 240, 255, 0.12);
-  --accent-cyan-hover: #0891b2;
-  --accent-cyan-glow: rgba(0, 240, 255, 0.35);
-  --accent-teal: #14b8a6;
-  --accent-blue: #3b82f6;
-  --accent-indigo: #6366f1;
+  /* Aliases for Component Layouts */
+  --bg-base: #021422;
+  --bg-surface: #061D2D;
+  --bg-panel: #021422;
+  --bg-panel-elevated: #082438;
+  --bg-panel-glass: rgba(6, 29, 45, 0.94);
+  --bg-card-glass: rgba(7, 33, 50, 0.9);
+  --bg-surface-elevated: #082438;
+  --bg-surface-hover: #0B3D5C;
 
-  /* Operational Status Tokens */
-  --status-normal: #10b981;
-  --status-normal-bg: rgba(16, 185, 129, 0.14);
-  --status-normal-border: rgba(16, 185, 129, 0.45);
-  --status-normal-glow: rgba(16, 185, 129, 0.4);
+  /* 2. Border Hierarchy */
+  --border-primary: #0B4154;
+  --border-secondary: #12374A;
+  --border-subtle: #12374A;
+  --border-default: #0B4154;
+  --border-bright: #12374A;
+  --border-focus: #0BF3E3;
+  --border-active: #0BF3E3;
+  --border-glow: #13C9BE;
+  --border-cyan-glow: rgba(11, 243, 227, 0.35);
+  --border-cyan-bright: #0BF3E3;
+  --border-success: #13C9BE;
 
-  --status-stable: #38bdf8;
-  --status-stable-bg: rgba(56, 189, 248, 0.14);
-  --status-stable-border: rgba(56, 189, 248, 0.45);
+  /* 3. Typography Hierarchy */
+  --text-primary: #F4F6F8;
+  --text-secondary: #C1CEDB;
+  --text-tertiary: #9AAABD;
+  --text-muted: #718296;
+  --text-dim: #718296;
+  --text-disabled: #4E6071;
+  --text-on-accent: #00151D;
+  --text-inverse: #01111E;
 
-  --status-warning: #f59e0b;
-  --status-warning-bg: rgba(245, 158, 11, 0.14);
-  --status-warning-border: rgba(245, 158, 11, 0.45);
-  --status-warning-glow: rgba(245, 158, 11, 0.4);
+  /* 4. Brand & Primary Accents */
+  --brand-primary: #0BF3E3;
+  --brand-dark: #0891b2;
+  --brand-light: rgba(11, 243, 227, 0.12);
+  --accent-cyan: #0BF3E3;
+  --accent-cyan-light: #61BFE9;
+  --accent-cyan-dim: rgba(11, 243, 227, 0.12);
+  --accent-cyan-hover: #13C9BE;
+  --accent-cyan-glow: rgba(11, 243, 227, 0.35);
+  --accent-teal: #13C9BE;
+  --accent-blue: #14A0EF;
+  --accent-indigo: #9856DB;
 
-  --status-critical: #ef4444;
-  --status-critical-bg: rgba(239, 68, 68, 0.18);
-  --status-critical-border: rgba(239, 68, 68, 0.55);
-  --status-critical-glow: rgba(239, 68, 68, 0.45);
+  --cyan: #0BF3E3;
+  --teal: #13C9BE;
+  --blue: #14A0EF;
+  --blue-soft: #61BFE9;
 
-  --status-failed: #dc2626;
-  --status-failed-bg: rgba(220, 38, 38, 0.22);
-  --status-failed-border: rgba(220, 38, 38, 0.65);
-  --status-failed-glow: rgba(220, 38, 38, 0.55);
+  /* 5. Infrastructure System Colors */
+  --electrical: #0BF3E3;
+  --water: #14A0EF;
+  --hvac: #F5B348;
+  --medical-gas: #9856DB;
+  --critical: #F0554F;
 
-  --status-offline: #64748b;
-  --status-offline-bg: rgba(100, 116, 139, 0.14);
-  --status-offline-border: rgba(100, 116, 139, 0.35);
+  /* 6. Operational State Tokens */
+  --normal: #13C9BE;
+  --degraded: #F5B348;
+  --at-risk: #F05A4F;
+  --failed: #F0554F;
+  --backup: #14A0EF;
+  --recovering: #61BFE9;
+  --stable: #13C9BE;
 
-  /* Surface Aliases */
-  --bg-surface-elevated: #11223b;
-  --bg-surface-hover: rgba(0, 240, 255, 0.08);
+  --status-normal: #13C9BE;
+  --status-normal-bg: rgba(19, 201, 190, 0.14);
+  --status-normal-border: rgba(19, 201, 190, 0.45);
+  --status-normal-glow: rgba(19, 201, 190, 0.4);
+
+  --status-stable: #13C9BE;
+  --status-stable-bg: rgba(19, 201, 190, 0.14);
+  --status-stable-border: rgba(19, 201, 190, 0.45);
+
+  --status-warning: #F5B348;
+  --status-warning-bg: rgba(245, 179, 72, 0.14);
+  --status-warning-border: rgba(245, 179, 72, 0.45);
+  --status-warning-glow: rgba(245, 179, 72, 0.4);
+
+  --status-critical: #F0554F;
+  --status-critical-bg: rgba(240, 85, 79, 0.18);
+  --status-critical-border: rgba(240, 85, 79, 0.55);
+  --status-critical-glow: rgba(240, 85, 79, 0.45);
+
+  --status-failed: #F0554F;
+  --status-failed-bg: rgba(240, 85, 79, 0.22);
+  --status-failed-border: rgba(240, 85, 79, 0.65);
+  --status-failed-glow: rgba(240, 85, 79, 0.55);
+
+  --status-offline: #718296;
+  --status-offline-bg: rgba(113, 130, 150, 0.14);
+  --status-offline-border: rgba(113, 130, 150, 0.35);
+
+  /* 7. Risk Hierarchy Tokens */
+  --risk-high: #F0554F;
+  --risk-medium: #F5B348;
+  --risk-low: #13C9BE;
+  --risk-normal: #14A0EF;
+
+  /* 8. Charts */
+  --chart-grid: #173243;
+  --chart-axis: #718296;
+  --chart-label: #C1CEDB;
+
+  /* 9. Sidebar Tokens */
+  --sidebar-bg: #010912;
+  --sidebar-border: rgba(0, 240, 255, 0.12);
+  --sidebar-text: #C1CEDB;
+  --sidebar-icon: #94A3B8;
+  --sidebar-hover: #061A28;
+  --sidebar-active-bg: #08293F;
+  --sidebar-active-text: #FFFFFF;
+  --sidebar-active-icon: #00F0FF;
+
+  /* 10. Simulation Mode Badge */
+  --simulation-bg: #071B29;
+  --simulation-border: #0B4154;
+  --simulation-accent: #0BF3E3;
+
+  /* 11. 3D Twin Label System */
+  --twin-label-bg: #061724;
+  --twin-label-border: #0B4154;
+  --twin-label-text: #F4F6F8;
+
+  /* 12. Danger & Warning */
+  --danger: #F0554F;
+  --danger-bg: rgba(240, 85, 79, 0.15);
+  --danger-border: rgba(240, 85, 79, 0.35);
+  --warning: #F5B348;
+  --warning-bg: rgba(245, 179, 72, 0.15);
+  --warning-border: rgba(245, 179, 72, 0.35);
 
   /* Controlled Typography Scale */
   --text-page-title: 18px;
@@ -79,22 +170,15 @@
   --text-meta: 10px;
   --text-badge: 9px;
 
-  /* Typography */
-  --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-muted: #64748b;
-  --text-dim: #475569;
-  --text-inverse: #070e1b;
-
   --font-sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
 
   /* Shadows & Depth */
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.45);
   --shadow-md: 0 6px 20px -2px rgba(0, 0, 0, 0.6), 0 2px 8px -2px rgba(0, 0, 0, 0.4);
-  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(56, 189, 248, 0.08);
-  --shadow-cyan: 0 0 25px rgba(0, 240, 255, 0.25);
-  --shadow-critical: 0 0 26px rgba(239, 68, 68, 0.35);
+  --shadow-panel: 0 8px 30px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(11, 243, 227, 0.08);
+  --shadow-cyan: 0 0 25px rgba(11, 243, 227, 0.25);
+  --shadow-critical: 0 0 26px rgba(240, 85, 79, 0.35);
 
   /* Radii */
   --radius-xs: 4px;
@@ -104,77 +188,163 @@
   --radius-full: 9999px;
 }
 
+/* ==========================================================================
+   RESILIENCE OS — LIGHT THEME MASTER COLOR SYSTEM
+   Exact match to 8 Light Theme master design specifications
+   ========================================================================== */
 [data-theme="light"] {
-  /* Canvas & Light Surfaces */
-  --bg-base: #f0f4f9;
-  --bg-surface: #ffffff;
-  --bg-panel: #ffffff;
-  --bg-panel-elevated: #f8fafc;
-  --bg-panel-glass: rgba(255, 255, 255, 0.94);
-  --bg-card-glass: rgba(255, 255, 255, 0.96);
-  --bg-subtle: #f1f5f9;
-  --bg-hover: rgba(2, 132, 199, 0.08);
-  --bg-active: rgba(2, 132, 199, 0.14);
-
-  /* Clean Crisp Border Hierarchy */
-  --border-subtle: #e2e8f0;
-  --border-default: #cbd5e1;
-  --border-bright: #94a3b8;
-  --border-focus: #0284c7;
-  --border-cyan-glow: rgba(2, 132, 199, 0.2);
-  --border-cyan-bright: #0284c7;
-
-  /* Primary Brand & Accents for Light Mode */
-  --accent-cyan: #0284c7;
-  --accent-cyan-light: #0ea5e9;
-  --accent-cyan-dim: rgba(2, 132, 199, 0.1);
-  --accent-cyan-hover: #0369a1;
-  --accent-cyan-glow: rgba(2, 132, 199, 0.2);
-  --accent-teal: #0d9488;
-  --accent-blue: #2563eb;
-  --accent-indigo: #4f46e5;
-
-  /* Operational Status Tokens */
-  --status-normal: #059669;
-  --status-normal-bg: rgba(5, 150, 105, 0.1);
-  --status-normal-border: rgba(5, 150, 105, 0.3);
-
-  --status-stable: #0284c7;
-  --status-stable-bg: rgba(2, 132, 199, 0.1);
-  --status-stable-border: rgba(2, 132, 199, 0.3);
-
-  --status-warning: #d97706;
-  --status-warning-bg: rgba(217, 119, 6, 0.1);
-  --status-warning-border: rgba(217, 119, 6, 0.3);
-
-  --status-critical: #dc2626;
-  --status-critical-bg: rgba(220, 38, 38, 0.1);
-  --status-critical-border: rgba(220, 38, 38, 0.3);
-
-  --status-failed: #b91c1c;
-  --status-failed-bg: rgba(185, 28, 28, 0.14);
-  --status-failed-border: rgba(185, 28, 28, 0.4);
-
-  --status-offline: #64748b;
-  --status-offline-bg: rgba(100, 116, 139, 0.08);
-  --status-offline-border: rgba(100, 116, 139, 0.25);
+  /* 1. Core Background Palette */
+  --bg-primary: #FBFDFE;
+  --bg-secondary: #F5FAFE;
+  --bg-tertiary: #FFFFFF;
+  --bg-card: #FFFFFF;
+  --bg-card-alt: #F4F9FD;
+  --bg-subtle: #F4F9FD;
+  --bg-hover: #EDF6FD;
+  --bg-active: #E5F2FE;
+  --bg-selected: #DCEEFF;
+  --bg-disabled: #F1F4F7;
 
   /* Surface Aliases */
-  --bg-surface-elevated: #f8fafc;
-  --bg-surface-hover: rgba(2, 132, 199, 0.08);
+  --bg-base: #FBFDFE;
+  --bg-surface: #FFFFFF;
+  --bg-panel: #FFFFFF;
+  --bg-panel-elevated: #F4F9FD;
+  --bg-panel-glass: rgba(255, 255, 255, 0.96);
+  --bg-card-glass: rgba(255, 255, 255, 0.98);
+  --bg-surface-elevated: #F4F9FD;
+  --bg-surface-hover: #EDF6FD;
 
-  /* Typography */
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
-  --text-dim: #94a3b8;
-  --text-inverse: #ffffff;
+  /* 2. Border System (Soft Blue-Gray Hierarchy) */
+  --border-primary: #DCE8F2;
+  --border-secondary: #E5EDF4;
+  --border-subtle: #EDF2F7;
+  --border-default: #DCE8F2;
+  --border-bright: #E5EDF4;
+  --border-focus: #63B2F5;
+  --border-active: #1682ED;
+  --border-success: #13D6C0;
+  --border-cyan-glow: rgba(22, 130, 237, 0.25);
+  --border-cyan-bright: #1682ED;
 
-  /* Shadows & Depth */
-  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
-  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.06), 0 0 0 1px #e2e8f0;
-  --shadow-cyan: 0 2px 10px rgba(2, 132, 199, 0.15);
+  /* 3. Typography Hierarchy (Navy Navy-Gray Spectrum) */
+  --text-primary: #0B1C2E;
+  --text-secondary: #334B68;
+  --text-tertiary: #667C96;
+  --text-muted: #8799AD;
+  --text-dim: #8799AD;
+  --text-disabled: #AEBBC7;
+  --text-on-accent: #FFFFFF;
+  --text-inverse: #FFFFFF;
+
+  /* 4. Primary Brand & Blue Accents */
+  --brand-primary: #1682ED;
+  --brand-dark: #0B73D8;
+  --brand-light: #E5F2FE;
+
+  --accent-cyan: #1682ED;
+  --accent-cyan-light: #54A8E8;
+  --accent-cyan-dim: #E5F2FE;
+  --accent-cyan-hover: #0B73D8;
+  --accent-cyan-glow: rgba(22, 130, 237, 0.2);
+  --accent-teal: #13D6C0;
+  --accent-blue: #1682ED;
+  --accent-indigo: #4F46E5;
+
+  --cyan: #0FDABF;
+  --teal: #13D6C0;
+  --blue: #1682ED;
+  --blue-soft: #54A8E8;
+
+  /* 5. Infrastructure System Colors */
+  --electrical: #0FDABF;
+  --water: #1682ED;
+  --hvac: #EEB33E;
+  --medical-gas: #963DEA;
+  --critical: #EB4E50;
+
+  /* 6. State Colors */
+  --normal: #13D6C0;
+  --degraded: #F1B33E;
+  --at-risk: #F05A4F;
+  --failed: #EB4E50;
+  --backup: #1682ED;
+  --recovering: #54A8E8;
+  --stable: #13D6C0;
+
+  --status-normal: #13D6C0;
+  --status-normal-bg: rgba(19, 214, 192, 0.12);
+  --status-normal-border: #13D6C0;
+  --status-normal-glow: rgba(19, 214, 192, 0.25);
+
+  --status-stable: #13D6C0;
+  --status-stable-bg: rgba(19, 214, 192, 0.12);
+  --status-stable-border: #13D6C0;
+
+  --status-warning: #F1B33E;
+  --status-warning-bg: #FFF9EC;
+  --status-warning-border: #F2DEAD;
+  --status-warning-glow: rgba(241, 179, 62, 0.25);
+
+  --status-critical: #EB4E50;
+  --status-critical-bg: #FFF2F3;
+  --status-critical-border: #F3C8CA;
+  --status-critical-glow: rgba(235, 78, 80, 0.25);
+
+  --status-failed: #EB4E50;
+  --status-failed-bg: #FFF2F3;
+  --status-failed-border: #F3C8CA;
+  --status-failed-glow: rgba(235, 78, 80, 0.25);
+
+  --status-offline: #8799AD;
+  --status-offline-bg: #F1F4F7;
+  --status-offline-border: #DCE8F2;
+
+  /* 7. Risk Hierarchy Tokens */
+  --risk-high: #EB4E50;
+  --risk-medium: #F1B33E;
+  --risk-low: #13D6C0;
+  --risk-normal: #1682ED;
+
+  /* 8. Charts */
+  --chart-grid: #DCE7EF;
+  --chart-axis: #667C96;
+  --chart-label: #334B68;
+
+  /* 9. Sidebar */
+  --sidebar-bg: #F5FAFE;
+  --sidebar-border: #DCE8F2;
+  --sidebar-text: #334B68;
+  --sidebar-icon: #334B68;
+  --sidebar-hover: #EDF6FD;
+  --sidebar-active-bg: #E5F2FE;
+  --sidebar-active-text: #0B6FD4;
+  --sidebar-active-icon: #1682ED;
+
+  /* 10. Simulation Mode Badge */
+  --simulation-bg: #EFFAF8;
+  --simulation-border: #D2EFE9;
+  --simulation-accent: #13D6C0;
+
+  /* 11. 3D Twin Label System (floating high contrast dark overlay) */
+  --twin-label-bg: #082034;
+  --twin-label-border: #0B4154;
+  --twin-label-text: #FFFFFF;
+
+  /* 12. Danger & Warning */
+  --danger: #EB4E50;
+  --danger-bg: #FFF2F3;
+  --danger-border: #F3C8CA;
+  --warning: #F1B33E;
+  --warning-bg: #FFF9EC;
+  --warning-border: #F2DEAD;
+
+  /* Shadows for Crisp Light Theme */
+  --shadow-sm: 0 1px 3px rgba(11, 28, 46, 0.04), 0 1px 2px rgba(11, 28, 46, 0.02);
+  --shadow-md: 0 4px 14px rgba(11, 28, 46, 0.06), 0 1px 3px rgba(11, 28, 46, 0.03);
+  --shadow-panel: 0 4px 20px rgba(11, 28, 46, 0.05), 0 0 0 1px #DCE8F2;
+  --shadow-cyan: 0 2px 10px rgba(22, 130, 237, 0.15);
+  --shadow-critical: 0 2px 10px rgba(235, 78, 80, 0.15);
 }
 
 /* ==========================================================================
@@ -212,6 +382,11 @@ html, body {
   background-attachment: fixed;
 }
 
+[data-theme="light"] #root {
+  background-color: var(--bg-primary);
+  background-image: none;
+}
+
 /* Custom Sleek Scrollbar */
 ::-webkit-scrollbar {
   width: 6px;
@@ -219,11 +394,11 @@ html, body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #040711;
+  background: var(--bg-secondary);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--border-default);
   border-radius: 3px;
 }
 
@@ -232,8 +407,8 @@ html, body {
 }
 
 ::selection {
-  background: rgba(0, 240, 255, 0.25);
-  color: #ffffff;
+  background: rgba(22, 130, 237, 0.25);
+  color: var(--text-primary);
 }
 
 /* Monospace Utility */

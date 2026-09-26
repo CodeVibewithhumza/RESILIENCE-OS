@@ -1,6 +1,6 @@
 /* ==========================================================================
-   Risk & Resilience View Styles (RiskResilienceView.css)
-   Matches official ResilienceOS Design reference for Risk & Resilience
+   Risk & Resilience Page Styles (RiskResilienceView.css)
+   100% Pixel-Aligned with ResilienceOS Master Design Reference
    ========================================================================== */
 
 .risk-resilience-page {
@@ -10,56 +10,24 @@
   width: 100%;
 }
 
-.risk-header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-}
+/* --------------------------------------------------------------------------
+   1. TOP 6 KPI CARDS
+   -------------------------------------------------------------------------- */
 
-.risk-page-title {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--text-primary);
-  letter-spacing: -0.01em;
-  margin: 0 0 2px 0;
-}
-
-.risk-page-subtitle {
-  font-size: 12px;
-  color: var(--text-secondary);
-  margin: 0;
-}
-
-.risk-header-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-subtle);
-  padding: 6px 12px;
-  border-radius: var(--radius-sm);
-  font-size: 11px;
-  color: var(--text-secondary);
-}
-
-/* 1. TOP 6 KPI GRID */
-.risk-kpi-grid {
+.risk-top-kpis-grid {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 12px;
-  min-width: 0;
 }
 
-@media (max-width: 1300px) {
-  .risk-kpi-grid {
+@media (max-width: 1400px) {
+  .risk-top-kpis-grid {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
 @media (max-width: 768px) {
-  .risk-kpi-grid {
+  .risk-top-kpis-grid {
     grid-template-columns: 1fr;
   }
 }
@@ -68,258 +36,458 @@
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 12px 14px;
+  padding: 12px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  justify-content: space-between;
+  gap: 8px;
   box-shadow: var(--shadow-sm);
-  transition: transform 0.15s ease, border-color 0.15s ease;
   min-width: 0;
 }
 
-.risk-kpi-card:hover {
-  border-color: var(--border-default);
-  transform: translateY(-1px);
+.risk-kpi-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
 }
 
-.kpi-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-xs);
+.risk-kpi-icon-wrap {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.kpi-label {
+.risk-kpi-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.risk-kpi-name {
   font-size: 10px;
   color: var(--text-muted);
-  display: block;
-  margin-bottom: 2px;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.kpi-val-row {
+.risk-kpi-val-row {
   display: flex;
   align-items: baseline;
-  gap: 6px;
-  min-width: 0;
+  gap: 5px;
 }
 
-.kpi-val {
-  font-size: 17px;
+.risk-kpi-val {
+  font-size: 15px;
   font-weight: 700;
   color: var(--text-primary);
-  line-height: 1;
+  line-height: 1.1;
   white-space: nowrap;
 }
 
-.kpi-delta {
-  font-size: 10px;
+.risk-kpi-trend {
+  font-size: 9px;
   font-weight: 600;
 }
 
-.kpi-delta.positive {
-  color: var(--status-normal);
+.trend-up { color: #00E5A3; }
+.trend-down { color: #FF4D4D; }
+
+.risk-kpi-sparkline-wrap {
+  width: 50px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
-.kpi-delta.negative {
-  color: var(--status-critical);
+.risk-kpi-sparkline {
+  width: 100%;
+  height: 100%;
+  overflow: visible;
 }
 
-/* 2. MIDDLE ROW */
+/* --------------------------------------------------------------------------
+   2. MIDDLE 3-PANEL GRID
+   -------------------------------------------------------------------------- */
+
 .risk-middle-grid {
   display: grid;
-  grid-template-columns: 1.8fr 1fr;
+  grid-template-columns: 1.4fr 1fr;
   gap: 16px;
+  align-items: stretch;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
   .risk-middle-grid {
     grid-template-columns: 1fr;
   }
 }
 
-.risk-card {
+.risk-heatmap-card {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-md);
-  padding: 16px;
+  padding: 12px;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 10px;
   box-shadow: var(--shadow-sm);
 }
 
-.risk-card-header {
+.heatmap-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.heatmap-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.heatmap-controls-right {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.heatmap-toggles {
+  display: flex;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.hm-toggle-btn {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 10px;
+  font-weight: 600;
+  padding: 4px 8px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.hm-toggle-btn.is-active {
+  background: var(--accent-cyan);
+  color: #01111E;
+}
+
+[data-theme="light"] .hm-toggle-btn.is-active {
+  background: var(--accent-blue);
+  color: #FFFFFF;
+}
+
+.heatmap-expand-btn {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.heatmap-canvas-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: #010B12;
+  border: 1px solid var(--border-subtle);
+}
+
+.heatmap-legend-box {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(1, 24, 41, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  border-radius: 4px;
+  padding: 4px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  z-index: 10;
+  font-size: 9px;
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .heatmap-legend-box {
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 163, 255, 0.3);
+}
+
+.hm-leg-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hm-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.heatmap-pins-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.heatmap-hud-pin {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 6px;
+  border-radius: 12px;
+  background: rgba(1, 24, 41, 0.88);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  pointer-events: auto;
+}
+
+.heatmap-hud-pin.pin-red { border-color: rgba(255, 77, 77, 0.7); }
+.heatmap-hud-pin.pin-amber { border-color: rgba(255, 184, 0, 0.7); }
+
+.hm-pin-icon { font-size: 8px; color: var(--accent-cyan); }
+.hm-pin-text { display: flex; flex-direction: column; }
+.hm-pin-name { font-size: 8px; font-weight: 700; color: #FFF; }
+.hm-pin-status { font-size: 7px; color: var(--text-muted); }
+
+.heatmap-compass-hud {
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 10;
+}
+
+.heatmap-camera-controls {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  z-index: 10;
+}
+
+.hm-ctrl-btn {
+  width: 24px;
+  height: 24px;
+  background: rgba(1, 24, 41, 0.85);
+  border: 1px solid rgba(0, 240, 255, 0.3);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Right Stack */
+.risk-right-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.risk-panel-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  box-shadow: var(--shadow-sm);
+}
+
+.panel-header-with-select,
+.panel-header-with-action {
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
-.risk-card-title {
-  font-size: 14px;
-  font-weight: 700;
-  color: var(--text-primary);
-}
-
-/* 5 Resilience Pillars Dials */
-.factors-circle-row {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 10px;
-  min-width: 0;
-}
-
-@media (max-width: 900px) {
-  .factors-circle-row {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.factor-dial-item {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 6px;
-  min-width: 0;
-}
-
-.factor-circular-wrap {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-}
-
-.factor-svg {
-  width: 100%;
-  height: 100%;
-}
-
-.factor-bg {
-  fill: none;
-  stroke: var(--bg-surface-elevated);
-  stroke-width: 3.5;
-}
-
-.factor-fill {
-  fill: none;
-  stroke-width: 3.5;
-  stroke-linecap: round;
-  transition: stroke-dasharray 0.5s ease;
-}
-
-.factor-number {
-  position: absolute;
+.risk-panel-title {
   font-size: 12px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-.factor-name {
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-primary);
-  line-height: 1.2;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-.factor-desc {
-  font-size: 9px;
-  color: var(--text-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
-}
-
-/* Risk Donut */
-.donut-body-row {
+.title-with-info {
   display: flex;
   align-items: center;
-  gap: 18px;
-  padding: 8px 0;
+  gap: 5px;
 }
 
-.donut-visual-box {
-  width: 100px;
-  height: 100px;
-  border-radius: 50%;
+.panel-select {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 9px;
+}
+
+.view-all-link {
+  background: transparent;
+  border: none;
+  color: var(--accent-cyan);
+  font-size: 10px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* Donut Split */
+.risk-donut-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  gap: 14px;
+}
+
+.donut-wrap {
+  position: relative;
+  width: 84px;
+  height: 84px;
   display: flex;
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
 }
 
-.donut-center-stat {
-  width: 68px;
-  height: 68px;
-  border-radius: 50%;
-  background: var(--bg-surface);
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.donut-center-meta {
+  position: absolute;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  text-align: center;
 }
 
-.donut-huge-num {
-  font-size: 18px;
+.donut-big-num {
+  font-size: 17px;
   font-weight: 800;
   color: var(--text-primary);
   line-height: 1;
 }
 
-.donut-label {
+.donut-sub-txt {
   font-size: 8px;
   color: var(--text-muted);
-  text-transform: uppercase;
 }
 
 .donut-legend-col {
+  flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  flex: 1;
+  gap: 4px;
+  font-size: 9px;
 }
 
-.legend-row {
+.d-leg-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 11px;
+  justify-content: space-between;
+}
+
+.d-leg-left {
+  display: flex;
+  align-items: center;
+  gap: 5px;
   color: var(--text-secondary);
 }
 
-.legend-bullet {
-  width: 8px;
-  height: 8px;
+.d-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  flex-shrink: 0;
 }
 
-.percentage {
-  margin-left: auto;
+.d-val {
+  font-weight: 700;
+}
+
+/* Resilience Components Dials Row */
+.resilience-components-dials-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 0;
+}
+
+.r-comp-dial-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 3px;
+}
+
+.r-dial-svg-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.r-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+
+.r-track { stroke: var(--border-subtle); }
+
+.r-dial-num {
+  position: absolute;
+  font-size: 11px;
   font-weight: 700;
   color: var(--text-primary);
 }
 
-/* 3. BOTTOM ROW */
+.r-dial-lbl {
+  font-size: 8px;
+  color: var(--text-muted);
+  line-height: 1.1;
+}
+
+/* --------------------------------------------------------------------------
+   3. BOTTOM 3 CARDS ROW
+   -------------------------------------------------------------------------- */
+
 .risk-bottom-grid {
   display: grid;
-  grid-template-columns: 1.4fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 16px;
-  min-width: 0;
 }
 
 @media (max-width: 1100px) {
@@ -328,90 +496,83 @@
   }
 }
 
-.risk-table-wrap {
-  overflow-x: auto;
-  min-width: 0;
-}
-
 .risk-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 11px;
+  font-size: 9px;
+  text-align: center;
 }
 
-.risk-table th {
-  text-align: left;
-  padding: 8px 10px;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-subtle);
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  vertical-align: middle;
-}
-
+.risk-table th,
 .risk-table td {
-  padding: 8px 10px;
+  padding: 5px 6px;
   border-bottom: 1px solid var(--border-subtle);
   color: var(--text-secondary);
-  vertical-align: middle;
 }
 
-.risk-table tbody tr {
-  transition: background-color 0.15s ease;
+.risk-badge {
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 8px;
+  font-weight: 700;
 }
 
-.risk-table tbody tr:hover {
-  background-color: var(--bg-hover);
-}
+.badge-high { background: rgba(255, 77, 77, 0.15); color: #FF4D4D; }
+.badge-medium { background: rgba(255, 184, 0, 0.15); color: #FFB800; }
+.badge-low { background: rgba(0, 229, 163, 0.15); color: #00E5A3; }
 
-.service-risk-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.service-risk-row {
+.status-inline {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 4px 6px;
-  border-radius: var(--radius-xs);
-  transition: background-color 0.15s ease;
+  justify-content: center;
+  gap: 4px;
 }
 
-.service-risk-row:hover {
-  background-color: var(--bg-hover);
-}
-
-.service-risk-name-col {
-  width: 140px;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-}
-
-.service-name-text {
-  font-size: 11px;
-  font-weight: 600;
+.font-bold {
+  font-weight: 700;
   color: var(--text-primary);
 }
 
-.service-status-pill {
-  font-size: 9px;
+/* Resilience Trend Chart */
+.resilience-trend-chart-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.trend-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  font-size: 8px;
+  color: var(--text-muted);
+  height: 80px;
+  text-align: right;
+}
+
+.trend-svg-container {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.trend-chart-svg {
+  width: 100%;
+  height: 80px;
+}
+
+.trend-x-axis {
+  display: flex;
+  justify-content: space-between;
+  font-size: 7px;
   color: var(--text-muted);
 }
 
-.service-score-bar-wrap {
-  flex: 1;
-  height: 6px;
-  background: var(--bg-surface-elevated);
-  border-radius: 9999px;
-  overflow: hidden;
-}
-
-.service-score-bar-fill {
-  height: 100%;
-  border-radius: 9999px;
-  transition: width 0.4s ease;
+.trend-legend-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 8px;
+  color: var(--text-muted);
 }

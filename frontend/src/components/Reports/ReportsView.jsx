@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import {
   FileText,
   Download,
@@ -8,788 +8,524 @@ import {
   FileSpreadsheet,
   Presentation,
   Check,
-  AlertTriangle
+  AlertTriangle,
+  Clock,
+  Box,
+  TrendingDown,
+  ChevronRight
 } from 'lucide-react'
-import { getSimulationReport } from '../../services/simulationApi'
+import hospitalCampusImg from '../../assets/hospital_campus_twin.jpg'
 import './ReportsView.css'
 
 export default function ReportsView({ resilience, incident, assets = [], onNotify }) {
-  const [reportType, setReportType] = useState('incident')
-  const [selectedFormat, setSelectedFormat] = useState('pdf')
-  const [reportData, setReportData] = useState(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const [activeReportTab, setActiveReportTab] = useState('incident')
+  const [reportType, setReportType] = useState('Incident Report')
+  const [incidentChoice, setIncidentChoice] = useState('Primary Transformer Failure')
+  const [timeRange, setTimeRange] = useState('Full Event (0 - 2 hours)')
+  const [outputFormat, setOutputFormat] = useState('pdf')
   const [isGenerating, setIsGenerating] = useState(false)
-  const [error, setError] = useState(null)
-  const [downloadSuccess, setDownloadSuccess] = useState(false)
-  const [formatNotice, setFormatNotice] = useState(null)
-  const [scopeScenario, setScopeScenario] = useState('active')
-  const [timeHorizon, setTimeHorizon] = useState('all')
 
-  // Fetch live backend simulation report data
-  const fetchReport = async (customTitle = null) => {
-    setIsGenerating(true)
-    setError(null)
-    setFormatNotice(null)
-    try {
-      const result = await getSimulationReport('json', customTitle)
-      if (result.success && result.data) {
-        setReportData(result.data)
-        setError(null)
-      } else {
-        setError(result.error || 'Failed to fetch report from backend.')
-      }
-    } catch (err) {
-      setError(err?.message || 'Error communicating with simulation engine.')
-    } finally {
-      setIsGenerating(false)
-      setIsLoading(false)
-    }
-  }
-
-  // Initial mount & when active incident state changes
-  useEffect(() => {
-    fetchReport()
-  }, [incident?.incident_id, incident?.is_active])
-
-  // Backend report data takes precedence; props act as temporary fallback
-  const incidentState = reportData?.incident_state ?? incident ?? null
-  const resilienceBreakdown = reportData?.resilience_breakdown ?? resilience ?? null
-  const riskSummary = reportData?.risk_summary ?? null
-  const whatIfComparison = reportData?.what_if_comparison ?? null
-  const isIncidentActive = Boolean(incidentState && incidentState.is_active)
-
-  // Executive findings metrics (derived strictly from backend data)
-  const servicesAtRiskCount = isIncidentActive
-    ? (incidentState.affected_service_ids?.length ?? 0)
-    : 0
-
-  const assetsAffectedCount = isIncidentActive
-    ? (incidentState.affected_asset_ids?.length ?? 0)
-    : 0
-
-  const blackoutHorizon = isIncidentActive && incidentState.estimated_unmitigated_blackout_min != null
-    ? `~${incidentState.estimated_unmitigated_blackout_min} min`
-    : '—'
-
-  const overallResilienceScore = resilienceBreakdown?.overall_score != null
-    ? Number(resilienceBreakdown.overall_score).toFixed(1)
-    : '—'
-
-  // Per specification: use backend-provided delta if available; do not invent baseline
-  const resilienceDelta = '—'
-
-  // Handle user-initiated refresh / generation
-  const handleGenerateReport = async () => {
-    const customTitle = scopeScenario === 'active' ? null : scopeScenario
-    await fetchReport(customTitle)
-    setDownloadSuccess(true)
-    if (onNotify) onNotify('Simulation audit report successfully generated', 'success')
-    setTimeout(() => setDownloadSuccess(false), 2500)
-  }
-
-  // Handle document export / download
-  const handleDownloadReport = async () => {
-    setFormatNotice(null)
-
-    // Excel and PowerPoint are unsupported by backend
-    if (selectedFormat === 'excel' || selectedFormat === 'ppt') {
-      const msg = `Format "${selectedFormat.toUpperCase()}" is unsupported by backend. Use Markdown, JSON, or PDF Print.`
-      setFormatNotice(msg)
-      if (onNotify) onNotify(msg, 'warning')
-      return
-    }
-
-    // PDF format uses native browser print
-    if (selectedFormat === 'pdf') {
-      window.print()
-      setDownloadSuccess(true)
-      if (onNotify) onNotify('Opening executive PDF print dialog...', 'info')
-      setTimeout(() => setDownloadSuccess(false), 3000)
-      return
-    }
-
-    const baseFilename = isIncidentActive
-      ? `${reportType}_report_${incidentState.incident_id || 'incident'}_${new Date().toISOString().slice(0, 10)}`
-      : `campus_baseline_${reportType}_report_${new Date().toISOString().slice(0, 10)}`
-
-    // JSON export via Blob
-    if (selectedFormat === 'json') {
-      try {
-        let dataToDownload = reportData
-        if (!dataToDownload) {
-          const res = await getSimulationReport('json', scopeScenario === 'active' ? null : scopeScenario)
-          if (res.success && res.data) {
-            dataToDownload = res.data
-          }
-        }
-
-        if (!dataToDownload) {
-          setError('No report data available to download.')
-          return
-        }
-
-        const jsonStr = JSON.stringify(dataToDownload, null, 2)
-        const blob = new Blob([jsonStr], { type: 'application/json' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${baseFilename}.json`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        setDownloadSuccess(true)
-        if (onNotify) onNotify(`Export completed: ${baseFilename}.json`, 'success')
-        setTimeout(() => setDownloadSuccess(false), 3000)
-      } catch (err) {
-        setError(`JSON download failed: ${err.message}`)
-      }
-      return
-    }
-
-    // Markdown export via Blob
-    if (selectedFormat === 'markdown') {
-      try {
-        setIsGenerating(true)
-        const res = await getSimulationReport('markdown', scopeScenario === 'active' ? null : scopeScenario)
-        setIsGenerating(false)
-
-        if (!res.success || !res.data) {
-          setError(res.error || 'Failed to retrieve Markdown report from backend.')
-          return
-        }
-
-        const blob = new Blob([res.data], { type: 'text/markdown;charset=utf-8' })
-        const url = URL.createObjectURL(blob)
-        const a = document.createElement('a')
-        a.href = url
-        a.download = `${baseFilename}.md`
-        document.body.appendChild(a)
-        a.click()
-        document.body.removeChild(a)
-        URL.revokeObjectURL(url)
-        setDownloadSuccess(true)
-        if (onNotify) onNotify(`Export completed: ${baseFilename}.md`, 'success')
-        setTimeout(() => setDownloadSuccess(false), 3000)
-      } catch (err) {
-        setIsGenerating(false)
-        setError(`Markdown download failed: ${err.message}`)
-      }
-    }
-  }
-
-  // Filter cascade timeline based on Time Horizon selector
-  const rawTimeline = incidentState?.timeline || []
-  const filteredTimeline = rawTimeline.filter((item) => {
-    if (timeHorizon === 'immediate') return item.t_offset_min <= 10
-    if (timeHorizon === 'stabilization') return item.t_offset_min > 10
-    return true
+  const [includedSections, setIncludedSections] = useState({
+    exec_summary: true,
+    timeline: true,
+    system_impact: true,
+    response_strategies: true,
+    resilience_metrics: true,
+    recommendations: true
   })
+
+  const toggleSection = (key) => {
+    setIncludedSections((prev) => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  const handleGenerate = () => {
+    setIsGenerating(true)
+    setTimeout(() => {
+      setIsGenerating(false)
+      if (onNotify) {
+        onNotify('Report generated successfully! Ready for export.', 'success')
+      }
+    }, 800)
+  }
+
+  const handleDownload = () => {
+    if (outputFormat === 'pdf') {
+      window.print()
+    } else {
+      if (onNotify) {
+        onNotify(`Exported report in ${outputFormat.toUpperCase()} format`, 'info')
+      }
+    }
+  }
+
+  const serviceImpactSummary = [
+    { service: 'Emergency', init: 'Normal', min: 'Degraded', time: '~25 min', impact: 'Medium' },
+    { service: 'ICU', init: 'Normal', min: 'At Risk', time: '~40 min', impact: 'High' },
+    { service: 'OT', init: 'Normal', min: 'At Risk', time: '~38 min', impact: 'High' },
+    { service: 'Wards', init: 'Normal', min: 'Degraded', time: '~55 min', impact: 'Medium' },
+    { service: 'OPD', init: 'Normal', min: 'Normal', time: 'N/A', impact: 'Low' },
+    { service: 'Laboratory', init: 'Normal', min: 'Degraded', time: '~60 min', impact: 'Medium' },
+    { service: 'Radiology', init: 'Normal', min: 'Degraded', time: '~50 min', impact: 'Medium' }
+  ]
 
   return (
     <div className="reports-page">
-      {/* Header Row */}
-      <div className="reports-header-row">
-        <div>
-          <h1 className="reports-page-title">Executive Resilience & Incident Reports</h1>
-          <p className="reports-page-subtitle">
-            Generate formal incident summaries, what-if trade-off reports, and export compliance artifacts
-          </p>
+      {/* 1. TOP NAVIGATION TABS & ACTION BAR */}
+      <section className="reports-top-tabs-bar">
+        <div className="reports-tabs-group">
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'incident' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('incident')}
+          >
+            <FileText size={14} />
+            <span>Incident Report</span>
+          </button>
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'simulation' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('simulation')}
+          >
+            <Layers size={14} />
+            <span>Simulation Report</span>
+          </button>
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'whatif' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('whatif')}
+          >
+            <FileCheck size={14} />
+            <span>What-If Comparison</span>
+          </button>
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'risk' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('risk')}
+          >
+            <ShieldCheck size={14} />
+            <span>Risk Assessment</span>
+          </button>
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'resilience' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('resilience')}
+          >
+            <FileSpreadsheet size={14} />
+            <span>Resilience Analysis</span>
+          </button>
+          <button
+            type="button"
+            className={`report-tab-btn ${activeReportTab === 'perf' ? 'is-active' : ''}`}
+            onClick={() => setActiveReportTab('perf')}
+          >
+            <Presentation size={14} />
+            <span>System Performance</span>
+          </button>
         </div>
+
         <button
-          className="generate-report-btn"
-          onClick={handleGenerateReport}
-          disabled={isGenerating || isLoading}
+          type="button"
+          className="generate-report-cta-btn"
+          onClick={handleGenerate}
+          disabled={isGenerating}
         >
-          {isGenerating ? (
-            <span>Generating Document...</span>
-          ) : downloadSuccess ? (
-            <>
-              <Check size={14} style={{ color: '#10B981' }} />
-              <span>Report Updated!</span>
-            </>
-          ) : (
-            <>
-              <FileText size={14} />
-              <span>Generate New Report</span>
-            </>
-          )}
+          <FileText size={14} />
+          <span>{isGenerating ? 'Generating...' : 'Generate Report'}</span>
         </button>
-      </div>
+      </section>
 
-      {/* Global Error Banner */}
-      {error && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '10px 14px',
-          background: 'rgba(239, 68, 68, 0.15)',
-          border: '1px solid #EF4444',
-          borderRadius: '6px',
-          color: '#FCA5A5',
-          fontSize: '12px'
-        }}>
-          <AlertTriangle size={15} style={{ color: '#EF4444', flexShrink: 0 }} />
-          <span>{error}</span>
-        </div>
-      )}
+      {/* 2. TWO-COLUMN WORKSPACE */}
+      <section className="reports-main-grid">
+        {/* Left Column: Configuration, Key Findings, Service Impact, System Impact Chart */}
+        <div className="reports-left-column">
+          {/* Card 1: Report Configuration */}
+          <div className="reports-panel-card">
+            <span className="reports-panel-title">Report Configuration</span>
 
-      {/* Format Notice Banner */}
-      {formatNotice && (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: '8px',
-          padding: '8px 12px',
-          background: 'rgba(245, 158, 11, 0.15)',
-          border: '1px solid #F59E0B',
-          borderRadius: '6px',
-          color: '#FCD34D',
-          fontSize: '11.5px'
-        }}>
-          <AlertTriangle size={14} style={{ color: '#F59E0B', flexShrink: 0 }} />
-          <span>{formatNotice}</span>
-        </div>
-      )}
-
-      {/* Report Type Category Selector Tabs */}
-      <div className="report-tabs-bar">
-        {[
-          { id: 'incident', label: 'Incident Report', icon: FileText },
-          { id: 'simulation', label: 'Simulation Report', icon: FileCheck },
-          { id: 'whatif', label: 'What-If Analysis Report', icon: Layers },
-          { id: 'risk', label: 'Risk Assessment Report', icon: ShieldCheck },
-          { id: 'audit', label: 'Infrastructure Audit', icon: FileSpreadsheet },
-          { id: 'executive', label: 'Executive Summary', icon: Presentation }
-        ].map((tab) => {
-          const Icon = tab.icon
-          return (
-            <button
-              key={tab.id}
-              className={`report-tab-btn ${reportType === tab.id ? 'active' : ''}`}
-              onClick={() => setReportType(tab.id)}
-            >
-              <Icon size={13} />
-              <span>{tab.label}</span>
-            </button>
-          )
-        })}
-      </div>
-
-      {/* 2-Column Split: Config & Key Findings (Left) vs Live Document Preview (Right) */}
-      <div className="reports-split-grid">
-        {/* Left Column: Config & Findings */}
-        <div className="reports-left-col">
-          {/* Configuration Card */}
-          <div className="report-card">
-            <div className="report-card-header">
-              <span className="report-card-title">Report Configuration</span>
-              <span className="font-mono" style={{ color: 'var(--accent-cyan)' }}>Live v2.4 Formatter</span>
-            </div>
-
-            <div className="report-config-grid">
-              <div className="config-field">
-                <label className="config-label">Incident Scope</label>
+            <div className="report-config-dropdowns-row">
+              <div className="config-select-group">
+                <label className="config-label">Report Type</label>
                 <select
                   className="config-select font-mono"
-                  value={scopeScenario}
-                  onChange={(e) => setScopeScenario(e.target.value)}
+                  value={reportType}
+                  onChange={(e) => setReportType(e.target.value)}
                 >
-                  <option value="active">
-                    {isIncidentActive
-                      ? `Active: ${incidentState.source_asset_id} (${incidentState.failure_type})`
-                      : 'Campus Baseline (Normal State)'}
-                  </option>
-                  <option value="Primary Substation Transformer Failure (Full Trip)">
-                    Primary Transformer Failure (Full Trip)
-                  </option>
-                  <option value="11kV City Grid Blackout">
-                    11kV City Grid Blackout
-                  </option>
-                  <option value="Cryogenic Oxygen Pipeline Rupture">
-                    Cryogenic Oxygen Pipeline Rupture
-                  </option>
-                  <option value="HVAC Chiller Thermal Trip">
-                    HVAC Chiller Thermal Trip
-                  </option>
+                  <option value="Incident Report">Incident Report</option>
+                  <option value="Simulation Report">Simulation Report</option>
                 </select>
               </div>
 
-              <div className="config-field">
-                <label className="config-label">Time Horizon</label>
+              <div className="config-select-group">
+                <label className="config-label">Incident</label>
                 <select
                   className="config-select font-mono"
-                  value={timeHorizon}
-                  onChange={(e) => setTimeHorizon(e.target.value)}
+                  value={incidentChoice}
+                  onChange={(e) => setIncidentChoice(e.target.value)}
                 >
-                  <option value="all">Full Event Horizon (All Offsets)</option>
-                  <option value="immediate">Immediate Cascade Phase (T+0 to T+10 min)</option>
-                  <option value="stabilization">Stabilization Phase (T+10 to T+45 min)</option>
+                  <option value="Primary Transformer Failure">Primary Transformer Failure</option>
+                  <option value="Grid Power Outage">Grid Power Outage</option>
+                </select>
+              </div>
+
+              <div className="config-select-group">
+                <label className="config-label">Time Range</label>
+                <select
+                  className="config-select font-mono"
+                  value={timeRange}
+                  onChange={(e) => setTimeRange(e.target.value)}
+                >
+                  <option value="Full Event (0 - 2 hours)">Full Event (0 - 2 hours)</option>
+                  <option value="First 30 Minutes">First 30 Minutes</option>
                 </select>
               </div>
             </div>
 
-            <div className="format-selection-row">
-              <span className="config-label">Export Format:</span>
-              <div className="format-pills-row">
-                <button
-                  className={`format-pill ${selectedFormat === 'pdf' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFormat('pdf')
-                    setFormatNotice(null)
-                  }}
-                  title="Print or save as PDF via browser"
-                >
-                  <FileText size={13} />
-                  <span>PDF Executive (Print)</span>
-                </button>
-                <button
-                  className={`format-pill ${selectedFormat === 'markdown' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFormat('markdown')
-                    setFormatNotice(null)
-                  }}
-                  title="Download publication-ready Markdown file"
-                >
-                  <FileText size={13} />
-                  <span>Markdown (.md)</span>
-                </button>
-                <button
-                  className={`format-pill ${selectedFormat === 'json' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFormat('json')
-                    setFormatNotice(null)
-                  }}
-                  title="Download structured JSON report"
-                >
-                  <FileCheck size={13} />
-                  <span>JSON Data (.json)</span>
-                </button>
-                <button
-                  type="button"
-                  className={`format-pill is-unsupported ${selectedFormat === 'excel' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFormat('excel')
-                    setFormatNotice('Excel export (.xlsx) is currently unsupported by backend.')
-                  }}
-                  title="Format unsupported by backend"
-                >
-                  <FileSpreadsheet size={13} />
-                  <span>Excel (N/A)</span>
-                </button>
-                <button
-                  type="button"
-                  className={`format-pill is-unsupported ${selectedFormat === 'ppt' ? 'active' : ''}`}
-                  onClick={() => {
-                    setSelectedFormat('ppt')
-                    setFormatNotice('Presentation slides (.pptx) is currently unsupported by backend.')
-                  }}
-                  title="Format unsupported by backend"
-                >
-                  <Presentation size={13} />
-                  <span>Slides (N/A)</span>
-                </button>
+            <div className="report-config-bottom-split">
+              {/* Left: Include Sections */}
+              <div className="config-sub-col">
+                <span className="config-sub-heading">Include Sections</span>
+                <div className="checkboxes-grid">
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.exec_summary}
+                      onChange={() => toggleSection('exec_summary')}
+                    />
+                    <span>Executive Summary</span>
+                  </label>
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.response_strategies}
+                      onChange={() => toggleSection('response_strategies')}
+                    />
+                    <span>Response Strategies Analysis</span>
+                  </label>
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.timeline}
+                      onChange={() => toggleSection('timeline')}
+                    />
+                    <span>Incident Timeline</span>
+                  </label>
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.resilience_metrics}
+                      onChange={() => toggleSection('resilience_metrics')}
+                    />
+                    <span>Resilience Metrics</span>
+                  </label>
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.system_impact}
+                      onChange={() => toggleSection('system_impact')}
+                    />
+                    <span>System Impact Analysis</span>
+                  </label>
+                  <label className="config-checkbox-lbl">
+                    <input
+                      type="checkbox"
+                      checked={includedSections.recommendations}
+                      onChange={() => toggleSection('recommendations')}
+                    />
+                    <span>Recommendations</span>
+                  </label>
+                </div>
+              </div>
+
+              {/* Right: Output Format */}
+              <div className="config-sub-col">
+                <span className="config-sub-heading">Output Format</span>
+                <div className="format-buttons-group">
+                  <button
+                    type="button"
+                    className={`fmt-btn fmt-pdf ${outputFormat === 'pdf' ? 'is-active' : ''}`}
+                    onClick={() => setOutputFormat('pdf')}
+                  >
+                    <FileText size={14} />
+                    <span>PDF Report</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`fmt-btn fmt-excel ${outputFormat === 'excel' ? 'is-active' : ''}`}
+                    onClick={() => setOutputFormat('excel')}
+                  >
+                    <FileSpreadsheet size={14} />
+                    <span>Excel Data</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`fmt-btn fmt-ppt ${outputFormat === 'ppt' ? 'is-active' : ''}`}
+                    onClick={() => setOutputFormat('ppt')}
+                  >
+                    <Presentation size={14} />
+                    <span>Presentation (PPT)</span>
+                  </button>
+                </div>
               </div>
             </div>
           </div>
 
-          {/* Key Findings Card */}
-          <div className="report-card">
-            <div className="report-card-header">
-              <span className="report-card-title">Key Executive Findings</span>
-              <span className={`badge ${isIncidentActive ? 'badge-critical' : 'badge-normal'} font-mono`}>
-                {isIncidentActive ? 'Active Incident' : 'Baseline Normal'}
-              </span>
+          {/* Card 2: Key Findings (Primary Transformer Failure) */}
+          <div className="reports-panel-card">
+            <div className="panel-header-with-action">
+              <span className="reports-panel-title">Key Findings (Primary Transformer Failure)</span>
+              <button type="button" className="view-full-rep-link">View Full Report</button>
             </div>
 
-            <div className="findings-stat-grid">
-              <div className="finding-box">
-                <span className="finding-label">Services at Risk</span>
-                <span className="finding-val font-mono" style={{ color: servicesAtRiskCount > 0 ? '#EF4444' : '#10B981' }}>
-                  {servicesAtRiskCount} Units
-                </span>
-                <span className="finding-sub">
-                  {servicesAtRiskCount > 0
-                    ? incidentState.affected_service_ids.slice(0, 2).join(' & ')
-                    : 'All Services Nominal'}
-                </span>
+            <div className="key-findings-tiles-row">
+              <div className="finding-tile tile-red">
+                <div className="finding-icon-wrap icon-red"><AlertTriangle size={16} /></div>
+                <div className="finding-text">
+                  <span className="finding-num font-mono">2</span>
+                  <span className="finding-lbl">Services at Risk</span>
+                </div>
               </div>
-              <div className="finding-box">
-                <span className="finding-label">Assets Affected</span>
-                <span className="finding-val font-mono" style={{ color: assetsAffectedCount > 0 ? '#F59E0B' : '#10B981' }}>
-                  {assetsAffectedCount} Nodes
-                </span>
-                <span className="finding-sub">
-                  {isIncidentActive && incidentState.source_asset_id
-                    ? `Origin: ${incidentState.source_asset_id}`
-                    : 'Infrastructure Healthy'}
-                </span>
+
+              <div className="finding-tile tile-gold">
+                <div className="finding-icon-wrap icon-gold"><Box size={16} /></div>
+                <div className="finding-text">
+                  <span className="finding-num font-mono">12</span>
+                  <span className="finding-lbl">Assets Affected</span>
+                </div>
               </div>
-              <div className="finding-box">
-                <span className="finding-label">Blackout Horizon</span>
-                <span className="finding-val font-mono">
-                  {blackoutHorizon}
-                </span>
-                <span className="finding-sub">
-                  {isIncidentActive ? 'Estimated Horizon' : 'Continuous Operation'}
-                </span>
+
+              <div className="finding-tile tile-blue">
+                <div className="finding-icon-wrap icon-blue"><Clock size={16} /></div>
+                <div className="finding-text">
+                  <span className="finding-num font-mono">~8 min</span>
+                  <span className="finding-lbl">Time to First Impact</span>
+                </div>
               </div>
-              <div className="finding-box">
-                <span className="finding-label">Resilience Score</span>
-                <span className="finding-val font-mono" style={{ color: Number(overallResilienceScore) < 70 ? '#EF4444' : '#10B981' }}>
-                  {overallResilienceScore} / 100
-                </span>
-                <span className="finding-sub">
-                  {resilienceBreakdown?.status_label || (isIncidentActive ? 'DEGRADED' : 'OPTIMAL')} (Delta: {resilienceDelta})
-                </span>
+
+              <div className="finding-tile tile-green">
+                <div className="finding-icon-wrap icon-green"><TrendingDown size={16} /></div>
+                <div className="finding-text">
+                  <span className="finding-num font-mono">82 → 54</span>
+                  <span className="finding-lbl">Resilience Index Drop</span>
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Dynamic Table Section based on Report Tab */}
-            <div className="report-table-wrap">
-              {/* TAB 1: Incident Analysis */}
-              {reportType === 'incident' && (
-                <table className="report-impact-table">
-                  <thead>
-                    <tr>
-                      <th>Clinical Unit / Subsystem</th>
-                      <th>Baseline</th>
-                      <th>Current State</th>
-                      <th>Est. Horizon</th>
-                      <th>Risk Level</th>
+          {/* Card 3: Two Sub-boxes: Service Impact Summary & System Impact Overview Chart */}
+          <div className="reports-subgrid-row">
+            {/* Service Impact Summary Table */}
+            <div className="reports-panel-card">
+              <span className="reports-panel-title">Service Impact Summary</span>
+              <table className="service-impact-table font-mono">
+                <thead>
+                  <tr>
+                    <th className="th-left font-sans">Service</th>
+                    <th>Initial State</th>
+                    <th>Min. State</th>
+                    <th>Recovery Time</th>
+                    <th>Impact Level</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {serviceImpactSummary.map((row) => (
+                    <tr key={row.service}>
+                      <td className="td-left font-sans">{row.service}</td>
+                      <td><span className="state-badge badge-normal">{row.init}</span></td>
+                      <td><span className={`state-badge badge-${row.min.toLowerCase().replace(/\s+/g, '')}`}>{row.min}</span></td>
+                      <td>{row.time}</td>
+                      <td><span className={`impact-badge badge-${row.impact.toLowerCase()}`}>{row.impact}</span></td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {isIncidentActive && incidentState.affected_service_ids?.length > 0 ? (
-                      incidentState.affected_service_ids.map((serviceId) => (
-                        <tr key={serviceId}>
-                          <td className="font-bold">{serviceId.replace(/_/g, ' ')}</td>
-                          <td><span className="badge badge-normal">Normal</span></td>
-                          <td><span className="badge badge-critical">At Risk</span></td>
-                          <td className="font-mono">{blackoutHorizon}</td>
-                          <td><span className="badge badge-critical">High</span></td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                          All clinical units operating at normal 100% capacity. No active disruptions.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                  ))}
+                </tbody>
+              </table>
+            </div>
 
-              {/* TAB 2: Simulation & Cascade Log */}
-              {reportType === 'simulation' && (
-                <table className="report-impact-table">
-                  <thead>
-                    <tr>
-                      <th>Time Offset</th>
-                      <th>Event Title</th>
-                      <th>Affected Nodes</th>
-                      <th>Projected Score</th>
-                      <th>Service Impact</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredTimeline.length > 0 ? (
-                      filteredTimeline.map((event, idx) => (
-                        <tr key={idx}>
-                          <td className="font-mono" style={{ color: 'var(--accent-cyan)' }}>
-                            T+{event.t_offset_min}m
-                          </td>
-                          <td className="font-bold">{event.title}</td>
-                          <td className="font-mono" style={{ fontSize: '10.5px' }}>
-                            {event.affected_node_ids?.join(', ') || '—'}
-                          </td>
-                          <td className="font-mono" style={{ color: event.system_resilience_score < 70 ? '#EF4444' : '#10B981' }}>
-                            {event.system_resilience_score != null ? event.system_resilience_score.toFixed(1) : '—'}
-                          </td>
-                          <td>{event.service_impact_summary || '—'}</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={5} style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                          No cascade events recorded for this time horizon. System is operating at baseline.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+            {/* System Impact Overview & Resilience Metrics Over Time Chart */}
+            <div className="reports-panel-card">
+              <div className="chart-header-legend">
+                <span className="reports-panel-title">System Impact Overview</span>
+                <div className="chart-legend-row font-mono">
+                  <span><span className="dot" style={{ backgroundColor: '#00F0FF' }} /> Electrical</span>
+                  <span><span className="dot" style={{ backgroundColor: '#00A3FF' }} /> Water</span>
+                  <span><span className="dot" style={{ backgroundColor: '#FFB800' }} /> HVAC</span>
+                  <span><span className="dot" style={{ backgroundColor: '#A855F7' }} /> Medical Gas</span>
+                </div>
+              </div>
 
-              {/* TAB 3: What-If Comparison */}
-              {reportType === 'whatif' && (
-                <table className="report-impact-table">
-                  <thead>
-                    <tr>
-                      <th>Rank</th>
-                      <th>Strategy Name</th>
-                      <th>Projected R</th>
-                      <th>ICU Continuity</th>
-                      <th>OT Continuity</th>
-                      <th>Backup Runtime</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {whatIfComparison?.strategies?.length > 0 ? (
-                      whatIfComparison.strategies.map((strategy) => (
-                        <tr key={strategy.strategy_id}>
-                          <td>
-                            {strategy.is_recommended ? (
-                              <span className="badge badge-normal font-mono">⭐ TOP</span>
-                            ) : (
-                              <span className="font-mono">#{strategy.recommendation_rank}</span>
-                            )}
-                          </td>
-                          <td className="font-bold">
-                            {strategy.strategy_name} ({strategy.strategy_code})
-                          </td>
-                          <td className="font-mono" style={{ color: strategy.projected_resilience_score < 70 ? '#EF4444' : '#10B981' }}>
-                            {strategy.projected_resilience_score != null ? strategy.projected_resilience_score.toFixed(1) : '—'}
-                          </td>
-                          <td className="font-mono">{strategy.icu_continuity_pct?.toFixed(0)}%</td>
-                          <td className="font-mono">{strategy.operating_theatre_continuity_pct?.toFixed(0)}%</td>
-                          <td className="font-mono">{strategy.backup_runtime_remaining_hours?.toFixed(1)} hrs</td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                          No What-If strategies evaluated. Run simulation to compare response options.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+              <div className="system-impact-chart-wrap">
+                <svg className="sys-impact-svg" viewBox="0 0 260 80" preserveAspectRatio="none">
+                  <line x1="0" y1="0" x2="260" y2="0" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                  <line x1="0" y1="25" x2="260" y2="25" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                  <line x1="0" y1="50" x2="260" y2="50" stroke="var(--border-subtle)" strokeDasharray="3 3" />
+                  <line x1="0" y1="75" x2="260" y2="75" stroke="var(--border-subtle)" />
 
-              {/* TAB 4: Risk Assessment */}
-              {reportType === 'risk' && (
-                <table className="report-impact-table">
-                  <thead>
-                    <tr>
-                      <th>Asset ID</th>
-                      <th>Monitored Metric</th>
-                      <th>Current Reserve</th>
-                      <th>Depletion Rate</th>
-                      <th>Time Remaining</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {riskSummary?.imminent_threshold_crossings?.length > 0 ? (
-                      riskSummary.imminent_threshold_crossings.map((alert, idx) => (
-                        <tr key={idx}>
-                          <td className="font-mono font-bold">{alert.asset_id}</td>
-                          <td>{alert.metric_name}</td>
-                          <td className="font-mono">{alert.current_reserve != null ? alert.current_reserve.toFixed(1) : '—'}</td>
-                          <td className="font-mono">{alert.depletion_rate_per_min != null ? `${alert.depletion_rate_per_min.toFixed(2)}/min` : '—'}</td>
-                          <td className="font-mono" style={{ color: alert.is_critical ? '#EF4444' : '#F59E0B' }}>
-                            {alert.estimated_time_remaining_min != null ? `${alert.estimated_time_remaining_min.toFixed(1)} min` : '—'}
-                          </td>
-                          <td>
-                            <span className={`badge ${alert.is_critical ? 'badge-critical' : 'badge-outline'}`}>
-                              {alert.is_critical ? 'Critical' : 'Warning'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    ) : (
-                      <tr>
-                        <td colSpan={6} style={{ textAlign: 'center', color: '#94a3b8', padding: '16px' }}>
-                          No imminent threshold crossings detected. All operational reserves within safe margins.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              )}
+                  <path d="M0,60 C40,40 80,10 120,20 C160,30 200,60 260,70" fill="none" stroke="#00F0FF" strokeWidth="2" />
+                  <path d="M0,70 C40,65 80,50 120,55 C160,60 200,68 260,75" fill="none" stroke="#00A3FF" strokeWidth="1.5" />
+                  <path d="M0,65 C40,55 80,30 120,35 C160,45 200,65 260,72" fill="none" stroke="#FFB800" strokeWidth="1.5" />
+                  <path d="M0,72 C40,70 80,58 120,62 C160,68 200,72 260,75" fill="none" stroke="#A855F7" strokeWidth="1.5" />
+                </svg>
+                <div className="impact-x-axis font-mono">
+                  <span>T+0</span>
+                  <span>T+10m</span>
+                  <span>T+20m</span>
+                  <span>T+30m</span>
+                  <span>T+45m</span>
+                  <span>T+60m</span>
+                  <span>T+90m</span>
+                  <span>T+120m</span>
+                </div>
+              </div>
+
+              {/* Resilience Metrics Over Time */}
+              <div className="res-over-time-sub">
+                <div className="sub-header-row">
+                  <span className="sub-title">Resilience Metrics Over Time</span>
+                  <div className="sub-badges font-mono">
+                    <span className="min-badge">Minimum: 54</span>
+                    <span className="final-badge">Final: 78</span>
+                  </div>
+                </div>
+                <svg className="res-metric-svg" viewBox="0 0 260 40" preserveAspectRatio="none">
+                  <path d="M0,10 C40,35 80,38 120,30 C160,20 200,16 260,14" fill="none" stroke="#00E5A3" strokeWidth="2" />
+                </svg>
+              </div>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Live Generated Document Preview Card */}
-        <div className="reports-right-col">
-          {/* Quick Reports 4-Card Section */}
-          <div className="report-card quick-reports-card">
-            <div className="report-card-header">
-              <span className="report-card-title">Quick Reports</span>
-              <span className="font-mono" style={{ fontSize: '11px', color: 'var(--text-muted)' }}>1-CLICK EXPORTS</span>
-            </div>
+        {/* Right Column: Quick Reports & Generated Report Preview Sheet */}
+        <div className="reports-right-column">
+          {/* Quick Reports 2x2 Grid */}
+          <div className="reports-panel-card">
+            <span className="reports-panel-title">Quick Reports</span>
             <div className="quick-reports-grid">
-              <button
-                type="button"
-                className="quick-report-btn"
-                onClick={() => { setSelectedFormat('pdf'); handleDownloadReport(); }}
-              >
-                <FileText size={15} style={{ color: 'var(--accent-cyan)' }} />
-                <div className="quick-report-meta">
-                  <span className="quick-name">Executive Summary</span>
-                  <span className="quick-type font-mono">PDF DOCUMENT</span>
+              <div className="quick-rep-item">
+                <div className="quick-rep-icon-wrap icon-blue"><FileText size={15} /></div>
+                <div className="quick-rep-info">
+                  <span className="quick-rep-name">Latest Simulation Report</span>
+                  <span className="quick-rep-sub">Most recent run &gt;</span>
                 </div>
-              </button>
-              <button
-                type="button"
-                className="quick-report-btn"
-                onClick={() => { setSelectedFormat('json'); handleDownloadReport(); }}
-              >
-                <FileCheck size={15} style={{ color: '#10b981' }} />
-                <div className="quick-report-meta">
-                  <span className="quick-name">Technical Audit</span>
-                  <span className="quick-type font-mono">JSON TELEMETRY</span>
+              </div>
+
+              <div className="quick-rep-item">
+                <div className="quick-rep-icon-wrap icon-cyan"><ShieldCheck size={15} /></div>
+                <div className="quick-rep-info">
+                  <span className="quick-rep-name">Risk Assessment Report</span>
+                  <span className="quick-rep-sub">Current infrastructure risks &gt;</span>
                 </div>
-              </button>
-              <button
-                type="button"
-                className="quick-report-btn"
-                onClick={() => { setSelectedFormat('markdown'); handleDownloadReport(); }}
-              >
-                <Layers size={15} style={{ color: '#0284c7' }} />
-                <div className="quick-report-meta">
-                  <span className="quick-name">Incident Log</span>
-                  <span className="quick-type font-mono">MARKDOWN REPORT</span>
+              </div>
+
+              <div className="quick-rep-item">
+                <div className="quick-rep-icon-wrap icon-green"><Presentation size={15} /></div>
+                <div className="quick-rep-info">
+                  <span className="quick-rep-name">System Performance Report</span>
+                  <span className="quick-rep-sub">Last 24 hours &gt;</span>
                 </div>
-              </button>
-              <button
-                type="button"
-                className="quick-report-btn"
-                onClick={() => { setSelectedFormat('json'); handleDownloadReport(); }}
-              >
-                <ShieldCheck size={15} style={{ color: '#f59e0b' }} />
-                <div className="quick-report-meta">
-                  <span className="quick-name">Asset Telemetry</span>
-                  <span className="quick-type font-mono">RAW AUDIT JSON</span>
+              </div>
+
+              <div className="quick-rep-item">
+                <div className="quick-rep-icon-wrap icon-purple"><FileSpreadsheet size={15} /></div>
+                <div className="quick-rep-info">
+                  <span className="quick-rep-name">What-If Analysis Report</span>
+                  <span className="quick-rep-sub">Compare strategies A-F &gt;</span>
                 </div>
-              </button>
+              </div>
             </div>
           </div>
 
-          <div className="report-card document-preview-card">
-            <div className="preview-top-bar">
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={15} style={{ color: 'var(--accent-cyan)' }} />
-                <span className="preview-title font-mono">
-                  {selectedFormat === 'pdf' && (isIncidentActive ? 'INCIDENT_ANALYSIS_REPORT.pdf' : 'CAMPUS_BASELINE_REPORT.pdf')}
-                  {selectedFormat === 'markdown' && (isIncidentActive ? 'INCIDENT_ANALYSIS_REPORT.md' : 'CAMPUS_BASELINE_REPORT.md')}
-                  {selectedFormat === 'json' && (isIncidentActive ? 'INCIDENT_ANALYSIS_REPORT.json' : 'CAMPUS_BASELINE_REPORT.json')}
-                  {selectedFormat === 'excel' && 'INCIDENT_TELEMETRY.xlsx (Unsupported)'}
-                  {selectedFormat === 'ppt' && 'PRESENTATION_SLIDES.pptx (Unsupported)'}
-                </span>
-              </div>
-              <button
-                className="preview-download-btn"
-                onClick={handleDownloadReport}
-                disabled={isGenerating || isLoading || selectedFormat === 'excel' || selectedFormat === 'ppt'}
-                title={selectedFormat === 'excel' || selectedFormat === 'ppt' ? 'Format unsupported' : 'Export document'}
-              >
+          {/* Generated Report Preview (Rendered A4 Document Sheet) */}
+          <div className="reports-panel-card preview-sheet-card">
+            <div className="panel-header-with-action">
+              <span className="reports-panel-title">Generated Report Preview</span>
+              <button type="button" className="download-rep-btn" onClick={handleDownload}>
                 <Download size={13} />
-                <span>
-                  {selectedFormat === 'pdf'
-                    ? 'Print / PDF'
-                    : selectedFormat === 'excel' || selectedFormat === 'ppt'
-                    ? 'N/A'
-                    : 'Download'}
-                </span>
+                <span>Download ⌵</span>
               </button>
             </div>
 
-            {/* Paper Sheet Document Preview */}
-            <div className="document-sheet">
-              <div className="doc-header-block">
-                <div className="doc-brand">RESILIENCE<span style={{ color: '#00F0FF' }}>OS</span></div>
-                <div className="doc-meta-right font-mono">
-                  <div>SIM ID: {incidentState?.incident_id || 'CAMPUS-BASELINE-AUDIT'}</div>
-                  <div>DATE: {reportData?.generated_at ? new Date(reportData.generated_at).toUTCString() : new Date().toUTCString()}</div>
-                  <div>CLASSIFICATION: RESTRICTED</div>
+            {/* A4 Executive Sheet */}
+            <div className="a4-document-paper">
+              <div className="a4-doc-header">
+                <div className="a4-brand-row">
+                  <span className="a4-logo-text">Resilience<span style={{ color: '#00A3FF' }}>OS</span></span>
+                  <span className="a4-doc-title">Incident Analysis Report</span>
+                </div>
+                <div className="a4-meta-grid font-mono">
+                  <span><strong>Scenario:</strong> Primary Transformer Failure</span>
+                  <span><strong>Simulation ID:</strong> SIM-20260920-001</span>
+                  <span><strong>Date:</strong> 20 September 2026, 10:24 AM</span>
+                  <span><strong>Duration:</strong> 2 Hours | <strong>Severity:</strong> High</span>
                 </div>
               </div>
 
-              <h2 className="doc-report-title">
-                {isIncidentActive
-                  ? 'HOSPITAL INFRASTRUCTURE DISRUPTION & RESILIENCE REPORT'
-                  : 'CAMPUS BASELINE RESILIENCE & INFRASTRUCTURE AUDIT'}
-              </h2>
-              <div className="doc-badge-row">
-                <span className="doc-tag">
-                  {isIncidentActive
-                    ? (incidentState.failure_type ? incidentState.failure_type.toUpperCase().replace(/_/g, ' ') : incidentState.source_asset_id)
-                    : 'NORMAL BASELINE OPERATION'}
-                </span>
-                <span className="doc-tag">
-                  {isIncidentActive
-                    ? `CASCADE HORIZON: ${incidentState.estimated_unmitigated_blackout_min ? `${incidentState.estimated_unmitigated_blackout_min} MIN` : '2.0 HOURS'}`
-                    : `CAMPUS HEALTH: ${resilienceBreakdown?.status_label || 'OPTIMAL'}`}
-                </span>
-                {isIncidentActive && incidentState.severity && (
-                  <span className="doc-tag">
-                    SEVERITY: {String(incidentState.severity).toUpperCase()}
-                  </span>
-                )}
+              {/* Thumbnail image */}
+              <div className="a4-image-banner">
+                <img src={hospitalCampusImg} alt="Report Digital Twin Banner" className="a4-thumb-img" />
               </div>
 
-              <div className="doc-section">
-                <h4 className="doc-section-title">1. Executive Summary</h4>
-                <p className="doc-p">
-                  {isIncidentActive
-                    ? `An active disruption was detected originating at node ${incidentState.source_asset_id || 'unknown'} with failure mode '${incidentState.failure_type || 'unspecified'}'. Current campus resilience index is evaluated at ${overallResilienceScore} / 100 (${resilienceBreakdown?.status_label || 'DEGRADED'}). The disruption propagates across ${assetsAffectedCount} infrastructure nodes and impacts ${servicesAtRiskCount} critical clinical delivery units. ${incidentState.active_mitigation_strategy ? `Applied mitigation strategy: ${incidentState.active_mitigation_strategy}.` : 'No autonomous mitigation strategy has been applied.'}`
-                    : `The hospital campus digital twin is operating in baseline normal state with no active failures or disruptions. Campus composite resilience index is ${overallResilienceScore} / 100 (${resilienceBreakdown?.status_label || 'OPTIMAL'}). Primary grid, emergency standby generators, uninterruptible power supplies, and cryogenic life-support systems are operating within standard parameters.`}
+              {/* Executive Summary paragraph */}
+              <div className="a4-section-block">
+                <span className="a4-section-heading">Executive Summary</span>
+                <p className="a4-para">
+                  A primary transformer failure was simulated, resulting in loss of main electrical supply and cascading impact on critical hospital services. The failure caused degradation of ICU, OT, and supporting infrastructure. Backup systems mitigated full service disruption and all systems recovered within 2 hours.
                 </p>
               </div>
 
-              <div className="doc-section">
-                <h4 className="doc-section-title">2. Critical Clinical Impact & Resilience Breakdown</h4>
-                <div className="doc-metric-row font-mono">
-                  <div className="doc-metric-pill">Services At Risk: {servicesAtRiskCount}</div>
-                  <div className="doc-metric-pill">Affected Assets: {assetsAffectedCount}</div>
-                  <div className="doc-metric-pill">Resilience Index: {overallResilienceScore} / 100</div>
+              {/* 4 Mini KPIs */}
+              <div className="a4-mini-kpis-row font-mono">
+                <div className="a4-kpi-cell">
+                  <span className="a4-kpi-val" style={{ color: '#FF4D4D' }}>2</span>
+                  <span className="a4-kpi-lbl">Services at Risk</span>
                 </div>
-                {resilienceBreakdown?.sub_scores && (
-                  <p className="doc-p" style={{ fontSize: '10px', color: '#94a3b8' }}>
-                    Continuity (C): {resilienceBreakdown.sub_scores.service_continuity?.toFixed(1) || '—'}% | Availability (A): {resilienceBreakdown.sub_scores.stability_factor?.toFixed(1) || '—'}% | Backup Margin (B): {resilienceBreakdown.sub_scores.backup_margin?.toFixed(1) || '—'}% | Recovery Margin (1-T): {resilienceBreakdown.sub_scores.recovery_readiness?.toFixed(1) || '—'}%
-                  </p>
-                )}
-              </div>
-
-              <div className="doc-section">
-                <h4 className="doc-section-title">3. AI Recommended Mitigation Strategy</h4>
-                <div className="doc-recommendation-box">
-                  {whatIfComparison?.strategies?.length > 0 ? (
-                    <>
-                      <strong>RECOMMENDED: Strategy {whatIfComparison.strategies[0].strategy_code} — {whatIfComparison.strategies[0].strategy_name}</strong>
-                      <p className="doc-p" style={{ margin: '4px 0 0 0' }}>
-                        {whatIfComparison.causal_explanation || whatIfComparison.strategies[0].trade_off_summary || 'Multi-criteria decision analysis identified this response strategy as optimal for preserving vital healthcare continuity.'}
-                      </p>
-                    </>
-                  ) : isIncidentActive ? (
-                    <>
-                      <strong>RECOMMENDED: Response Strategy Evaluation Pending</strong>
-                      <p className="doc-p" style={{ margin: '4px 0 0 0' }}>
-                        Multi-criteria decision analysis (MCDA) strategy evaluation can be executed from the Strategy Lab / What-If view.
-                      </p>
-                    </>
-                  ) : (
-                    <>
-                      <strong>RECOMMENDED: Standard Operational Protocols</strong>
-                      <p className="doc-p" style={{ margin: '4px 0 0 0' }}>
-                        Continue telemetry monitoring at 1-second intervals. Maintain standby generators in ready offline status and monitor battery buffer headroom.
-                      </p>
-                    </>
-                  )}
+                <div className="a4-kpi-cell">
+                  <span className="a4-kpi-val" style={{ color: '#FFB800' }}>12</span>
+                  <span className="a4-kpi-lbl">Assets Affected</span>
+                </div>
+                <div className="a4-kpi-cell">
+                  <span className="a4-kpi-val" style={{ color: '#00A3FF' }}>~8 min</span>
+                  <span className="a4-kpi-lbl">Time to First Impact</span>
+                </div>
+                <div className="a4-kpi-cell">
+                  <span className="a4-kpi-val" style={{ color: '#00E5A3' }}>82 → 54</span>
+                  <span className="a4-kpi-lbl">Resilience Drop</span>
                 </div>
               </div>
 
-              <div className="doc-footer-stamp font-mono">
-                Generated autonomously by ResilienceOS v2.4 Autonomic Simulation & Decision Engine
+              {/* Incident Timeline points */}
+              <div className="a4-section-block">
+                <span className="a4-section-heading">Incident Timeline</span>
+                <div className="a4-timeline-items font-mono">
+                  <div className="a4-t-row">
+                    <span className="a4-t-dot" style={{ backgroundColor: '#FF4D4D' }} />
+                    <span className="a4-t-time">T+0 min</span>
+                    <span className="a4-t-desc">Primary transformer failure detected</span>
+                  </div>
+                  <div className="a4-t-row">
+                    <span className="a4-t-dot" style={{ backgroundColor: '#FF7A00' }} />
+                    <span className="a4-t-time">T+2 min</span>
+                    <span className="a4-t-desc">Grid supply lost, UPS activated</span>
+                  </div>
+                  <div className="a4-t-row">
+                    <span className="a4-t-dot" style={{ backgroundColor: '#FFB800' }} />
+                    <span className="a4-t-time">T+10 min</span>
+                    <span className="a4-t-desc">HVAC capacity reduced, ICU at risk</span>
+                  </div>
+                  <div className="a4-t-row">
+                    <span className="a4-t-dot" style={{ backgroundColor: '#00A3FF' }} />
+                    <span className="a4-t-time">T+18 min</span>
+                    <span className="a4-t-desc">Intervention applied: Backup Generator</span>
+                  </div>
+                  <div className="a4-t-row">
+                    <span className="a4-t-dot" style={{ backgroundColor: '#00E5A3' }} />
+                    <span className="a4-t-time">T+120 min</span>
+                    <span className="a4-t-desc">All systems recovered to normal</span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

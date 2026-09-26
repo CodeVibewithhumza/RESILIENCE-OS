@@ -7,91 +7,137 @@ import {
   Wind,
   Flame,
   AlertTriangle,
-  Activity
+  Info,
+  Maximize2,
+  Navigation,
+  Plus,
+  Minus,
+  Clock,
+  Box,
+  ChevronRight
 } from 'lucide-react'
 import TwinContainer from '../DigitalTwin3D/TwinContainer'
 import './StartSimulationView.css'
 
-/**
- * Canonical incident definitions mapped to backend failure topology contracts.
- */
-const INCIDENT_CONFIG = {
-  transformer: {
-    id: 'transformer',
-    name: 'Primary Transformer Failure (T1)',
-    category: 'electrical',
-    desc: 'Loss of main 415V transformer supply',
-    asset_id: 'TRANSFORMER_01',
-    failure_type: 'transformer_thermal_trip'
+const CATEGORY_TILES = [
+  {
+    id: 'electrical',
+    name: 'Electrical Failure',
+    sub: 'Grid / Transformer / DG / UPS',
+    icon: Zap,
+    color: '#00F0FF'
   },
-  grid: {
-    id: 'grid',
-    name: '11kV Utility Grid Blackout',
-    category: 'electrical',
-    desc: 'Total loss of external city power grid',
-    asset_id: 'GRID_MAIN',
-    failure_type: 'complete_outage'
+  {
+    id: 'water',
+    name: 'Water System',
+    sub: 'Supply / Pump / Tank',
+    icon: Droplets,
+    color: '#00A3FF'
   },
-  gen: {
-    id: 'gen',
-    name: 'Standby Generator Start Failure',
-    category: 'electrical',
-    desc: 'Backup diesel generator fails to crank',
-    asset_id: 'GEN_01',
-    failure_type: 'generator_failure'
+  {
+    id: 'hvac',
+    name: 'HVAC System',
+    sub: 'Chiller / AHU / Ducts',
+    icon: Wind,
+    color: '#14B8A6'
   },
-  ups: {
-    id: 'ups',
-    name: 'UPS Battery Depletion / Inverter Fault',
-    category: 'electrical',
-    desc: 'Static battery bank depleted',
-    asset_id: 'UPS_CRITICAL',
-    failure_type: 'battery_depletion'
+  {
+    id: 'gas',
+    name: 'Medical Gas System',
+    sub: 'Oxygen / Air / Vacuum',
+    icon: Flame,
+    color: '#00F0FF'
   },
-  o2_rupture: {
-    id: 'o2_rupture',
-    name: 'Cryogenic O2 Pipeline Rupture',
-    category: 'gas',
-    desc: 'Pressure drop in main oxygen distribution line',
-    asset_id: 'OXYGEN_MANIFOLD',
-    failure_type: 'pressure_loss'
-  },
-  chiller_trip: {
-    id: 'chiller_trip',
-    name: 'HVAC Chiller Thermal Trip',
-    category: 'hvac',
-    desc: 'Loss of cleanroom surgical air cooling',
-    asset_id: 'CHILLER_PLANT',
-    failure_type: 'compressor_failure'
-  },
-  water_pump: {
-    id: 'water_pump',
-    name: 'Primary Water Booster Pump Cavitation',
-    category: 'water',
-    desc: 'Loss of potable water header pressure and autoclave supply',
-    asset_id: 'WATER_PUMP_STATION',
-    failure_type: 'pump_cavitation'
-  },
-  combined: {
+  {
     id: 'combined',
-    name: 'Compound Grid Blackout + Emergency Generator Lockout',
-    category: 'combined',
-    desc: 'Multi-system cascade disruption with elevated ambient heatwave',
-    asset_id: 'GRID_MAIN',
-    failure_type: 'lockout'
+    name: 'Combined Scenario',
+    sub: 'Multiple simultaneous failures',
+    icon: AlertTriangle,
+    color: '#FF4D4D'
   }
-}
+]
 
-const SEVERITY_MAP = {
-  full: 'high',
-  partial: 'medium',
-  intermittent: 'low'
-}
-
-const DURATION_MAP = {
-  '1': 60,
-  '2': 120,
-  '4': 240
+const INCIDENTS_BY_CATEGORY = {
+  electrical: [
+    {
+      id: 'transformer',
+      name: 'Primary Transformer Failure',
+      desc: 'Loss of main transformer supply',
+      asset_id: 'TRANSFORMER_01',
+      failure_type: 'transformer_thermal_trip'
+    },
+    {
+      id: 'grid',
+      name: 'Grid Power Outage',
+      desc: 'Loss of external grid supply',
+      asset_id: 'GRID_MAIN',
+      failure_type: 'complete_outage'
+    },
+    {
+      id: 'gen',
+      name: 'Generator Failure',
+      desc: 'Backup generator fails to start',
+      asset_id: 'GEN_01',
+      failure_type: 'generator_failure'
+    },
+    {
+      id: 'ups',
+      name: 'UPS Battery Depletion',
+      desc: 'UPS runtime exhausted',
+      asset_id: 'UPS_CRITICAL',
+      failure_type: 'battery_depletion'
+    },
+    {
+      id: 'ats',
+      name: 'ATS Failure',
+      desc: 'Automatic transfer switch failure',
+      asset_id: 'TRANSFORMER_01',
+      failure_type: 'ats_failure'
+    }
+  ],
+  water: [
+    {
+      id: 'water_tank',
+      name: 'Main Storage Tank Contamination',
+      desc: 'Primary reservoir breach',
+      asset_id: 'WATER_PUMP_STATION',
+      failure_type: 'tank_contamination'
+    },
+    {
+      id: 'water_pump',
+      name: 'Booster Pump Cavitation',
+      desc: 'Loss of potable water header pressure',
+      asset_id: 'WATER_PUMP_STATION',
+      failure_type: 'pump_cavitation'
+    }
+  ],
+  hvac: [
+    {
+      id: 'chiller_trip',
+      name: 'HVAC Chiller Thermal Trip',
+      desc: 'Loss of cleanroom surgical air cooling',
+      asset_id: 'CHILLER_PLANT',
+      failure_type: 'compressor_failure'
+    }
+  ],
+  gas: [
+    {
+      id: 'o2_rupture',
+      name: 'Cryogenic O2 Pipeline Rupture',
+      desc: 'Pressure drop in main oxygen distribution line',
+      asset_id: 'OXYGEN_MANIFOLD',
+      failure_type: 'pressure_loss'
+    }
+  ],
+  combined: [
+    {
+      id: 'combined_heatwave',
+      name: 'Grid Blackout + DG Failure (Heatwave)',
+      desc: 'Multi-system cascade with ambient heatwave stress',
+      asset_id: 'GRID_MAIN',
+      failure_type: 'lockout'
+    }
+  ]
 }
 
 export default function StartSimulationView({
@@ -104,321 +150,344 @@ export default function StartSimulationView({
 }) {
   const [selectedCategory, setSelectedCategory] = useState('electrical')
   const [selectedIncident, setSelectedIncident] = useState('transformer')
-  const [severity, setSeverity] = useState('full')
-  const [duration, setDuration] = useState('2')
-  const [selectedAssetId, setSelectedAssetId] = useState(null)
+  const [severity, setSeverity] = useState('Full Failure')
+  const [startTime, setStartTime] = useState('Immediate (T = 0)')
+  const [duration, setDuration] = useState('2 Hours')
+  const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [submitError, setSubmitError] = useState(null)
 
   const isIncidentActive = Boolean(incident?.is_active)
-
-  // Filter incidents strictly by selected category
-  const filteredIncidents = Object.values(INCIDENT_CONFIG).filter(
-    (inc) => inc.category === selectedCategory
-  )
+  const currentIncidentsList = INCIDENTS_BY_CATEGORY[selectedCategory] || INCIDENTS_BY_CATEGORY.electrical
 
   const handleCategorySelect = (catId) => {
     setSelectedCategory(catId)
-    setSubmitError(null)
-    const matches = Object.values(INCIDENT_CONFIG).filter((inc) => inc.category === catId)
-    if (matches.length > 0) {
-      if (!matches.some((m) => m.id === selectedIncident)) {
-        setSelectedIncident(matches[0].id)
-      }
+    const list = INCIDENTS_BY_CATEGORY[catId]
+    if (list && list.length > 0) {
+      setSelectedIncident(list[0].id)
     }
   }
 
   const handleLaunch = async () => {
     if (isSubmitting) return
     setIsSubmitting(true)
-    setSubmitError(null)
 
-    const incidentConfig = INCIDENT_CONFIG[selectedIncident] || INCIDENT_CONFIG.transformer
-    const targetAssetId = incidentConfig.asset_id
+    const list = INCIDENTS_BY_CATEGORY[selectedCategory] || INCIDENTS_BY_CATEGORY.electrical
+    const foundInc = list.find((i) => i.id === selectedIncident) || list[0]
 
     const payload = {
-      asset_id: targetAssetId,
-      failure_type: incidentConfig.failure_type,
-      severity: SEVERITY_MAP[severity] || 'high',
-      duration_minutes: DURATION_MAP[duration] || 120,
+      asset_id: foundInc.asset_id,
+      failure_type: foundInc.failure_type,
+      severity: severity.toLowerCase().includes('full') ? 'high' : 'medium',
+      duration_minutes: duration.includes('2') ? 120 : 60,
       compound_heatwave: selectedCategory === 'combined'
     }
 
     try {
       if (onTriggerFailure) {
-        const result = await onTriggerFailure(payload)
-        if (result && !result.success) {
-          setSubmitError(result.error || 'Failed to inject disruption')
-        }
+        await onTriggerFailure(payload)
+      }
+      if (onNotify) {
+        onNotify(`Failure injected: ${foundInc.name}`, 'warning')
       }
     } catch (err) {
-      setSubmitError(err?.message || 'Error executing disruption injection')
+      if (onNotify) {
+        onNotify(`Simulation execution failed: ${err.message}`, 'error')
+      }
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  const handleReset = () => {
-    setSubmitError(null)
-    if (onReset) {
-      onReset()
-    }
-  }
-
-  // --- Dynamic Preview Cards (Derived strictly from backend incident state) ---
-
-  // 1. Services at Risk
-  let servicesAtRiskDisplay = '0 (All Normal)'
-  let servicesAtRiskColor = '#10B981'
-  if (isIncidentActive) {
-    const srvCount = incident?.affected_service_ids?.length
-    if (typeof srvCount === 'number' && srvCount > 0) {
-      servicesAtRiskDisplay = `${srvCount} Unit${srvCount === 1 ? '' : 's'}`
-      servicesAtRiskColor = '#EF4444'
-    } else if (typeof srvCount === 'number') {
-      servicesAtRiskDisplay = '0 Units'
-    } else {
-      servicesAtRiskDisplay = '—'
-    }
-  }
-
-  // 2. Affected Assets
-  let affectedAssetsDisplay = '0 Nodes'
-  let affectedAssetsColor = '#00F0FF'
-  if (isIncidentActive) {
-    const assetCount = incident?.affected_asset_ids?.length
-    if (typeof assetCount === 'number' && assetCount > 0) {
-      affectedAssetsDisplay = `${assetCount} Node${assetCount === 1 ? '' : 's'}`
-      affectedAssetsColor = '#F59E0B'
-    } else if (typeof assetCount === 'number') {
-      affectedAssetsDisplay = '0 Nodes'
-    } else {
-      affectedAssetsDisplay = '—'
-    }
-  }
-
-  // 3. Time to First Impact
-  let timeToFirstImpactDisplay = 'N/A'
-  if (isIncidentActive) {
-    if (typeof incident?.estimated_unmitigated_blackout_min === 'number') {
-      timeToFirstImpactDisplay = `~${Math.round(incident.estimated_unmitigated_blackout_min)} min`
-    } else if (
-      Array.isArray(incident?.timeline) &&
-      incident.timeline.length > 1 &&
-      typeof incident.timeline[1]?.t_offset_min === 'number'
-    ) {
-      timeToFirstImpactDisplay = `~${incident.timeline[1].t_offset_min} min`
-    } else {
-      timeToFirstImpactDisplay = '—'
-    }
-  }
+  // Visual simulation pins
+  const simPins = [
+    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '35%', left: '42%', color: 'red' },
+    { id: 'GEN_01', label: 'Generator', status: 'Standby', top: '30%', left: '59%', color: 'cyan' },
+    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'Normal', top: '36%', left: '87%', color: 'cyan' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'At Risk', top: '46%', left: '68%', color: 'amber' },
+    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '49%', left: '90%', color: 'cyan' },
+    { id: 'SERVICE_ICU', label: 'ICU', status: 'At Risk', top: '55%', left: '53%', color: 'amber' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Normal', top: '63%', left: '63%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '60%', left: '79%', color: 'amber' }
+  ]
 
   return (
     <div className="start-sim-page">
-      {/* Header Bar */}
-      <div className="sim-header-row">
-        <div>
-          <h1 className="sim-page-title">Failure Injection & Cascade Simulation</h1>
-          <p className="sim-page-subtitle">
-            Inject discrete equipment disruptions, simulate real-time multi-hop cascading impacts, and observe 3D digital twin reactions
-          </p>
-        </div>
-        <div className="sim-status-pill font-mono">
-          <Activity size={13} style={{ color: isIncidentActive ? '#EF4444' : '#10B981' }} />
-          <span>{isIncidentActive ? 'SIMULATION ACTIVE' : 'ENGINE READY'}</span>
-        </div>
-      </div>
-
-      {/* Category Tile Selector Row */}
-      <div className="sim-category-tiles">
-        {[
-          { id: 'electrical', label: 'Electrical Failure', desc: 'Grid / Transformer / DG / UPS', icon: Zap, color: '#00F0FF' },
-          { id: 'gas', label: 'Medical Gas System', desc: 'Oxygen / Vacuum / Manifold', icon: Flame, color: '#10B981' },
-          { id: 'hvac', label: 'HVAC Cleanrooms', desc: 'Chillers / AHU / Ducts', icon: Wind, color: '#F59E0B' },
-          { id: 'water', label: 'Water Distribution', desc: 'Booster Pumps / Storage Tank', icon: Droplets, color: '#38BDF8' },
-          { id: 'combined', label: 'Combined Disaster', desc: 'Multi-System Cascade Event', icon: AlertTriangle, color: '#EF4444' }
-        ].map((cat) => {
+      {/* 1. TOP 5 CATEGORY TILES */}
+      <section className="sim-categories-row">
+        {CATEGORY_TILES.map((cat) => {
           const Icon = cat.icon
+          const isActive = selectedCategory === cat.id
           return (
             <div
               key={cat.id}
-              className={`cat-tile ${selectedCategory === cat.id ? 'active' : ''}`}
+              className={`sim-cat-tile ${isActive ? 'is-active' : ''}`}
               onClick={() => handleCategorySelect(cat.id)}
             >
-              <div
-                className="cat-icon-wrap"
-                style={{
-                  background: `rgba(${cat.id === 'combined' ? '239, 68, 68' : '0, 240, 255'}, 0.15)`,
-                  color: cat.color
-                }}
-              >
+              <div className="sim-cat-icon-wrap" style={{ color: cat.color }}>
                 <Icon size={18} />
               </div>
-              <div className="cat-info">
-                <span className="cat-name">{cat.label}</span>
-                <span className="cat-sub">{cat.desc}</span>
+              <div className="sim-cat-text-col">
+                <span className="sim-cat-name">{cat.name}</span>
+                <span className="sim-cat-sub">{cat.sub}</span>
               </div>
             </div>
           )
         })}
-      </div>
+      </section>
 
-      {/* 2-Column Main Workspace */}
-      <div className="sim-workspace-grid">
-        {/* Left Column: Parameter Selection & Run Button */}
-        <div className="sim-controls-col">
-          {/* 1. Incident Picker */}
-          <div className="sim-card">
-            <div className="sim-card-header">
-              <span className="sim-card-step font-mono">1</span>
-              <span className="sim-card-title">Select Disruption Scenario</span>
-            </div>
-            <div className="incident-radio-list">
-              {filteredIncidents.map((inc) => (
-                <div
-                  key={inc.id}
-                  className={`incident-radio-row ${selectedIncident === inc.id ? 'selected' : ''}`}
-                  onClick={() => setSelectedIncident(inc.id)}
-                >
-                  <input
-                    type="radio"
-                    name="incident-choice"
-                    checked={selectedIncident === inc.id}
-                    onChange={() => setSelectedIncident(inc.id)}
-                  />
-                  <div className="incident-text-group">
-                    <span className="inc-title">{inc.name}</span>
-                    <span className="inc-desc">{inc.desc}</span>
-                  </div>
-                </div>
-              ))}
+      {/* 2. MAIN SPLIT: Left Controls & Right 3D Visual + Timeline */}
+      <section className="sim-main-grid">
+        {/* Left Controls Column */}
+        <aside className="sim-left-controls">
+          {/* Section 1: Select Incident */}
+          <div className="sim-panel-box">
+            <div className="sim-panel-title">1. Select Incident</div>
+            <div className="sim-incident-radio-list">
+              {currentIncidentsList.map((inc) => {
+                const isSelected = selectedIncident === inc.id
+                return (
+                  <label
+                    key={inc.id}
+                    className={`sim-radio-card ${isSelected ? 'is-selected' : ''}`}
+                    onClick={() => setSelectedIncident(inc.id)}
+                  >
+                    <input
+                      type="radio"
+                      name="incident_choice"
+                      checked={isSelected}
+                      onChange={() => setSelectedIncident(inc.id)}
+                    />
+                    <div className="sim-radio-left-icon">
+                      {selectedCategory === 'electrical' && <Zap size={14} style={{ color: '#00F0FF' }} />}
+                      {selectedCategory === 'water' && <Droplets size={14} style={{ color: '#00A3FF' }} />}
+                      {selectedCategory === 'hvac' && <Wind size={14} style={{ color: '#FFB800' }} />}
+                      {selectedCategory === 'gas' && <Flame size={14} style={{ color: '#A855F7' }} />}
+                      {selectedCategory === 'combined' && <AlertTriangle size={14} style={{ color: '#FF4D4D' }} />}
+                    </div>
+                    <div className="sim-radio-meta">
+                      <span className="sim-radio-title">{inc.name}</span>
+                      <span className="sim-radio-desc">{inc.desc}</span>
+                    </div>
+                    <span className="sim-radio-indicator" />
+                  </label>
+                )
+              })}
             </div>
           </div>
 
-          {/* 2. Parameters */}
-          <div className="sim-card">
-            <div className="sim-card-header">
-              <span className="sim-card-step font-mono">2</span>
-              <span className="sim-card-title">Configure Parameters</span>
-            </div>
-            <div className="param-fields-grid">
-              <div className="param-field">
-                <label className="param-label">Disruption Severity</label>
+          {/* Section 2: Configure Parameters */}
+          <div className="sim-panel-box">
+            <div className="sim-panel-title">2. Configure Parameters</div>
+            <div className="sim-params-form">
+              <div className="sim-field-row">
+                <span className="sim-field-lbl">Severity</span>
                 <select
-                  className="param-select font-mono"
+                  className="sim-select font-mono"
                   value={severity}
                   onChange={(e) => setSeverity(e.target.value)}
                 >
-                  <option value="full">Full Trip (100% Failure)</option>
-                  <option value="partial">Partial Degradation (50%)</option>
-                  <option value="intermittent">Intermittent Brownout</option>
+                  <option value="Full Failure">Full Failure</option>
+                  <option value="Partial (50%)">Partial (50%)</option>
+                  <option value="Intermittent">Intermittent</option>
                 </select>
               </div>
 
-              <div className="param-field">
-                <label className="param-label">Simulation Horizon</label>
+              <div className="sim-field-row">
+                <span className="sim-field-lbl">Start Time</span>
                 <select
-                  className="param-select font-mono"
+                  className="sim-select font-mono"
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                >
+                  <option value="Immediate (T = 0)">Immediate (T = 0)</option>
+                  <option value="T + 5 min">T + 5 min</option>
+                  <option value="T + 15 min">T + 15 min</option>
+                </select>
+              </div>
+
+              <div className="sim-field-row">
+                <span className="sim-field-lbl">Duration</span>
+                <select
+                  className="sim-select font-mono"
                   value={duration}
                   onChange={(e) => setDuration(e.target.value)}
                 >
-                  <option value="1">1.0 Hour (Immediate)</option>
-                  <option value="2">2.0 Hours (Standard)</option>
-                  <option value="4">4.0 Hours (Extended Outage)</option>
+                  <option value="2 Hours">2 Hours</option>
+                  <option value="1 Hour">1 Hour</option>
+                  <option value="4 Hours">4 Hours</option>
                 </select>
               </div>
+
+              <button
+                type="button"
+                className="sim-advanced-link"
+                onClick={() => setIsAdvancedOpen(!isAdvancedOpen)}
+              >
+                <ChevronRight size={12} className={isAdvancedOpen ? 'rotate-90' : ''} />
+                <span>Advanced Parameters</span>
+              </button>
             </div>
           </div>
 
-          {/* Launch Action */}
-          <div className="sim-launch-bar">
-            {isIncidentActive ? (
-              <button
-                type="button"
-                className="sim-reset-action-btn"
-                onClick={handleReset}
-              >
-                <RotateCcw size={14} />
-                <span>Reset Simulation to Normal</span>
-              </button>
-            ) : (
-              <button
-                type="button"
-                className="sim-start-action-btn"
-                onClick={handleLaunch}
-                disabled={isSubmitting}
-                style={{
-                  opacity: isSubmitting ? 0.75 : 1,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isSubmitting ? (
-                  <Activity size={15} style={{ animation: 'spin 1.2s linear infinite' }} />
-                ) : (
-                  <Play size={15} />
-                )}
-                <span>{isSubmitting ? 'Injecting Disruption...' : 'Inject Disruption & Start Simulation'}</span>
-              </button>
-            )}
+          {/* Section 4: Run Simulation CTA */}
+          <div className="sim-panel-box run-sim-box">
+            <div className="sim-panel-title">4. Run Simulation</div>
+            <button
+              type="button"
+              className={`sim-start-cta-btn ${isSubmitting ? 'is-loading' : ''}`}
+              onClick={handleLaunch}
+              disabled={isSubmitting}
+            >
+              <Play size={16} fill="currentColor" />
+              <span>{isSubmitting ? 'Simulating Cascade...' : 'Start Simulation'}</span>
+            </button>
+          </div>
+        </aside>
 
-            {submitError && (
-              <div
-                style={{
-                  color: '#EF4444',
-                  fontSize: '11px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  marginTop: '8px'
-                }}
-              >
-                <AlertTriangle size={13} style={{ flexShrink: 0 }} />
-                <span>{submitError}</span>
+        {/* Right Main Area: 3D Visual + Timeline & Expected Impact */}
+        <div className="sim-right-workspace">
+          {/* Section 3: Visualize & Simulate Canvas */}
+          <div className="sim-visual-card">
+            <div className="sim-visual-header">
+              <span className="sim-visual-title">3. Visualize & Simulate</span>
+              <div className="sim-status-legend">
+                <span className="legend-item"><span className="leg-dot leg-normal" /> Normal</span>
+                <span className="legend-item"><span className="leg-dot leg-degraded" /> Degraded</span>
+                <span className="legend-item"><span className="leg-dot leg-failed" /> Failed</span>
+                <span className="legend-item"><span className="leg-dot leg-backup" /> Backup</span>
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: 3D Visualization Canvas & Impact Preview */}
-        <div className="sim-visual-col">
-          <div className="sim-card twin-preview-card">
-            <div className="sim-card-header">
-              <span className="sim-card-step font-mono">3</span>
-              <span className="sim-card-title">3D Digital Twin Real-Time Reaction</span>
             </div>
-            <div className="sim-twin-embed">
+
+            <div className="sim-canvas-viewport">
               <TwinContainer
                 assets={assets}
                 services={services}
-                selectedAssetId={selectedAssetId}
-                onSelectAsset={setSelectedAssetId}
+                incident={incident}
               />
+
+              {/* Sim HUD Pins */}
+              <div className="sim-hud-pins-layer">
+                {simPins.map((pin) => (
+                  <div
+                    key={pin.id}
+                    className={`sim-hud-pin pin-${pin.color}`}
+                    style={{ top: pin.top, left: pin.left }}
+                  >
+                    <span className="sim-pin-icon">
+                      {pin.color === 'red' ? '⚡' : pin.color === 'amber' ? '●' : '●'}
+                    </span>
+                    <div className="sim-pin-text">
+                      <span className="sim-pin-name">{pin.label}</span>
+                      <span className="sim-pin-status font-mono">
+                        <span className={`hud-dot ${pin.color === 'red' ? 'dot-red' : pin.color === 'amber' ? 'dot-amber' : 'dot-cyan'}`} />
+                        {pin.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Compass HUD */}
+              <div className="sim-compass-hud">
+                <div className="compass-circle">
+                  <span className="compass-dir compass-n">N</span>
+                  <span className="compass-dir compass-e">E</span>
+                  <span className="compass-dir compass-s">S</span>
+                  <span className="compass-dir compass-w">W</span>
+                  <div className="compass-needle" />
+                </div>
+              </div>
+
+              {/* Floating Camera Controls */}
+              <div className="sim-camera-controls">
+                <button type="button" className="sim-ctrl-btn" title="Fullscreen"><Maximize2 size={12} /></button>
+                <button type="button" className="sim-ctrl-btn" title="Reset View"><Navigation size={12} /></button>
+                <button type="button" className="sim-ctrl-btn" title="Zoom In"><Plus size={12} /></button>
+                <button type="button" className="sim-ctrl-btn" title="Zoom Out"><Minus size={12} /></button>
+              </div>
             </div>
           </div>
 
-          {/* Impact Preview Metrics */}
-          <div className="sim-impact-preview-row">
-            <div className="impact-badge-card">
-              <span className="impact-badge-label">Services at Risk</span>
-              <span className="impact-badge-val font-mono" style={{ color: servicesAtRiskColor }}>
-                {servicesAtRiskDisplay}
-              </span>
+          {/* Bottom Row: Simulation Timeline + Expected Impact Preview */}
+          <div className="sim-bottom-row-grid">
+            {/* Simulation Timeline track */}
+            <div className="sim-timeline-box">
+              <div className="sim-timeline-title">Simulation Timeline</div>
+              <div className="sim-nodes-track">
+                <div className="sim-node-step node-active">
+                  <span className="node-dot dot-red" />
+                  <span className="node-time font-mono">T+0</span>
+                  <span className="node-label">Failure Injected</span>
+                </div>
+                <div className="track-connector" />
+                <div className="sim-node-step">
+                  <span className="node-dot dot-cyan" />
+                  <span className="node-time font-mono">T+2 min</span>
+                  <span className="node-label">ATS Switch</span>
+                </div>
+                <div className="track-connector" />
+                <div className="sim-node-step">
+                  <span className="node-dot dot-cyan" />
+                  <span className="node-time font-mono">T+5 min</span>
+                  <span className="node-label">Generator Start</span>
+                </div>
+                <div className="track-connector" />
+                <div className="sim-node-step">
+                  <span className="node-dot dot-cyan" />
+                  <span className="node-time font-mono">T+10 min</span>
+                  <span className="node-label">Load Transfer</span>
+                </div>
+                <div className="track-connector" />
+                <div className="sim-node-step">
+                  <span className="node-dot dot-cyan" />
+                  <span className="node-time font-mono">T+30 min</span>
+                  <span className="node-label">Service Impact</span>
+                </div>
+              </div>
             </div>
-            <div className="impact-badge-card">
-              <span className="impact-badge-label">Affected Assets</span>
-              <span className="impact-badge-val font-mono" style={{ color: affectedAssetsColor }}>
-                {affectedAssetsDisplay}
-              </span>
-            </div>
-            <div className="impact-badge-card">
-              <span className="impact-badge-label">Time to First Impact</span>
-              <span className="impact-badge-val font-mono">
-                {timeToFirstImpactDisplay}
-              </span>
+
+            {/* Expected Impact (Preview) 3 KPI cards */}
+            <div className="sim-expected-impact-box">
+              <div className="impact-box-header">
+                <span className="impact-box-title">Expected Impact (Preview)</span>
+                <Info size={12} className="panel-info-icon" />
+              </div>
+
+              <div className="impact-cards-grid">
+                <div className="impact-metric-card card-red">
+                  <div className="impact-icon-wrap icon-red">
+                    <AlertTriangle size={15} />
+                  </div>
+                  <div className="impact-metric-info">
+                    <span className="impact-num font-mono">3</span>
+                    <span className="impact-lbl">Services At Risk</span>
+                  </div>
+                </div>
+
+                <div className="impact-metric-card card-gold">
+                  <div className="impact-icon-wrap icon-gold">
+                    <Box size={15} />
+                  </div>
+                  <div className="impact-metric-info">
+                    <span className="impact-num font-mono">12</span>
+                    <span className="impact-lbl">Affected Assets</span>
+                  </div>
+                </div>
+
+                <div className="impact-metric-card card-blue">
+                  <div className="impact-icon-wrap icon-blue">
+                    <Clock size={15} />
+                  </div>
+                  <div className="impact-metric-info">
+                    <span className="impact-num font-mono">~8 min</span>
+                    <span className="impact-lbl">Time to First Impact</span>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   )
 }

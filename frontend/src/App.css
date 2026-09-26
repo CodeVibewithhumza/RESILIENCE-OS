@@ -26,13 +26,14 @@
 
 .dashboard-main-content {
   flex: 1;
-  padding: 20px 24px 48px;
+  padding: 12px 20px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
   overflow-y: auto;
   overflow-x: hidden;
   width: 100%;
+  height: calc(100vh - 60px);
+  box-sizing: border-box;
 }
 
 
@@ -71,7 +72,7 @@
 .section-main-heading {
   font-size: 18px;
   font-weight: 800;
-  color: #f8fafc;
+  color: var(--text-primary);
   letter-spacing: -0.01em;
   text-transform: uppercase;
   display: flex;
@@ -151,8 +152,8 @@
 }
 
 .kpi-card {
-  background: linear-gradient(180deg, var(--bg-panel-elevated) 0%, var(--bg-panel) 100%);
-  border: 1px solid var(--border-default);
+  background: var(--bg-card);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-md);
   padding: 18px 20px;
   display: flex;
@@ -176,10 +177,14 @@
   transition: opacity 0.2s ease;
 }
 
+[data-theme="light"] .kpi-card::before {
+  background: linear-gradient(90deg, transparent, rgba(22, 130, 237, 0.4), transparent);
+}
+
 .kpi-card:hover {
   transform: translateY(-3px);
   border-color: var(--accent-cyan);
-  box-shadow: 0 12px 28px -4px rgba(0, 0, 0, 0.6), 0 0 16px rgba(0, 240, 255, 0.2);
+  box-shadow: var(--shadow-md);
 }
 
 .kpi-card:hover::before {
@@ -189,7 +194,7 @@
 
 .kpi-card.is-alert-card {
   border-color: var(--status-critical-border);
-  box-shadow: 0 0 20px rgba(239, 68, 68, 0.25);
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.15);
 }
 
 .kpi-card.is-alert-card::before {
@@ -230,7 +235,7 @@
   font-size: 32px;
   font-weight: 800;
   line-height: 1;
-  color: #f8fafc;
+  color: var(--text-primary);
   letter-spacing: -0.02em;
 }
 
