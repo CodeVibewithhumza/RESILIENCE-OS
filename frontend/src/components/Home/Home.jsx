@@ -136,7 +136,7 @@ export default function Home({
       status: powerDisrupted ? 'CRITICAL' : powerDegraded ? 'DEGRADED' : 'OPERATIONAL',
       statusType: powerDisrupted ? 'critical' : powerDegraded ? 'warning' : 'normal',
       metric: powerDisrupted
-        ? 'Grid Outage / Gen Online'
+        ? (assetMap['GRID_MAIN']?.status === 'failed' ? 'Grid Outage / Gen Online' : `${incident?.source_asset_id || 'Power Node'} Fault / Backup Active`)
         : telemetry?.total_hospital_load_kw
         ? `${telemetry.total_hospital_load_kw.toFixed(0)} kW Load • ${powerAssets.filter((a) => a.status === 'normal' || a.status === 'offline').length}/${powerAssets.length} Nominal`
         : `${powerAssets.filter((a) => a.status === 'normal' || a.status === 'offline').length}/${powerAssets.length} Assets Nominal`,
@@ -216,12 +216,25 @@ export default function Home({
     }
 
     if (incident?.is_active) {
-      list.push(
-        { id: 'e1', text: 'Main grid outage injected at Substation A', time: 'Just now', type: 'critical' },
-        { id: 'e2', text: 'Emergency Bus switched to backup feeder', time: 'T+0 min', type: 'critical' },
-        { id: 'e3', text: 'GEN_01 diesel generator warmup initialized', time: 'T+5 min', type: 'warning' },
-        { id: 'e4', text: 'Critical care care units switched to UPS reserve', time: 'T+10 min', type: 'warning' }
-      )
+      if (Array.isArray(incident.timeline) && incident.timeline.length > 0) {
+        incident.timeline.forEach((step, idx) => {
+          list.push({
+            id: `timeline-evt-${step.t_offset_min ?? idx}`,
+            text: step.title || step.description,
+            time: `T+${step.t_offset_min ?? 0}m`,
+            type: idx === 0 ? 'critical' : 'warning'
+          })
+        })
+      } else {
+        const source = incident.source_asset_id || 'Subsystem'
+        const failType = incident.failure_type ? ` (${incident.failure_type.replace(/_/g, ' ')})` : ''
+        list.push(
+          { id: 'e1', text: `Primary disruption on ${source}${failType}`, time: 'Active', type: 'critical' },
+          { id: 'e2', text: `Cascade propagation active: ${incident.affected_asset_ids?.length || 1} asset(s) impacted`, time: 'T+0 min', type: 'critical' },
+          { id: 'e3', text: `Clinical care monitoring: ${incident.affected_service_ids?.length || 0} service(s) at risk`, time: 'Active', type: 'warning' },
+          { id: 'e4', text: 'Decision support & response strategy optimization engaged', time: 'Active', type: 'warning' }
+        )
+      }
     } else {
       list.push(
         { id: 'e1', text: 'System status nominal', time: '2 min ago', type: 'normal' },
@@ -231,7 +244,7 @@ export default function Home({
       )
     }
     return list.slice(0, 4)
-  }, [incident?.is_active, latestTwinEvent])
+  }, [incident, latestTwinEvent])
 
   const handleScrollTo = (anchorId) => {
     if (onNavigate) {
@@ -620,9 +633,11 @@ export default function Home({
               {resilience?.status_label || 'OPTIMAL'}
             </span>
             <span className="kpi-card-sub font-mono">
-              {resilience?.delta_from_baseline === 0
-                ? 'Baseline Nominal'
-                : `${(resilience?.delta_from_baseline || 0) > 0 ? '+' : ''}${(resilience?.delta_from_baseline || 0).toFixed(1)} pts`}
+              {typeof resilience?.delta_from_baseline === 'number'
+                ? resilience.delta_from_baseline === 0
+                  ? 'Baseline Nominal'
+                  : `${resilience.delta_from_baseline > 0 ? '+' : ''}${resilience.delta_from_baseline.toFixed(1)} pts`
+                : '—'}
             </span>
           </div>
         </div>
@@ -688,7 +703,9 @@ export default function Home({
               {activeAlertsCount > 0 ? 'Action Required' : '0 Anomalies'}
             </span>
             <span className="kpi-card-sub font-mono">
-              {incident?.is_active ? 'Grid Failure Active' : 'Standby Normal'}
+              {incident?.is_active
+                ? (incident.source_asset_id === 'GRID_MAIN' ? 'Grid Failure Active' : `${incident.source_asset_id} Disruption Active`)
+                : 'Standby Normal'}
             </span>
           </div>
         </div>

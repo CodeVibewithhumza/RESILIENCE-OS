@@ -53,11 +53,13 @@ export default function ResilienceCard({ resilience }) {
     }
   ]
 
-  const deltaFormatted = delta_from_baseline > 0
-    ? `+${delta_from_baseline.toFixed(1)}`
-    : delta_from_baseline === 0
-    ? '0.0'
-    : delta_from_baseline.toFixed(1)
+  const deltaFormatted = typeof delta_from_baseline === 'number'
+    ? (delta_from_baseline > 0
+        ? `+${delta_from_baseline.toFixed(1)}`
+        : delta_from_baseline === 0
+        ? '0.0'
+        : delta_from_baseline.toFixed(1))
+    : '—'
 
   // SVG Gauge calculations
   // Radius = 68, Circumference = 2 * PI * 68 = ~427.26
@@ -187,9 +189,9 @@ export default function ResilienceCard({ resilience }) {
 
             <div className="meta-summary-chips">
               <div className="resilience-delta-badge font-mono">
-                {delta_from_baseline < 0 ? (
+                {typeof delta_from_baseline === 'number' && delta_from_baseline < 0 ? (
                   <TrendingDown size={14} style={{ color: 'var(--status-critical)' }} />
-                ) : delta_from_baseline > 0 ? (
+                ) : typeof delta_from_baseline === 'number' && delta_from_baseline > 0 ? (
                   <TrendingUp size={14} style={{ color: 'var(--status-normal)' }} />
                 ) : (
                   <Minus size={14} style={{ color: 'var(--text-muted)' }} />
@@ -198,10 +200,10 @@ export default function ResilienceCard({ resilience }) {
                 <span
                   className="resilience-delta-val"
                   style={{
-                    color: delta_from_baseline < 0 ? 'var(--status-critical)' : 'var(--text-secondary)'
+                    color: typeof delta_from_baseline === 'number' && delta_from_baseline < 0 ? 'var(--status-critical)' : 'var(--text-secondary)'
                   }}
                 >
-                  {deltaFormatted} pts
+                  {deltaFormatted}{typeof delta_from_baseline === 'number' ? ' pts' : ''}
                 </span>
               </div>
 

@@ -38,7 +38,7 @@ export default function Header({
   const statusLabel = resilience?.status_label || 'OPTIMAL'
   const isCritical = statusLabel === 'CRITICAL'
   const statusSub = isCritical
-    ? 'Grid Disruption Active'
+    ? (alertsCount > 0 ? `${alertsCount} Disruption Alerts Active` : 'Disruption Active')
     : alertsCount > 0
     ? `${alertsCount} Active Alerts`
     : 'All systems nominal'

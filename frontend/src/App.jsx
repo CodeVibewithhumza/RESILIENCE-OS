@@ -22,7 +22,6 @@ import {
   INITIAL_ASSETS,
   INITIAL_SERVICES,
   INITIAL_RESILIENCE,
-  DISRUPTED_ASSETS,
   INITIAL_INCIDENT_STATE,
   CASCADE_TIMELINE,
   WHAT_IF_STRATEGIES,
@@ -151,57 +150,47 @@ function updateAssetsWithTelemetry(baseAssets, tel) {
 
 /**
  * Resolves deterministic asset state for a given cascade checkpoint index.
- * Directly reuses canonical DISRUPTED_ASSETS fixture as the single source of truth for T+0,
- * and layers checkpoint milestone deltas defined in CASCADE_TIMELINE without duplicating base failure state.
+ * Derives affected nodes directly from the authoritative backend timeline milestone
+ * for the currently active incident, without relying on static single-scenario mock fixtures.
  */
-function getAssetsForCheckpoint(incidentActive, checkpointIdx = 0) {
-  if (!incidentActive) return INITIAL_ASSETS
-  if (checkpointIdx === 0) return DISRUPTED_ASSETS
+function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAssets = INITIAL_ASSETS) {
+  if (!incident || !incident.is_active) return INITIAL_ASSETS
 
-  // Layer checkpoint milestones onto canonical DISRUPTED_ASSETS
-  return DISRUPTED_ASSETS.map((asset) => {
-    // T+5: GEN_01 finishes startup warmup and comes online
-    if (asset.id === 'GEN_01') {
+  const milestone = Array.isArray(timeline) && timeline[checkpointIdx]
+    ? timeline[checkpointIdx]
+    : null
+
+  const affectedNodeIds = new Set(milestone?.affected_node_ids || [])
+  const sourceAssetId = incident.source_asset_id
+
+  return baseAssets.map((asset) => {
+    // 1. The active incident's source failure node remains failed throughout the incident
+    if (asset.id === sourceAssetId) {
       return {
         ...asset,
-        status: 'normal',
-        current_load: 420.0,
-        health_score: 96.0,
-        fuel_level_pct: Math.max(0, 95.0 - checkpointIdx * 4)
+        status: 'failed',
+        health_score: 0.0,
+        available_capacity: 0.0
       }
     }
 
-    // T+10: Emergency Bus load reaches 92% capacity
-    if (asset.id === 'EMERGENCY_BUS' && checkpointIdx >= 2) {
+    // 2. Nodes included in the milestone's affected_node_ids reflect degraded / affected state
+    if (affectedNodeIds.has(asset.id)) {
       return {
         ...asset,
-        status: 'critical',
-        available_capacity: 600.0,
-        current_load: 550.0,
-        health_score: 45.0
+        status: 'degraded',
+        health_score: 50.0
       }
     }
 
-    // T+20: UPS battery bank exhausted
-    if (asset.id === 'UPS_CRITICAL') {
-      if (checkpointIdx >= 3) {
-        return {
-          ...asset,
-          status: 'failed',
-          battery_level_pct: 0.0,
-          runtime_remaining_min: 0.0,
-          health_score: 20.0,
-          current_load: 0.0
-        }
-      }
-      return {
-        ...asset,
-        runtime_remaining_min: Math.max(0, 35.0 - checkpointIdx * 10),
-        battery_level_pct: Math.max(0, 78.0 - checkpointIdx * 25)
-      }
+    // 3. Nodes not affected at this milestone retain their normal / baseline state
+    return {
+      ...asset,
+      status: 'normal',
+      health_score: typeof asset.health_score === 'number' && asset.health_score > 70
+        ? asset.health_score
+        : 100.0
     }
-
-    return asset
   })
 }
 
@@ -357,18 +346,21 @@ export default function App() {
   }, [fetchWhatIfAnalysis])
 
   // Event callback: Synchronize incoming real-time telemetry and resilience score
-  const handleTelemetryTick = useCallback(({ telemetry: tel, resilienceScore: score, statusLabel: label }) => {
+  const handleTelemetryTick = useCallback(({ telemetry: tel, resilienceScore: score, statusLabel: label, deltaFromBaseline: delta }) => {
     if (typeof score === 'number') {
       setResilience((prev) => {
         const lbl = label || prev.status_label || 'OPTIMAL'
         const color = getStatusColor(lbl)
-        const delta = Number((score - 94.5).toFixed(1))
+        // Fix 4: Prefer backend-provided delta_from_baseline; do not fabricate frontend baseline
+        const effectiveDelta = typeof delta === 'number'
+          ? delta
+          : prev.delta_from_baseline
         return {
           ...prev,
           overall_score: score,
           status_label: lbl,
           status_color: color,
-          delta_from_baseline: delta
+          delta_from_baseline: effectiveDelta
         }
       })
     }
@@ -720,14 +712,14 @@ export default function App() {
     const nextIdx = Math.min(activeCheckpointIndex + 1, effectiveTimeline.length - 1)
     setActiveCheckpointIndex(nextIdx)
     if (incident.is_active) {
-      setAssets(getAssetsForCheckpoint(true, nextIdx))
+      setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, nextIdx, INITIAL_ASSETS))
     }
   }
 
   const handleSelectCheckpoint = (idx) => {
     setActiveCheckpointIndex(idx)
     if (incident.is_active) {
-      setAssets(getAssetsForCheckpoint(true, idx))
+      setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, idx, INITIAL_ASSETS))
     }
   }
 
@@ -743,16 +735,26 @@ export default function App() {
     (incident.is_active ? incident.affected_asset_ids?.length || 0 : 0) +
     services.filter((s) => s.at_risk).length
 
+  // Fix 2: Dynamic Header Scenario Title derived from active incident
+  const scenarioTitle = useMemo(() => {
+    if (!incident?.is_active) {
+      return 'Baseline 100% Operational'
+    }
+    if (incident.source_asset_id === 'GRID_MAIN') {
+      return 'Catastrophic Main Grid Outage (Active Cascade)'
+    }
+    if (incident.title) {
+      return `Active Cascade: ${incident.title}`
+    }
+    return `Active Cascade: ${incident.source_asset_id || 'Subsystem'} Disruption`
+  }, [incident?.is_active, incident?.source_asset_id, incident?.title])
+
   return (
     <div className="dashboard-shell">
       {/* 1. Top Global Command Header */}
       <Header
         resilience={resilience}
-        scenarioName={
-          incident.is_active
-            ? 'Catastrophic Main Grid Outage (Active Cascade)'
-            : 'Baseline 100% Operational'
-        }
+        scenarioName={scenarioTitle}
         assetsCount={assets.length}
         servicesCount={services.length}
         alertsCount={activeAlertsCount}

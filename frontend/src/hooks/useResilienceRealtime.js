@@ -233,6 +233,13 @@ class RealtimeConnectionManager {
                 : null
             const label = data.payload?.status_label ?? data.status_label ?? null
 
+            const delta =
+              typeof data.payload?.delta_from_baseline === 'number'
+                ? data.payload.delta_from_baseline
+                : typeof data.delta_from_baseline === 'number'
+                ? data.delta_from_baseline
+                : null
+
             if (rawTelemetry) this.telemetry = rawTelemetry
             if (typeof score === 'number') this.resilienceScore = score
             if (typeof label === 'string' && label) this.statusLabel = label
@@ -243,7 +250,8 @@ class RealtimeConnectionManager {
               data: {
                 telemetry: rawTelemetry,
                 resilienceScore: score,
-                statusLabel: label
+                statusLabel: label,
+                deltaFromBaseline: delta
               }
             })
           } catch {
@@ -302,6 +310,13 @@ class RealtimeConnectionManager {
               const score = data.payload?.resilience_score
               const label = data.payload?.status_label
 
+              const delta =
+                typeof data.payload?.delta_from_baseline === 'number'
+                  ? data.payload.delta_from_baseline
+                  : typeof data.delta_from_baseline === 'number'
+                  ? data.delta_from_baseline
+                  : null
+
               if (rawTelemetry) this.telemetry = rawTelemetry
               if (typeof score === 'number') this.resilienceScore = score
               if (typeof label === 'string' && label) this.statusLabel = label
@@ -312,7 +327,8 @@ class RealtimeConnectionManager {
                 data: {
                   telemetry: rawTelemetry,
                   resilienceScore: score,
-                  statusLabel: label
+                  statusLabel: label,
+                  deltaFromBaseline: delta
                 }
               })
             } else if (eventType) {
