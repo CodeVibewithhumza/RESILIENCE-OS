@@ -15,7 +15,8 @@ export function HospitalFloorPlinth({
   isIsolated = false,
   isDimmed = false,
   showWalls = true,
-  xrayMode = false
+  xrayMode = false,
+  isLight = false
 }) {
   const { elevation, color, level } = floorDef
   const buildingWidth = 14.8
@@ -28,9 +29,9 @@ export function HospitalFloorPlinth({
       <mesh position={[0, -slabThickness / 2, 0]}>
         <boxGeometry args={[buildingWidth, slabThickness, buildingDepth]} />
         <meshStandardMaterial
-          color={xrayMode ? '#030712' : '#0B132B'}
-          roughness={0.7}
-          metalness={0.4}
+          color={xrayMode ? '#030712' : isLight ? '#F1F5F9' : '#0B132B'}
+          roughness={isLight ? 0.5 : 0.7}
+          metalness={isLight ? 0.2 : 0.4}
           transparent
           opacity={xrayMode ? 0.35 : isDimmed ? 0.12 : 0.96}
           wireframe={xrayMode}
@@ -43,15 +44,15 @@ export function HospitalFloorPlinth({
         <meshStandardMaterial
           color={
             level === 3
-              ? '#0B1E38' // ICU High-Tech Deep Slate Blue
+              ? (isLight ? '#E0F2FE' : '#0B1E38') // ICU Medical Ice-Blue / Deep Slate Blue
               : level === 2
-              ? '#0A192F' // Surgical Dark Navy
-              : '#0D1527' // ED Cleanroom Charcoal
+              ? (isLight ? '#ECFDF5' : '#0A192F') // Surgical Sterile Mint / Navy
+              : (isLight ? '#F8FAFC' : '#0D1527') // ED Cleanroom Pearl / Charcoal
           }
-          roughness={0.2}
-          metalness={0.5}
+          roughness={isLight ? 0.3 : 0.2}
+          metalness={isLight ? 0.2 : 0.5}
           transparent={isDimmed || xrayMode}
-          opacity={xrayMode ? 0.2 : isDimmed ? 0.1 : 0.92}
+          opacity={xrayMode ? 0.2 : isDimmed ? 0.1 : 0.94}
         />
       </mesh>
 
@@ -292,7 +293,7 @@ export function HospitalFloorPlinth({
           <mesh key={`col-${i}-${j}`} position={[cx, 1.1, cz]}>
             <boxGeometry args={[0.3, 2.2, 0.3]} />
             <meshStandardMaterial
-              color="#334155"
+              color={isLight ? '#64748B' : '#334155'}
               metalness={0.7}
               roughness={0.3}
               transparent={isDimmed || xrayMode}
@@ -308,7 +309,7 @@ export function HospitalFloorPlinth({
         <mesh>
           <boxGeometry args={[1.5, 2.2, 2.8]} />
           <meshStandardMaterial
-            color="#0F172A"
+            color={isLight ? '#CBD5E1' : '#0F172A'}
             roughness={0.7}
             metalness={0.4}
             transparent={isDimmed || xrayMode}
@@ -443,7 +444,7 @@ function AirAmbulanceHelicopter() {
 /**
  * Hospital Rooftop Structure with Helipad, AHU Condensers, Solar Arrays & Aviation Beacon
  */
-export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
+export function HospitalRooftop({ showRoof = true, xrayMode = false, isLight = false }) {
   const beaconRef = useRef()
 
   useFrame(({ clock }) => {
@@ -464,7 +465,7 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
       <mesh position={[0, -0.1, 0]}>
         <boxGeometry args={[buildingWidth, 0.2, buildingDepth]} />
         <meshStandardMaterial
-          color="#0F172A"
+          color={isLight ? '#CBD5E1' : '#0F172A'}
           roughness={0.8}
           metalness={0.3}
           wireframe={xrayMode}
@@ -474,19 +475,19 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
       {/* Parapet Perimeter Safety Walls */}
       <mesh position={[0, 0.35, -buildingDepth / 2 + 0.1]}>
         <boxGeometry args={[buildingWidth, 0.7, 0.2]} />
-        <meshStandardMaterial color="#1E293B" />
+        <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} />
       </mesh>
       <mesh position={[0, 0.35, buildingDepth / 2 - 0.1]}>
         <boxGeometry args={[buildingWidth, 0.7, 0.2]} />
-        <meshStandardMaterial color="#1E293B" />
+        <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} />
       </mesh>
       <mesh position={[-buildingWidth / 2 + 0.1, 0.35, 0]}>
         <boxGeometry args={[0.2, 0.7, buildingDepth]} />
-        <meshStandardMaterial color="#1E293B" />
+        <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} />
       </mesh>
       <mesh position={[buildingWidth / 2 - 0.1, 0.35, 0]}>
         <boxGeometry args={[0.2, 0.7, buildingDepth]} />
-        <meshStandardMaterial color="#1E293B" />
+        <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} />
       </mesh>
 
       {/* 1. Emergency Trauma Helipad Platform */}
@@ -494,7 +495,7 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
         {/* Helipad Octagonal Landing Pad */}
         <mesh rotation={[-Math.PI / 2, 0, 0]}>
           <circleGeometry args={[3.6, 8]} />
-          <meshStandardMaterial color="#1E293B" roughness={0.4} metalness={0.5} />
+          <meshStandardMaterial color={isLight ? '#334155' : '#1E293B'} roughness={0.4} metalness={0.5} />
         </mesh>
 
         {/* Helipad Yellow Outer Ring */}
@@ -526,24 +527,74 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
           <meshBasicMaterial color="#F8FAFC" />
         </mesh>
 
-        {/* Helipad Perimeter Green Aviation Landing Lights */}
-        {[0, 1, 2, 3, 4, 5, 6, 7].map((i) => {
-          const angle = (i * Math.PI) / 4
-          const x = Math.cos(angle) * 3.4
-          const z = Math.sin(angle) * 3.4
+        {/* Helipad Perimeter Green & Amber Aviation Landing Lights (16 perimeter beacons) */}
+        {[...Array(16)].map((_, i) => {
+          const angle = (i * Math.PI) / 8
+          const x = Math.cos(angle) * 3.45
+          const z = Math.sin(angle) * 3.45
+          const isAmber = i % 4 === 0
           return (
             <group key={`helipad-light-${i}`} position={[x, 0.08, z]}>
               <mesh>
-                <cylinderGeometry args={[0.04, 0.04, 0.12, 8]} />
-                <meshStandardMaterial color="#0F172A" />
+                <cylinderGeometry args={[0.035, 0.045, 0.12, 8]} />
+                <meshStandardMaterial color="#0F172A" metalness={0.8} />
               </mesh>
               <mesh position={[0, 0.08, 0]}>
-                <sphereGeometry args={[0.045, 8, 8]} />
-                <meshBasicMaterial color="#10B981" />
+                <sphereGeometry args={[0.042, 8, 8]} />
+                <meshBasicMaterial color={isAmber ? '#F59E0B' : '#10B981'} />
               </mesh>
             </group>
           )
         })}
+
+        {/* Helipad Cantilevered Steel Safety Catch Netting */}
+        {[...Array(8)].map((_, i) => {
+          const angle = (i * Math.PI) / 4 + Math.PI / 8
+          const x = Math.cos(angle) * 3.8
+          const z = Math.sin(angle) * 3.8
+          return (
+            <mesh key={`safety-net-${i}`} position={[x, -0.08, z]} rotation={[0.2, angle, 0]}>
+              <boxGeometry args={[1.6, 0.04, 0.45]} />
+              <meshStandardMaterial color="#475569" wireframe transparent opacity={0.6} />
+            </mesh>
+          )
+        })}
+
+        {/* Helipad Perimeter Touchdown Floodlights */}
+        {[-2.8, 2.8].map((fx, idx) => (
+          <group key={`floodlight-${idx}`} position={[fx, 0.1, -2.6]} rotation={[0.4, idx === 0 ? 0.6 : -0.6, 0]}>
+            <mesh>
+              <cylinderGeometry args={[0.04, 0.05, 0.6, 8]} />
+              <meshStandardMaterial color="#334155" metalness={0.9} />
+            </mesh>
+            <mesh position={[0, 0.32, 0.08]} rotation={[0.5, 0, 0]}>
+              <boxGeometry args={[0.18, 0.12, 0.14]} />
+              <meshStandardMaterial color="#0F172A" />
+            </mesh>
+            <mesh position={[0, 0.32, 0.15]} rotation={[0.5, 0, 0]}>
+              <circleGeometry args={[0.07, 16]} />
+              <meshBasicMaterial color="#FEF08A" />
+            </mesh>
+          </group>
+        ))}
+
+        {/* Animated Weather Windsock Mast */}
+        <group position={[3.1, 0.0, -1.8]}>
+          <mesh position={[0, 0.9, 0]}>
+            <cylinderGeometry args={[0.03, 0.04, 1.8, 8]} />
+            <meshStandardMaterial color="#94A3B8" metalness={0.9} />
+          </mesh>
+          {/* Top Obstruction Beacon */}
+          <mesh position={[0, 1.85, 0]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color="#EF4444" />
+          </mesh>
+          {/* Windsock Cone */}
+          <mesh position={[0.22, 1.68, 0]} rotation={[0, 0, -Math.PI / 2 + 0.15]}>
+            <coneGeometry args={[0.14, 0.55, 12, 1, true]} />
+            <meshStandardMaterial color="#EA580C" side={THREE.DoubleSide} />
+          </mesh>
+        </group>
 
         {/* Parked Medevac Air Ambulance Helicopter */}
         <AirAmbulanceHelicopter />
@@ -567,24 +618,52 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
         )}
       </group>
 
-      {/* 3. Rooftop AHU HVAC Ducts & Fan Units */}
+      {/* 3. Rooftop Industrial AHU HVAC Ducts & Condenser Units */}
       <group position={[3.2, 0.5, 3.0]}>
         <mesh>
           <boxGeometry args={[2.2, 0.9, 1.6]} />
           <meshStandardMaterial color="#334155" metalness={0.7} />
         </mesh>
+        {/* Protective Intake Louver Fins */}
+        {[-0.3, 0, 0.3].map((yOff, lIdx) => (
+          <mesh key={`louver-${lIdx}`} position={[0, yOff, 0.81]}>
+            <boxGeometry args={[2.0, 0.04, 0.02]} />
+            <meshStandardMaterial color="#1E293B" metalness={0.8} />
+          </mesh>
+        ))}
         {[-0.5, 0.5].map((x, idx) => (
-          <mesh key={`ahu-fan-${idx}`} position={[x, 0.5, 0]}>
+          <group key={`ahu-fan-${idx}`} position={[x, 0.5, 0]}>
             <cylinderGeometry args={[0.3, 0.3, 0.15, 16]} />
             <meshStandardMaterial color="#0F172A" />
-          </mesh>
+            <mesh position={[0, 0.1, 0]}>
+              <ringGeometry args={[0.26, 0.3, 16]} />
+              <meshBasicMaterial color="#64748B" wireframe />
+            </mesh>
+          </group>
         ))}
       </group>
 
-      {/* 4. Elevator Motor Penthouse & Aviation Strobe Beacon */}
+      {/* 4. Satellite Comms Antenna & Microwave Dish */}
+      <group position={[5.4, 0.2, 3.2]}>
+        <mesh position={[0, 0.6, 0]}>
+          <cylinderGeometry args={[0.04, 0.04, 1.2, 8]} />
+          <meshStandardMaterial color="#94A3B8" metalness={0.9} />
+        </mesh>
+        <mesh position={[0, 1.1, 0.15]} rotation={[0.4, 0, 0]}>
+          <sphereGeometry args={[0.42, 16, 16, 0, Math.PI * 2, 0, Math.PI / 2]} />
+          <meshStandardMaterial color="#F8FAFC" side={THREE.DoubleSide} metalness={0.6} />
+        </mesh>
+      </group>
+
+      {/* 5. Elevator Motor Penthouse & Aviation Strobe Beacon */}
       <mesh position={[6.5, 0.85, 0]}>
         <boxGeometry args={[1.6, 1.7, 2.8]} />
-        <meshStandardMaterial color="#1E293B" metalness={0.6} />
+        <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} metalness={0.6} />
+      </mesh>
+      {/* Access Door */}
+      <mesh position={[5.68, 0.65, 0]} rotation={[0, Math.PI / 2, 0]}>
+        <planeGeometry args={[0.8, 1.3]} />
+        <meshStandardMaterial color="#334155" metalness={0.7} />
       </mesh>
       {/* Strobe Beacon Mast */}
       <mesh position={[6.5, 2.4, 0]}>
@@ -610,7 +689,7 @@ export function HospitalRooftop({ showRoof = true, xrayMode = false }) {
 /**
  * Realistic Industrial Infrastructure & Utility Plant Yard
  */
-export function IndustrialPlantYard({ xrayMode = false }) {
+export function IndustrialPlantYard({ xrayMode = false, isLight = false }) {
   const yardWidth = 10.4
   const yardDepth = 14.0
   const yardCenter = [11.6, 0, 0]
@@ -621,7 +700,7 @@ export function IndustrialPlantYard({ xrayMode = false }) {
       <mesh position={[0, -0.06, 0]}>
         <boxGeometry args={[yardWidth, 0.12, yardDepth]} />
         <meshStandardMaterial
-          color="#0B1120"
+          color={isLight ? '#E2E8F0' : '#0B1120'}
           roughness={0.85}
           metalness={0.2}
           wireframe={xrayMode}
@@ -634,18 +713,44 @@ export function IndustrialPlantYard({ xrayMode = false }) {
         <meshBasicMaterial color="#EAB308" wireframe transparent opacity={0.35} />
       </mesh>
 
+      {/* Reinforced Concrete Blast Deflection Wall Between Transformers */}
+      <mesh position={[3.2, 0.9, -4.0]}>
+        <boxGeometry args={[3.8, 1.8, 0.24]} />
+        <meshStandardMaterial color={isLight ? '#64748B' : '#1E293B'} roughness={0.7} metalness={0.3} />
+      </mesh>
+
+      {/* High-Voltage Hazard Signs on Blast Wall */}
+      <mesh position={[3.2, 1.3, -3.87]}>
+        <planeGeometry args={[0.8, 0.4]} />
+        <meshBasicMaterial color="#EAB308" />
+      </mesh>
+
+      {/* Transformer Gravel Oil-Catch Basins */}
+      {[-2.5, -5.5].map((z, bIdx) => (
+        <mesh key={`gravel-${bIdx}`} position={[3.2, 0.02, z]}>
+          <boxGeometry args={[2.2, 0.04, 2.2]} />
+          <meshStandardMaterial color="#334155" roughness={0.9} />
+        </mesh>
+      ))}
+
+      {/* Industrial Utility Pipe Trench with Steel Grating */}
+      <mesh position={[-0.2, 0.02, 0]}>
+        <boxGeometry args={[1.2, 0.03, yardDepth - 1.2]} />
+        <meshStandardMaterial color="#1E293B" wireframe metalness={0.8} />
+      </mesh>
+
       {/* High-Voltage Chain-Link Security Fence */}
       <mesh position={[0, 0.75, -yardDepth / 2 + 0.1]}>
         <boxGeometry args={[yardWidth, 1.5, 0.04]} />
-        <meshStandardMaterial color="#475569" wireframe transparent opacity={0.45} />
+        <meshStandardMaterial color={isLight ? '#64748B' : '#475569'} wireframe transparent opacity={0.45} />
       </mesh>
       <mesh position={[yardWidth / 2 - 0.1, 0.75, 0]}>
         <boxGeometry args={[0.04, 1.5, yardDepth]} />
-        <meshStandardMaterial color="#475569" wireframe transparent opacity={0.45} />
+        <meshStandardMaterial color={isLight ? '#64748B' : '#475569'} wireframe transparent opacity={0.45} />
       </mesh>
       <mesh position={[0, 0.75, yardDepth / 2 - 0.1]}>
         <boxGeometry args={[yardWidth, 1.5, 0.04]} />
-        <meshStandardMaterial color="#475569" wireframe transparent opacity={0.45} />
+        <meshStandardMaterial color={isLight ? '#64748B' : '#475569'} wireframe transparent opacity={0.45} />
       </mesh>
 
       {/* Overhead Steel Pipe & Cable Gantry Bridge Connecting Yard to Building */}
@@ -672,6 +777,140 @@ export function IndustrialPlantYard({ xrayMode = false }) {
           <meshStandardMaterial color="#10B981" metalness={0.8} />
         </mesh>
       </group>
+    </group>
+  )
+}
+
+/**
+ * Exterior Architectural MEP Vertical Utility Riser Tower & Service Bridge
+ * Sits at x = 5.2 on the Hospital East Facade, housing vertical riser conduits
+ * connecting from Ground Utility Yard up to Level 3 ICU.
+ */
+export function ExteriorUtilityRiserTower({ xrayMode = false, activeFloor = 'all', isLight = false }) {
+  const riserHeight = 11.2
+  const riserX = 5.2
+
+  return (
+    <group position={[riserX, 0, 0]}>
+      {/* 1. Structural Steel Frame Corner Columns */}
+      {[-0.6, 0.6].map((cx, i) =>
+        [-1.4, 1.4].map((cz, j) => (
+          <mesh key={`riser-col-${i}-${j}`} position={[cx, riserHeight / 2, cz]}>
+            <boxGeometry args={[0.12, riserHeight, 0.12]} />
+            <meshStandardMaterial color={isLight ? '#64748B' : '#334155'} metalness={0.85} roughness={0.2} />
+          </mesh>
+        ))
+      )}
+
+      {/* 2. Horizontal Catwalk Platforms at Floor Levels (L1, L2, L3, Roof) */}
+      {[0.0, 3.6, 7.2, 10.8].map((yLevel, pIdx) => (
+        <group key={`catwalk-${pIdx}`} position={[0, yLevel, 0]}>
+          <mesh position={[0, 0.08, 0]}>
+            <boxGeometry args={[1.3, 0.12, 2.9]} />
+            <meshStandardMaterial color={isLight ? '#94A3B8' : '#1E293B'} metalness={0.9} roughness={0.3} />
+          </mesh>
+          {/* Steel Safety Handrails */}
+          <mesh position={[0.62, 0.55, 0]}>
+            <boxGeometry args={[0.04, 0.85, 2.8]} />
+            <meshStandardMaterial color="#94A3B8" wireframe metalness={0.8} />
+          </mesh>
+          {/* Floor Level Marker Beacon */}
+          <mesh position={[0.65, 0.2, 1.3]}>
+            <sphereGeometry args={[0.05, 8, 8]} />
+            <meshBasicMaterial color="#00F0FF" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 3. Semi-Transparent Glass Inspection Panels */}
+      <mesh position={[0.62, riserHeight / 2, 0]}>
+        <boxGeometry args={[0.04, riserHeight - 0.4, 2.7]} />
+        <meshPhysicalMaterial
+          color="#38BDF8"
+          transmission={0.85}
+          transparent
+          opacity={xrayMode ? 0.08 : 0.22}
+          roughness={0.1}
+          metalness={0.4}
+        />
+      </mesh>
+
+      {/* 4. Exterior Caged Service Maintenance Ladder */}
+      <group position={[-0.65, 0, 0]}>
+        {[-0.18, 0.18].map((lz, idx) => (
+          <mesh key={`ladder-rail-${idx}`} position={[0, riserHeight / 2, lz]}>
+            <cylinderGeometry args={[0.02, 0.02, riserHeight, 8]} />
+            <meshStandardMaterial color="#CBD5E1" metalness={0.9} />
+          </mesh>
+        ))}
+        {/* Rungs every 0.6m */}
+        {[...Array(18)].map((_, rIdx) => (
+          <mesh key={`rung-${rIdx}`} position={[0, 0.4 + rIdx * 0.6, 0]}>
+            <cylinderGeometry args={[0.015, 0.015, 0.36, 6]} rotation={[Math.PI / 2, 0, 0]} />
+            <meshStandardMaterial color="#CBD5E1" metalness={0.9} />
+          </mesh>
+        ))}
+      </group>
+
+      {/* 5. Overhead High-Voltage & Medical Pipe Rack Bridge to Yard */}
+      <group position={[1.5, 2.2, 0]}>
+        {/* Horizontal Steel Truss Beams */}
+        <mesh position={[0, 0, -1.0]}>
+          <boxGeometry args={[2.8, 0.1, 0.1]} />
+          <meshStandardMaterial color="#475569" metalness={0.85} />
+        </mesh>
+        <mesh position={[0, 0, 1.0]}>
+          <boxGeometry args={[2.8, 0.1, 0.1]} />
+          <meshStandardMaterial color="#475569" metalness={0.85} />
+        </mesh>
+        {/* Cross Trays */}
+        {[-1.0, 0, 1.0].map((tx, tIdx) => (
+          <mesh key={`tray-${tIdx}`} position={[tx, 0.06, 0]}>
+            <boxGeometry args={[0.1, 0.04, 2.0]} />
+            <meshStandardMaterial color="#E2E8F0" metalness={0.9} />
+          </mesh>
+        ))}
+      </group>
+    </group>
+  )
+}
+
+/**
+ * Ambulance Ground Access Apron on Hospital West Side (Emergency Intake)
+ */
+export function AmbulanceAccessGroundApron({ isLight = false }) {
+  return (
+    <group position={[-8.8, 0.01, 0]}>
+      {/* Asphalt Access Road */}
+      <mesh position={[0, 0.005, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[4.2, 11.0]} />
+        <meshStandardMaterial color={isLight ? '#334155' : '#0A0F1D'} roughness={0.9} />
+      </mesh>
+
+      {/* Red & Yellow Diagonal Chevron Markings for Emergency Bay Intake */}
+      {[-3.0, 0, 3.0].map((cz, idx) => (
+        <group key={`chevron-${idx}`} position={[0, 0.012, cz]}>
+          <mesh rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[3.2, 2.2]} />
+            <meshBasicMaterial color="#DC2626" wireframe transparent opacity={0.5} />
+          </mesh>
+          {/* Yellow Boundary Stripe */}
+          <mesh position={[-1.6, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.15, 2.2]} />
+            <meshBasicMaterial color="#EAB308" />
+          </mesh>
+          <mesh position={[1.6, 0, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[0.15, 2.2]} />
+            <meshBasicMaterial color="#EAB308" />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Concrete Curb Separators */}
+      <mesh position={[-2.15, 0.08, 0]}>
+        <boxGeometry args={[0.16, 0.16, 11.0]} />
+        <meshStandardMaterial color={isLight ? '#CBD5E1' : '#334155'} />
+      </mesh>
     </group>
   )
 }
@@ -1459,3 +1698,4 @@ export function HydroWaterPump({ status = 'normal', isSelected = false, hovered 
     </group>
   )
 }
+

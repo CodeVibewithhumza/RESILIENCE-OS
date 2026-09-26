@@ -27,7 +27,9 @@ import {
   RefreshCw,
   Sparkles as SparklesIcon,
   ShieldAlert,
-  CheckCircle2
+  CheckCircle2,
+  Sun,
+  Moon
 } from 'lucide-react'
 import {
   STATUS_COLORS,
@@ -55,7 +57,9 @@ import {
   BatteryStorageRack,
   ChillerCoolingTower,
   CryoOxygenYard,
-  HydroWaterPump
+  HydroWaterPump,
+  ExteriorUtilityRiserTower,
+  AmbulanceAccessGroundApron
 } from './EquipmentMeshes'
 import './TwinContainer.css'
 
@@ -188,7 +192,7 @@ function TargetReticle({ position = [0, 0, 0], status = 'normal' }) {
 /**
  * Futuristic Sonar Radar Scan Wave expanding from Central Plant Core
  */
-function RadarScanWave() {
+function RadarScanWave({ isLight = false }) {
   const waveRef = useRef()
 
   useFrame(({ clock }) => {
@@ -196,39 +200,191 @@ function RadarScanWave() {
       const t = (clock.getElapsedTime() * 0.4) % 1.0
       const radius = 2 + t * 26
       waveRef.current.scale.set(radius, radius, 1)
-      waveRef.current.material.opacity = (1 - t) * 0.35
+      waveRef.current.material.opacity = (1 - t) * (isLight ? 0.22 : 0.35)
     }
   })
 
   return (
     <mesh ref={waveRef} position={[2, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]}>
       <ringGeometry args={[0.96, 1.0, 64]} />
-      <meshBasicMaterial color="#00F0FF" side={THREE.DoubleSide} transparent opacity={0.3} />
+      <meshBasicMaterial color={isLight ? '#0284C7' : '#00F0FF'} side={THREE.DoubleSide} transparent opacity={isLight ? 0.22 : 0.3} />
     </mesh>
   )
 }
 
 /**
- * Procedural Dynamic Conduit Energy & Life-Safety Beam with Animated Travelling Photon Particles
+ * 100% Orthogonal Industrial Manhattan Pipeline & Riser System
+ * Generates strictly axis-aligned (left, down, up, right) straight pipe segments
+ * with 90-degree corner elbow fittings and animated traveling photon pulses.
+ * Absolutely NO diagonal shortcut lines.
  */
-function DynamicEnergyBeam({ start, end, color = '#00F0FF', isSevered = false, isDegraded = false, speed = 1.8 }) {
+function OrthogonalPipeline({
+  start,
+  end,
+  type = 'power',
+  color = '#00F0FF',
+  isSevered = false,
+  isDegraded = false,
+  speed = 1.8,
+  index = 0,
+  isLight = false
+}) {
   const pulseRef = useRef()
   const photon1Ref = useRef()
   const photon2Ref = useRef()
 
-  const { position, quaternion, length, p1, p2 } = useMemo(() => {
-    const pt1 = new THREE.Vector3(...start)
-    const pt2 = new THREE.Vector3(...end)
-    pt1.y += 0.35
-    pt2.y += 0.35
-    const mid = pt1.clone().add(pt2).multiplyScalar(0.5)
-    const dir = pt2.clone().sub(pt1)
-    const len = dir.length()
-    const up = new THREE.Vector3(0, 1, 0)
-    const q = new THREE.Quaternion().setFromUnitVectors(up, dir.normalize())
-    return { position: mid, quaternion: q, length: len, p1: pt1, p2: pt2 }
-  }, [start, end])
+  // 1. Generate strictly 90° axis-aligned Manhattan waypoints
+  const { segments, elbows, totalLength } = useMemo(() => {
+    const x1 = start[0], y1 = start[1], z1 = start[2]
+    const x2 = end[0], y2 = end[1], z2 = end[2]
 
+    const yElev1 = y1 + 0.35
+    const yElev2 = y2 + 0.35
+
+    const isYard1 = x1 >= 6.5
+    const isYard2 = x2 >= 6.5
+    const isTower1 = x1 < 6.5
+    const isTower2 = x2 < 6.5
+
+    const rawWaypoints = []
+
+    // CASE A: Intra-Yard (both source and consumer in the utility plant yard)
+    if (isYard1 && isYard2) {
+      const p0 = new THREE.Vector3(x1, yElev1, z1)
+      if (Math.abs(z1 - z2) < 0.08) {
+        // Purely straight along X
+        const p1 = new THREE.Vector3(x2, yElev1, z2)
+        rawWaypoints.push(p0, p1)
+      } else if (Math.abs(x1 - x2) < 0.08) {
+        // Purely straight along Z
+        const p1 = new THREE.Vector3(x2, yElev1, z2)
+        rawWaypoints.push(p0, p1)
+      } else {
+        // Route via yard utility pipe trench at intermediate X
+        const xTrench = 11.4 + ((index % 3) - 1) * 0.2
+        const p1 = new THREE.Vector3(xTrench, yElev1, z1) // along X
+        const p2 = new THREE.Vector3(xTrench, yElev1, z2) // along Z
+        const p3 = new THREE.Vector3(x2, yElev2, z2)       // along X
+        rawWaypoints.push(p0, p1, p2, p3)
+      }
+    }
+    // CASE B: Utility Yard to Hospital Tower (Major Supply Feeder Pipelines!)
+    else if (isYard1 && isTower2) {
+      // Designate parallel vertical tracks in MEP riser shaft (x = 5.2) by utility type
+      let baseZ = 0.0
+      if (type === 'medical_gas') baseZ = 0.95
+      else if (type === 'critical_power') baseZ = -0.95
+      else if (type === 'emergency_power') baseZ = -1.35
+      else if (type === 'generator_backup') baseZ = -0.5
+      else if (type === 'high_voltage') baseZ = -1.7
+      else if (type === 'power') baseZ = -0.15
+      else baseZ = 0.4
+
+      const zRiser = baseZ + ((index % 3) - 1) * 0.12
+      const xRiser = 5.2
+      // Overhead gantry bridge elevation across the yard
+      const yGantry = 1.6 + ((index % 4) * 0.22)
+
+      // Strict sequence of 1-axis straight movements:
+      // 0: Equipment takeoff
+      const p0 = new THREE.Vector3(x1, yElev1, z1)
+      // 1: Rise vertically UP to gantry rack
+      const p1 = new THREE.Vector3(x1, yGantry, z1)
+      // 2: Run along Z into the designated pipe rack track
+      const p2 = new THREE.Vector3(x1, yGantry, zRiser)
+      // 3: Run along X across overhead gantry bridge into MEP riser shaft
+      const p3 = new THREE.Vector3(xRiser, yGantry, zRiser)
+      // 4: Rise vertically UP (or drop) inside shaft to destination floor elevation
+      const p4 = new THREE.Vector3(xRiser, yElev2, zRiser)
+      // 5: Run along Z down the corridor to room's Z coordinate
+      const p5 = new THREE.Vector3(xRiser, yElev2, z2)
+      // 6: Run along X directly into target medical device / bed / OT
+      const p6 = new THREE.Vector3(x2, yElev2, z2)
+
+      rawWaypoints.push(p0, p1, p2, p3, p4, p5, p6)
+    }
+    // CASE C: Intra-Tower or Building to Yard
+    else {
+      const xRiser = 5.2
+      const zRiser = 0.0 + ((index % 3) - 1) * 0.18
+      const p0 = new THREE.Vector3(x1, yElev1, z1)
+
+      if (Math.abs(yElev1 - yElev2) < 0.1) {
+        // Same floor: 2-segment L-route along corridor
+        const p1 = new THREE.Vector3(x1, yElev1, z2)
+        const p2 = new THREE.Vector3(x2, yElev2, z2)
+        rawWaypoints.push(p0, p1, p2)
+      } else {
+        // Multi-floor: route via riser shaft
+        const p1 = new THREE.Vector3(xRiser, yElev1, z1)
+        const p2 = new THREE.Vector3(xRiser, yElev1, zRiser)
+        const p3 = new THREE.Vector3(xRiser, yElev2, zRiser)
+        const p4 = new THREE.Vector3(xRiser, yElev2, z2)
+        const p5 = new THREE.Vector3(x2, yElev2, z2)
+        rawWaypoints.push(p0, p1, p2, p3, p4, p5)
+      }
+    }
+
+    // Filter duplicate or zero-length points
+    const waypoints = []
+    for (let i = 0; i < rawWaypoints.length; i++) {
+      const pt = rawWaypoints[i]
+      if (waypoints.length === 0) {
+        waypoints.push(pt)
+      } else {
+        const prev = waypoints[waypoints.length - 1]
+        if (pt.distanceTo(prev) > 0.04) {
+          waypoints.push(pt)
+        }
+      }
+    }
+
+    // Build straight cylinder segments
+    const segs = []
+    let totLen = 0
+    const upVector = new THREE.Vector3(0, 1, 0)
+
+    for (let i = 0; i < waypoints.length - 1; i++) {
+      const pA = waypoints[i]
+      const pB = waypoints[i + 1]
+      const dir = pB.clone().sub(pA)
+      const len = dir.length()
+      if (len < 0.04) continue
+
+      const mid = pA.clone().add(pB).multiplyScalar(0.5)
+      const quat = new THREE.Quaternion().setFromUnitVectors(upVector, dir.clone().normalize())
+      segs.push({
+        start: pA,
+        end: pB,
+        mid,
+        quaternion: quat,
+        length: len,
+        startDist: totLen
+      })
+      totLen += len
+    }
+
+    // Corner elbow joint positions (all intermediate waypoints where direction changes)
+    const elbowsList = []
+    for (let i = 1; i < waypoints.length - 1; i++) {
+      elbowsList.push(waypoints[i])
+    }
+
+    return { segments: segs, elbows: elbowsList, totalLength: totLen }
+  }, [start, end, type, index])
+
+  // Radius sizing per utility type
+  const { outerRad, innerRad, pulseRad } = useMemo(() => {
+    if (type === 'medical_gas') return { outerRad: 0.042, innerRad: 0.024, pulseRad: 0.055 }
+    if (type === 'high_voltage') return { outerRad: 0.052, innerRad: 0.028, pulseRad: 0.065 }
+    if (type === 'critical_power' || type === 'emergency_power') return { outerRad: 0.046, innerRad: 0.025, pulseRad: 0.06 }
+    if (type === 'generator_backup') return { outerRad: 0.046, innerRad: 0.025, pulseRad: 0.06 }
+    return { outerRad: 0.038, innerRad: 0.020, pulseRad: 0.05 }
+  }, [type])
+
+  const beamColor = isSevered ? '#DC2626' : isDegraded ? '#F59E0B' : color
+
+  // Traveling photon animation along piecewise orthogonal path
   useFrame(({ clock }) => {
     const t = clock.getElapsedTime() * speed
     if (pulseRef.current) {
@@ -237,66 +393,104 @@ function DynamicEnergyBeam({ start, end, color = '#00F0FF', isSevered = false, i
       } else if (isDegraded) {
         pulseRef.current.opacity = 0.5 + Math.sin(t * 6) * 0.3
       } else {
-        pulseRef.current.opacity = 0.7 + Math.sin(t * 3) * 0.2
+        pulseRef.current.opacity = 0.75 + Math.sin(t * 3) * 0.2
       }
     }
 
-    // Move traveling photons along the conduit
-    if (photon1Ref.current && !isSevered) {
-      const prog1 = (t * 0.4) % 1.0
-      photon1Ref.current.position.y = (prog1 - 0.5) * length
-    }
-    if (photon2Ref.current && !isSevered) {
-      const prog2 = ((t * 0.4) + 0.5) % 1.0
-      photon2Ref.current.position.y = (prog2 - 0.5) * length
+    if (!isSevered && totalLength > 0.1 && segments.length > 0) {
+      // Photon 1
+      const dist1 = (t * 2.2) % totalLength
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i]
+        if (dist1 >= seg.startDist && dist1 <= seg.startDist + seg.length) {
+          const localProg = (dist1 - seg.startDist) / seg.length
+          if (photon1Ref.current) {
+            photon1Ref.current.position.copy(seg.start).lerp(seg.end, localProg)
+          }
+          break
+        }
+      }
+
+      // Photon 2 (offset by 50% along total path)
+      const dist2 = (t * 2.2 + totalLength * 0.5) % totalLength
+      for (let i = 0; i < segments.length; i++) {
+        const seg = segments[i]
+        if (dist2 >= seg.startDist && dist2 <= seg.startDist + seg.length) {
+          const localProg = (dist2 - seg.startDist) / seg.length
+          if (photon2Ref.current) {
+            photon2Ref.current.position.copy(seg.start).lerp(seg.end, localProg)
+          }
+          break
+        }
+      }
     }
   })
 
-  const beamColor = isSevered ? '#DC2626' : isDegraded ? '#F59E0B' : color
-
   return (
-    <group position={position} quaternion={quaternion}>
-      {/* Outer Protective Conduit Sleeve */}
-      <mesh>
-        <cylinderGeometry args={[0.045, 0.045, length, 8]} />
-        <meshStandardMaterial
-          color="#0F172A"
-          roughness={0.1}
-          metalness={0.9}
-          transparent
-          opacity={0.35}
-        />
-      </mesh>
+    <group>
+      {/* 1. Straight Cylindrical Pipeline Segments (Outer Sleeve + Inner Fluid/Energy Core) */}
+      {segments.map((seg, sIdx) => (
+        <group key={`seg-${sIdx}`} position={seg.mid} quaternion={seg.quaternion}>
+          {/* Metallic Industrial Pipe Sleeve */}
+          <mesh>
+            <cylinderGeometry args={[outerRad, outerRad, seg.length, 10]} />
+            <meshStandardMaterial
+              color={isLight ? '#64748B' : '#0F172A'}
+              roughness={isLight ? 0.18 : 0.2}
+              metalness={0.9}
+              transparent
+              opacity={isLight ? 0.55 : 0.45}
+            />
+          </mesh>
 
-      {/* Inner Glowing Fluid / Energy Core */}
-      <mesh>
-        <cylinderGeometry args={[0.022, 0.022, length, 6]} />
-        <meshBasicMaterial
-          ref={pulseRef}
-          color={beamColor}
-          transparent
-          opacity={isSevered ? 0.2 : 0.85}
-        />
-      </mesh>
+          {/* Inner Glowing Fluid / Power Stream */}
+          <mesh>
+            <cylinderGeometry args={[innerRad, innerRad, seg.length, 8]} />
+            <meshBasicMaterial
+              ref={sIdx === 0 ? pulseRef : null}
+              color={beamColor}
+              transparent
+              opacity={isSevered ? 0.2 : 0.88}
+            />
+          </mesh>
+        </group>
+      ))}
 
-      {/* Travelling Photon Pulse 1 */}
+      {/* 2. 90-Degree Corner Elbow Joint Fittings with Illuminated Collar */}
+      {elbows.map((pt, eIdx) => (
+        <group key={`elbow-${eIdx}`} position={pt}>
+          <mesh>
+            <sphereGeometry args={[outerRad * 1.35, 12, 12]} />
+            <meshStandardMaterial color={isLight ? '#475569' : '#1E293B'} metalness={0.95} roughness={0.15} />
+          </mesh>
+          <mesh>
+            <sphereGeometry args={[outerRad * 0.95, 8, 8]} />
+            <meshBasicMaterial color={beamColor} transparent opacity={isSevered ? 0.2 : 0.65} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* 3. Travelling Animated Photon 1 */}
       {!isSevered && (
         <mesh ref={photon1Ref}>
-          <sphereGeometry args={[0.055, 8, 8]} />
+          <sphereGeometry args={[pulseRad, 10, 10]} />
           <meshBasicMaterial color="#FFFFFF" />
         </mesh>
       )}
 
-      {/* Travelling Photon Pulse 2 */}
+      {/* 4. Travelling Animated Photon 2 */}
       {!isSevered && (
         <mesh ref={photon2Ref}>
-          <sphereGeometry args={[0.045, 8, 8]} />
+          <sphereGeometry args={[pulseRad * 0.85, 8, 8]} />
           <meshBasicMaterial color={beamColor} />
         </mesh>
       )}
     </group>
   )
 }
+
+// Backward compatibility alias
+const DynamicEnergyBeam = OrthogonalPipeline
 
 /**
  * Interactive Hospital Node with Procedural Mesh and Smart HUD Card
@@ -534,9 +728,11 @@ function DigitalTwinScene({
   isDroneTour = false,
   activeFloor = 'all',
   activeCategory = 'all',
-  cameraPreset = 'isometric'
+  cameraPreset = 'isometric',
+  theme = 'dark'
 }) {
   const controlsRef = useRef()
+  const isLight = theme === 'light'
 
   // Filter visible nodes based on active floor and category
   const visibleNodes = useMemo(() => {
@@ -572,11 +768,31 @@ function DigitalTwinScene({
         controlsRef={controlsRef}
       />
 
+      {/* 3D Canvas Background & Fog */}
+      <color attach="background" args={[isLight ? '#EBF1F6' : '#060B17']} />
+      <fog attach="fog" args={[isLight ? '#EBF1F6' : '#060B17', 28, 120]} />
+
       {/* Atmospheric Space Lighting */}
-      <ambientLight intensity={xrayMode ? 0.45 : 0.95} color="#0B132B" />
-      <directionalLight position={[15, 28, 20]} intensity={1.7} color="#F8FAFC" castShadow />
-      <directionalLight position={[-15, -10, -12]} intensity={0.45} color="#38BDF8" />
-      <directionalLight position={[0, 20, -18]} intensity={0.65} color="#818CF8" />
+      <ambientLight
+        intensity={isLight ? 1.35 : xrayMode ? 0.45 : 0.95}
+        color={isLight ? '#FFFFFF' : '#0B132B'}
+      />
+      <directionalLight
+        position={[15, 28, 20]}
+        intensity={isLight ? 2.1 : 1.7}
+        color={isLight ? '#FFFDF5' : '#F8FAFC'}
+        castShadow
+      />
+      <directionalLight
+        position={[-15, -10, -12]}
+        intensity={isLight ? 0.65 : 0.45}
+        color={isLight ? '#BAE6FD' : '#38BDF8'}
+      />
+      <directionalLight
+        position={[0, 20, -18]}
+        intensity={isLight ? 0.75 : 0.65}
+        color={isLight ? '#E2E8F0' : '#818CF8'}
+      />
 
       {/* Cyber Floating Dust Particles */}
       {showParticles && (
@@ -585,16 +801,19 @@ function DigitalTwinScene({
           scale={[34, 18, 34]}
           size={2.4}
           speed={0.4}
-          color="#00F0FF"
-          opacity={0.35}
+          color={isLight ? '#0284C7' : '#00F0FF'}
+          opacity={isLight ? 0.22 : 0.35}
         />
       )}
 
       {/* Radar Sonar Wave */}
-      <RadarScanWave />
+      <RadarScanWave isLight={isLight} />
 
       {/* Campus Ground Grid */}
-      <gridHelper args={[46, 46, '#0284C7', '#0F172A']} position={[0, -0.16, 0]} />
+      <gridHelper
+        args={[46, 46, '#0284C7', isLight ? '#CBD5E1' : '#0F172A']}
+        position={[0, -0.16, 0]}
+      />
 
       {/* Hospital Architectural Slabs & Rooms */}
       {FLOOR_DEFINITIONS.filter((f) => f.level > 0).map((floor) => {
@@ -610,6 +829,7 @@ function DigitalTwinScene({
               isDimmed={isDimmed}
               showWalls={showWalls}
               xrayMode={xrayMode}
+              isLight={isLight}
             />
 
             {/* Department Floor Banner on Slab Edge */}
@@ -623,13 +843,16 @@ function DigitalTwinScene({
                 className="floor-slab-label-tag"
                 style={{
                   borderLeft: `3px solid ${floor.color}`,
-                  backgroundColor: 'rgba(6, 11, 23, 0.88)'
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.88)',
+                  color: isLight ? '#0F172A' : '#F8FAFC'
                 }}
               >
                 <span className="slab-level-num" style={{ color: floor.color }}>
                   L{floor.level}
                 </span>
-                <span className="slab-name">{floor.shortName}</span>
+                <span className="slab-name" style={{ color: isLight ? '#0F172A' : '#F8FAFC' }}>
+                  {floor.shortName}
+                </span>
               </div>
             </Html>
           </group>
@@ -638,31 +861,40 @@ function DigitalTwinScene({
 
       {/* Hospital Rooftop with Helipad & Air Ambulance */}
       {(activeFloor === 'all' || activeFloor === 'floor_3') && (
-        <HospitalRooftop showRoof={showWalls} xrayMode={xrayMode} />
+        <HospitalRooftop showRoof={showWalls} xrayMode={xrayMode} isLight={isLight} />
       )}
 
       {/* Realistic Industrial Utility & Infrastructure Yard */}
       {(activeFloor === 'all' || activeFloor === 'floor_0') && (
         <group>
-          <IndustrialPlantYard xrayMode={xrayMode} />
+          <IndustrialPlantYard xrayMode={xrayMode} isLight={isLight} />
           <Html position={[11.6, 0.4, 7.2]} center distanceFactor={22} zIndexRange={[50, 0]}>
             <div
               className="floor-slab-label-tag"
               style={{
                 borderLeft: '3px solid #00F0FF',
-                backgroundColor: 'rgba(6, 11, 23, 0.88)'
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.88)',
+                color: isLight ? '#0F172A' : '#F8FAFC'
               }}
             >
               <span className="slab-level-num" style={{ color: '#00F0FF' }}>
                 L0
               </span>
-              <span className="slab-name">Utility & Substation Plant</span>
+              <span className="slab-name" style={{ color: isLight ? '#0F172A' : '#F8FAFC' }}>
+                Utility & Substation Plant
+              </span>
             </div>
           </Html>
         </group>
       )}
 
-      {/* Dynamic Conduit Energy & Gas Beams */}
+      {/* Exterior Architectural MEP Vertical Utility Riser Tower & Service Bridge (x = 5.2) */}
+      <ExteriorUtilityRiserTower xrayMode={xrayMode} activeFloor={activeFloor} isLight={isLight} />
+
+      {/* Ambulance Ground Access Apron on Hospital West Side (Emergency Intake) */}
+      <AmbulanceAccessGroundApron isLight={isLight} />
+
+      {/* Dynamic 100% Orthogonal Industrial Manhattan Pipelines & Risers */}
       {showConduits &&
         DEPENDENCY_CONNECTIONS.map((conn, idx) => {
           const fromDef = ASSET_TOPOLOGY_DEFS[conn.from]
@@ -682,14 +914,17 @@ function DigitalTwinScene({
           const isDegraded = sourceAsset?.status === 'degraded' || sourceAsset?.status === 'starting'
 
           return (
-            <DynamicEnergyBeam
+            <OrthogonalPipeline
               key={`conn-${idx}`}
+              index={idx}
               start={fromDef.position}
               end={toDef.position}
+              type={conn.type}
               color={conn.color}
               isSevered={isSevered}
               isDegraded={isDegraded}
               speed={conn.speed || 1.8}
+              isLight={isLight}
             />
           )
         })}
@@ -731,11 +966,15 @@ export default function TwinContainer({
   assets = [],
   services = [],
   selectedAssetId,
-  onSelectAsset
+  onSelectAsset,
+  filterSubsystem = 'all',
+  viewMode = '3d',
+  activeLayers = {},
+  theme: controlledTheme,
+  onToggleTheme: controlledToggleTheme
 }) {
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [activeFloor, setActiveFloor] = useState('all')
-  const [activeCategory, setActiveCategory] = useState('all')
   const [cameraPreset, setCameraPreset] = useState('isometric')
   const [showConduits, setShowConduits] = useState(true)
   const [hudMode, setHudMode] = useState('smart') // 'smart' | 'alerts' | 'all'
@@ -745,8 +984,53 @@ export default function TwinContainer({
   const [isDroneTour, setIsDroneTour] = useState(false)
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
-  const [activeScenario, setActiveScenario] = useState(null) // 'grid_trip' | 'o2_rupture' | 'chiller_trip' | null
   const [simulatedOverrides, setSimulatedOverrides] = useState({})
+
+  // 3D Viewport Theme (Light / Dark)
+  const [internalTheme, setInternalTheme] = useState(() => {
+    return (
+      localStorage.getItem('twin_3d_theme') ||
+      document.documentElement.getAttribute('data-theme') ||
+      'dark'
+    )
+  })
+
+  const twinTheme = controlledTheme !== undefined ? controlledTheme : internalTheme
+
+  // Sync with global theme changes if toggled elsewhere
+  useEffect(() => {
+    const observer = new MutationObserver(() => {
+      const docTheme = document.documentElement.getAttribute('data-theme')
+      if (docTheme && (docTheme === 'light' || docTheme === 'dark')) {
+        setInternalTheme(docTheme)
+      }
+    })
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme']
+    })
+    return () => observer.disconnect()
+  }, [])
+
+  const handleToggleTheme = () => {
+    soundEngine.playSelect()
+    if (controlledToggleTheme) {
+      controlledToggleTheme()
+    } else {
+      const nextTheme = twinTheme === 'dark' ? 'light' : 'dark'
+      setInternalTheme(nextTheme)
+      localStorage.setItem('twin_3d_theme', nextTheme)
+    }
+  }
+
+  // Derive category directly from parent filterSubsystem (no duplicate buttons!)
+  const activeCategory = useMemo(() => {
+    if (filterSubsystem === 'electrical') return 'power'
+    if (filterSubsystem === 'water' || filterSubsystem === 'hvac') return 'mechanical'
+    if (filterSubsystem === 'gas') return 'gas'
+    if (filterSubsystem === 'services') return 'clinical'
+    return 'all'
+  }, [filterSubsystem])
 
   // Sync mute state
   useEffect(() => {
@@ -756,15 +1040,34 @@ export default function TwinContainer({
   // Fast map lookup with active crisis simulation overrides applied
   const assetsMap = useMemo(() => {
     const map = {}
-    assets.forEach((a) => {
-      map[a.id] = { ...a, ...(simulatedOverrides[a.id] || {}) }
+
+    // Seed with rich default topology specifications for all modeled assets
+    Object.entries(ASSET_TOPOLOGY_DEFS).forEach(([id, def]) => {
+      map[id] = {
+        id,
+        name: def.subsystem || def.label,
+        status: 'normal',
+        health_score: 100,
+        current_load: 0,
+        capacity_unit: 'kW',
+        ...def
+      }
     })
-    // Also include any simulated assets not in initial array
+
+    // Overlay live backend assets
+    assets.forEach((a) => {
+      map[a.id] = { ...(map[a.id] || {}), ...a }
+    })
+
+    // Overlay active crisis simulation overrides
     Object.entries(simulatedOverrides).forEach(([id, override]) => {
-      if (!map[id]) {
+      if (map[id]) {
+        map[id] = { ...map[id], ...override }
+      } else {
         map[id] = { id, status: 'normal', ...override }
       }
     })
+
     return map
   }, [assets, simulatedOverrides])
 
@@ -864,266 +1167,93 @@ export default function TwinContainer({
 
   return (
     <div
-      className={`twin-master-panel ${isFullscreen ? 'is-fullscreen-twin' : ''}`}
+      className={`twin-master-panel ${isFullscreen ? 'is-fullscreen-twin' : ''} theme-${twinTheme}`}
+      data-theme={twinTheme}
       id="twin-viewport"
     >
-      {/* 1. Header Command Bar */}
-      <div className="twin-header">
+      {/* 1. Sleek Single-Line Command Bar */}
+      <div className="twin-header-compact">
+        {/* Left: Branding & Status */}
         <div className="twin-title-group">
-          <div className="twin-header-icon-badge">
-            <Building size={18} style={{ color: 'var(--accent-cyan)' }} />
-          </div>
-          <div>
-            <div className="twin-title">
-              <span>HOSPITAL DIGITAL TWIN 3D MAP</span>
-              <span className="live-telemetry-badge">
-                <Radio size={10} className="pulse-icon" />
-                LIVE BIM SYNC
-              </span>
-            </div>
-            <div className="twin-subtitle">
-              Multi-Tier BIM Topology: 6 ICU Beds, Surgical Cleanrooms, Trauma Bays & 11kV Substation Yard
-            </div>
-          </div>
+          <div className="twin-status-beacon" />
+          <span className="twin-compact-title">HOSPITAL DIGITAL TWIN 3D</span>
+          <span className="twin-live-tag">LIVE BIM SYNC</span>
+          <span className="twin-nodes-count font-mono">{stats.normalCount} Nodes Online</span>
         </div>
 
-        {/* Stats Pill, Audio & Cinema Controls */}
-        <div className="twin-header-actions">
-          {/* Drone Tour Mode Button */}
+        {/* Center: Segmented Floor Switcher */}
+        <div className="twin-floor-pills">
           <button
-            className={`twin-drone-tour-btn ${isDroneTour ? 'active' : ''}`}
-            onClick={() => {
-              soundEngine.playSelect()
-              setIsDroneTour(!isDroneTour)
-            }}
-            title={isDroneTour ? 'Pause Drone Fly-Around Tour' : 'Start Cinematic 360 Drone Tour'}
-          >
-            {isDroneTour ? <Pause size={13} /> : <Play size={13} />}
-            <span>{isDroneTour ? 'Touring Campus' : '🎥 Drone Tour'}</span>
-          </button>
-
-          {/* Sound Toggle */}
-          <button
-            className="twin-audio-toggle-btn"
-            onClick={() => setIsMuted(!isMuted)}
-            title={isMuted ? 'Unmute Audio Feedback' : 'Mute Audio Feedback'}
-          >
-            {isMuted ? <VolumeX size={14} /> : <Volume2 size={14} style={{ color: 'var(--accent-cyan)' }} />}
-          </button>
-
-          <div className="twin-stats-pill">
-            <span style={{ color: 'var(--status-normal)' }}>{stats.normalCount} Online</span>
-            <span className="pill-divider" />
-            {stats.criticalCount > 0 ? (
-              <span style={{ color: 'var(--status-critical)', fontWeight: 700 }}>
-                {stats.criticalCount} At Risk
-              </span>
-            ) : (
-              <span style={{ color: 'var(--accent-cyan)' }}>6 ICU Beds Active</span>
-            )}
-          </div>
-
-          <button
-            className="twin-toggle-inspector-btn"
-            onClick={() => {
-              soundEngine.playSelect()
-              setIsInspectorOpen(!isInspectorOpen)
-            }}
-            title="Toggle Asset Telemetry Inspector"
-          >
-            <Info size={14} />
-            <span>Inspector</span>
-          </button>
-
-          <button
-            className="twin-fullscreen-btn"
-            onClick={() => setIsFullscreen(!isFullscreen)}
-            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
-          >
-            {isFullscreen ? <Minimize2 size={15} /> : <Maximize2 size={15} />}
-          </button>
-        </div>
-      </div>
-
-      {/* 2. Interactive Crisis Simulation Injection Bar ("Aaag Laga De" Scenarios) */}
-      <div className="twin-scenario-bar">
-        <div className="scenario-label-group">
-          <ShieldAlert size={14} style={{ color: '#F59E0B' }} />
-          <span className="scenario-bar-title">CRISIS SIMULATOR:</span>
-        </div>
-        <div className="scenario-buttons-group">
-          <button
-            className={`scenario-btn ${activeScenario === 'grid_trip' ? 'active alert-grid' : ''}`}
-            onClick={() => triggerScenario('grid_trip')}
-            title="Simulate 11kV Grid Blackout & Diesel Generator Auto-Start"
-          >
-            <Zap size={12} />
-            <span>💥 11kV Grid Trip</span>
-          </button>
-          <button
-            className={`scenario-btn ${activeScenario === 'o2_rupture' ? 'active alert-o2' : ''}`}
-            onClick={() => triggerScenario('o2_rupture')}
-            title="Simulate Cryogenic Oxygen Line Rupture and ICU Bed Hypoxia"
-          >
-            <Flame size={12} />
-            <span>🚨 Cryo O2 Rupture</span>
-          </button>
-          <button
-            className={`scenario-btn ${activeScenario === 'chiller_trip' ? 'active alert-chiller' : ''}`}
-            onClick={() => triggerScenario('chiller_trip')}
-            title="Simulate HVAC Chiller Failure in Surgical Cleanrooms"
-          >
-            <Wind size={12} />
-            <span>🔥 Chiller Overheat</span>
-          </button>
-          {activeScenario && (
-            <button
-              className="scenario-btn restore-btn"
-              onClick={() => {
-                setActiveScenario(null)
-                setSimulatedOverrides({})
-                soundEngine.playRestore()
-              }}
-              title="Reset All Systems to Nominal 100% Healthy State"
-            >
-              <CheckCircle2 size={12} style={{ color: '#10B981' }} />
-              <span>🛡️ Restore Normal</span>
-            </button>
-          )}
-        </div>
-
-        {/* Live Scenario Marquee Ticker */}
-        {activeScenario && (
-          <div className="scenario-active-badge">
-            <Radio size={11} className="pulse-icon" style={{ color: '#EF4444' }} />
-            <span>
-              {activeScenario === 'grid_trip' && 'CRISIS ACTIVE: 11kV Grid Blackout! GEN_01 running, ESB active.'}
-              {activeScenario === 'o2_rupture' && 'CRISIS ACTIVE: Cryo O2 Drop! ICU Bed 01 & 05 Ventilator Alarms.'}
-              {activeScenario === 'chiller_trip' && 'CRISIS ACTIVE: Chiller Cooling Failure! OT Suite Cleanrooms Degraded.'}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* 3. Hospital Floor & Department Cutaway Bar */}
-      <div className="twin-floor-bar">
-        <div className="floor-bar-label">
-          <Layers size={13} style={{ color: 'var(--accent-cyan)' }} />
-          <span>FLOORS:</span>
-        </div>
-        <div className="floor-buttons-group">
-          <button
-            className={`floor-tab-btn ${activeFloor === 'all' ? 'active' : ''}`}
+            type="button"
+            className={`floor-pill-btn ${activeFloor === 'all' ? 'active' : ''}`}
             onClick={() => handleSelectFloor('all')}
           >
-            🏥 Full Campus (All Floors)
+            All Floors
           </button>
           {FLOOR_DEFINITIONS.map((floor) => (
             <button
               key={floor.id}
-              className={`floor-tab-btn ${activeFloor === floor.id ? 'active' : ''}`}
+              type="button"
+              className={`floor-pill-btn ${activeFloor === floor.id ? 'active' : ''}`}
               onClick={() => handleSelectFloor(floor.id)}
-              style={{
-                borderColor: activeFloor === floor.id ? floor.color : undefined
-              }}
             >
               <span className="floor-color-dot" style={{ backgroundColor: floor.color }} />
               {floor.shortName}
             </button>
           ))}
         </div>
-      </div>
 
-      {/* 4. Subsystem Quick-Filters & View Options Bar */}
-      <div className="twin-filter-bar">
-        <div className="filter-bar-group">
-          <span className="filter-label">Filter:</span>
+        {/* Right: Essential 3D Viewport Controls */}
+        <div className="twin-actions-compact">
           <button
-            className={`filter-pill ${activeCategory === 'all' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('all')}
+            type="button"
+            className={`twin-compact-btn ${isDroneTour ? 'active' : ''}`}
+            onClick={() => {
+              soundEngine.playSelect()
+              setIsDroneTour(!isDroneTour)
+            }}
+            title={isDroneTour ? 'Pause Drone Tour' : 'Start Cinematic 360 Drone Tour'}
           >
-            All Assets
+            {isDroneTour ? <Pause size={12} /> : <Play size={12} />}
+            <span>Drone</span>
           </button>
-          <button
-            className={`filter-pill ${activeCategory === 'clinical' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('clinical')}
-          >
-            <HeartPulse size={12} />
-            ICU Beds & Clinical
-          </button>
-          <button
-            className={`filter-pill ${activeCategory === 'power' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('power')}
-          >
-            <Zap size={12} />
-            Power & Backup
-          </button>
-          <button
-            className={`filter-pill ${activeCategory === 'gas' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('gas')}
-          >
-            <Flame size={12} />
-            Medical Oxygen
-          </button>
-          <button
-            className={`filter-pill ${activeCategory === 'mechanical' ? 'active' : ''}`}
-            onClick={() => setActiveCategory('mechanical')}
-          >
-            <Wind size={12} />
-            HVAC & Water
-          </button>
-        </div>
-
-        {/* View Options Toggle Controls */}
-        <div className="view-toggles-group">
-          {/* Smart HUD Density Mode Dropdown */}
-          <div className="hud-mode-wrapper">
-            <Eye size={13} style={{ color: 'var(--accent-cyan)' }} />
-            <select
-              className="hud-mode-dropdown font-mono"
-              value={hudMode}
-              onChange={(e) => setHudMode(e.target.value)}
-              title="Change 3D Hologram Tag Density"
-            >
-              <option value="smart">Smart HUD (Hover / Select)</option>
-              <option value="alerts">Alerts Only</option>
-              <option value="all">Show All Tags</option>
-            </select>
-          </div>
 
           <button
-            className={`view-toggle-icon ${xrayMode ? 'active' : ''}`}
+            type="button"
+            className={`twin-compact-btn ${xrayMode ? 'active' : ''}`}
             onClick={() => {
               soundEngine.playSelect()
               setXrayMode(!xrayMode)
             }}
             title="Toggle X-Ray CAD Blueprint Mode"
           >
-            <SparklesIcon size={13} />
-            <span>X-Ray BIM</span>
+            <SparklesIcon size={12} />
+            <span>X-Ray</span>
           </button>
 
           <button
-            className={`view-toggle-icon ${showConduits ? 'active' : ''}`}
+            type="button"
+            className={`twin-compact-btn ${showConduits ? 'active' : ''}`}
             onClick={() => setShowConduits(!showConduits)}
             title="Toggle Conduit Energy Lines"
           >
-            <Activity size={13} />
+            <Activity size={12} />
             <span>Conduits</span>
           </button>
 
+          {/* Light / Dark Theme Switcher */}
           <button
-            className={`view-toggle-icon ${showWalls ? 'active' : ''}`}
-            onClick={() => setShowWalls(!showWalls)}
-            title="Toggle Glass Architecture Walls"
+            type="button"
+            className={`twin-compact-btn theme-toggle-btn ${twinTheme === 'light' ? 'is-light active' : ''}`}
+            onClick={handleToggleTheme}
+            title={twinTheme === 'light' ? 'Switch to Dark Cyber Theme' : 'Switch to Clean Daylight Theme'}
           >
-            <Building size={13} />
-            <span>Walls</span>
+            {twinTheme === 'light' ? <Sun size={12} style={{ color: '#EAB308' }} /> : <Moon size={12} />}
+            <span>{twinTheme === 'light' ? 'Light' : 'Dark'}</span>
           </button>
 
-          {/* Camera Preset Dropdown */}
           <div className="camera-select-wrapper">
-            <Camera size={13} style={{ color: 'var(--text-muted)' }} />
+            <Camera size={12} style={{ color: 'var(--text-muted)' }} />
             <select
               className="camera-dropdown font-mono"
               value={cameraPreset}
@@ -1139,6 +1269,15 @@ export default function TwinContainer({
               ))}
             </select>
           </div>
+
+          <button
+            type="button"
+            className="twin-compact-btn icon-only"
+            onClick={() => setIsFullscreen(!isFullscreen)}
+            title={isFullscreen ? 'Exit Fullscreen' : 'Enter Fullscreen'}
+          >
+            {isFullscreen ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
+          </button>
         </div>
       </div>
 
@@ -1150,7 +1289,7 @@ export default function TwinContainer({
           gl={{
             antialias: true,
             toneMapping: THREE.ACESFilmicToneMapping,
-            toneMappingExposure: 1.15
+            toneMappingExposure: twinTheme === 'light' ? 1.05 : 1.15
           }}
         >
           <DigitalTwinScene
@@ -1166,6 +1305,7 @@ export default function TwinContainer({
             activeFloor={activeFloor}
             activeCategory={activeCategory}
             cameraPreset={cameraPreset}
+            theme={twinTheme}
           />
         </Canvas>
 
@@ -1316,8 +1456,48 @@ export default function TwinContainer({
                     )}
                     {selectedAsset.pressure_psi != null && (
                       <div className="inspector-metric-card">
-                        <span className="metric-label">Gas Pressure</span>
+                        <span className="metric-label">Pressure</span>
                         <span className="metric-val font-mono">{selectedAsset.pressure_psi} PSI</span>
+                      </div>
+                    )}
+                    {selectedAsset.metadata?.fuel_level_pct != null && (
+                      <div className="inspector-metric-card">
+                        <span className="metric-label">Diesel Reserve</span>
+                        <span className="metric-val font-mono" style={{ color: '#EAB308' }}>
+                          {selectedAsset.metadata.fuel_level_pct}% ({selectedAsset.metadata.endurance_hours}h)
+                        </span>
+                      </div>
+                    )}
+                    {selectedAsset.metadata?.irradiance && (
+                      <div className="inspector-metric-card">
+                        <span className="metric-label">Solar Irradiance</span>
+                        <span className="metric-val font-mono" style={{ color: '#F59E0B' }}>
+                          {selectedAsset.metadata.irradiance}
+                        </span>
+                      </div>
+                    )}
+                    {selectedAsset.metadata?.medevac_status && (
+                      <div className="inspector-metric-card">
+                        <span className="metric-label">Flight Operations</span>
+                        <span className="metric-val font-mono" style={{ color: '#10B981' }}>
+                          {selectedAsset.metadata.medevac_status}
+                        </span>
+                      </div>
+                    )}
+                    {selectedAsset.metadata?.certification && (
+                      <div className="inspector-metric-card">
+                        <span className="metric-label">Safety Standard</span>
+                        <span className="metric-val font-mono" style={{ color: '#EF4444' }}>
+                          {selectedAsset.metadata.certification}
+                        </span>
+                      </div>
+                    )}
+                    {selectedAsset.metadata?.air_bar && (
+                      <div className="inspector-metric-card">
+                        <span className="metric-label">Air / Vacuum</span>
+                        <span className="metric-val font-mono" style={{ color: '#00F0FF' }}>
+                          {selectedAsset.metadata.air_bar} / {selectedAsset.metadata.vacuum_bar} Bar
+                        </span>
                       </div>
                     )}
                   </div>

@@ -15,7 +15,9 @@ import {
   X,
   Building,
   Activity,
-  Layers
+  Layers,
+  Sun,
+  Moon
 } from 'lucide-react'
 import TwinContainer from './TwinContainer'
 import hospitalCampusImg from '../../assets/hospital_campus_twin.jpg'
@@ -32,6 +34,19 @@ export default function DigitalTwinView({
   const [viewMode, setViewMode] = useState('3d') // '3d' | '2d'
   const [activeTab, setActiveTab] = useState('overview') // 'overview' | 'dependencies' | 'live'
   const [isDetailsOpen, setIsDetailsOpen] = useState(true)
+  const [twinTheme, setTwinTheme] = useState(() => {
+    return (
+      localStorage.getItem('twin_3d_theme') ||
+      document.documentElement.getAttribute('data-theme') ||
+      'dark'
+    )
+  })
+
+  const handleToggleTwinTheme = () => {
+    const nextTheme = twinTheme === 'dark' ? 'light' : 'dark'
+    setTwinTheme(nextTheme)
+    localStorage.setItem('twin_3d_theme', nextTheme)
+  }
   const [activeLayers, setActiveLayers] = useState({
     services: true,
     electrical: true,
@@ -107,19 +122,6 @@ export default function DigitalTwinView({
     }
   ]
 
-  // Exact 9 interactive HUD pins matching Design Reference
-  const twinPins = [
-    { id: 'GEN_01', label: 'Generator', status: 'Normal', top: '26%', left: '27%', color: 'cyan' },
-    { id: 'WATER_TANK', label: 'Water Tank', status: 'Normal', top: '27%', left: '45%', color: 'cyan' },
-    { id: 'CHILLER_PLANT', label: 'HVAC Plant', status: 'At Risk', top: '31%', left: '65%', color: 'amber' },
-    { id: 'UTILITY_BLOCK', label: 'Utility Block', status: 'Normal', top: '38%', left: '22%', color: 'cyan' },
-    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Normal', top: '47%', left: '44%', color: 'red-cross' },
-    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '51%', left: '67%', color: 'cyan' },
-    { id: 'SERVICE_ICU', label: 'ICU', status: 'Normal', top: '53%', left: '27%', color: 'cyan' },
-    { id: 'SERVICE_ER', label: 'Emergency', status: 'Normal', top: '63%', left: '40%', color: 'cyan' },
-    { id: 'SERVICE_OT', label: 'OT', status: 'Normal', top: '63%', left: '59%', color: 'cyan' }
-  ]
-
   return (
     <div className="digital-twin-page">
       {/* 1. TOP SUBSYSTEM FILTER STRIP */}
@@ -142,6 +144,26 @@ export default function DigitalTwinView({
         </div>
 
         <div className="twin-controls-group">
+          {/* Prominent 3D Theme Switcher */}
+          <button
+            type="button"
+            className={`twin-theme-toggle-header ${twinTheme === 'light' ? 'is-light' : 'is-dark'}`}
+            onClick={handleToggleTwinTheme}
+            title={twinTheme === 'light' ? 'Switch 3D View to Cyber Dark Theme' : 'Switch 3D View to Daylight BIM Theme'}
+          >
+            {twinTheme === 'light' ? (
+              <>
+                <Sun size={14} className="theme-toggle-icon sun-icon" />
+                <span>3D Daylight</span>
+              </>
+            ) : (
+              <>
+                <Moon size={14} className="theme-toggle-icon moon-icon" />
+                <span>3D Dark</span>
+              </>
+            )}
+          </button>
+
           <div className="twin-view-mode-toggle">
             <button
               type="button"
@@ -163,97 +185,125 @@ export default function DigitalTwinView({
 
       {/* 2. CENTER CANVAS & RIGHT ASSET DETAILS SPLIT */}
       <section className="twin-main-workspace">
-        {/* 3D Visual Canvas Viewport */}
+        {/* 3D Visual Canvas Viewport OR 2D Schematic */}
         <div className="twin-canvas-card">
           <div className="twin-viewport-container">
-            {/* Embedded 3D Scene / Visual Model */}
-            <TwinContainer
-              assets={assets}
-              services={services}
-              selectedAssetId={selectedAsset?.id}
-              onSelectAsset={onSelectAsset}
-              filterSubsystem={activeFilter}
-              viewMode={viewMode}
-              activeLayers={activeLayers}
-            />
-
-            {/* Interactive Pins Overlay */}
-            <div className="twin-pins-overlay">
-              {twinPins.map((pin) => (
-                <div
-                  key={pin.id}
-                  className={`twin-hud-pin pin-${pin.color} ${selectedAsset?.id === pin.id ? 'is-selected' : ''}`}
-                  style={{ top: pin.top, left: pin.left }}
-                  onClick={() => onSelectAsset && onSelectAsset(pin.id)}
-                >
-                  <span className="hud-pin-icon">
-                    {pin.color === 'red-cross' ? '+' : pin.color === 'amber' ? '❄' : '●'}
-                  </span>
-                  <div className="hud-pin-text-col">
-                    <span className="hud-pin-name">{pin.label}</span>
-                    <span className="hud-pin-status font-mono">
-                      <span className={`hud-dot ${pin.status === 'At Risk' ? 'dot-amber' : 'dot-cyan'}`} />
-                      {pin.status}
-                    </span>
+            {viewMode === '3d' ? (
+              /* Clean 3D Digital Twin Viewport (No overlapping 2D pins!) */
+              <TwinContainer
+                assets={assets}
+                services={services}
+                selectedAssetId={selectedAsset?.id}
+                onSelectAsset={onSelectAsset}
+                filterSubsystem={activeFilter}
+                viewMode={viewMode}
+                activeLayers={activeLayers}
+                theme={twinTheme}
+                onToggleTheme={handleToggleTwinTheme}
+              />
+            ) : (
+              /* Clean 2D Topological Infrastructure Schematic */
+              <div className="twin-schematic-view">
+                <div className="schematic-header-bar">
+                  <div className="schematic-title-group">
+                    <span className="schematic-indicator-dot" />
+                    <span className="schematic-title">HOSPITAL INFRASTRUCTURE 2D TOPOLOGY SCHEMATIC</span>
+                    <span className="schematic-badge font-mono">CAD / SCADA ARCHITECTURE</span>
+                  </div>
+                  <div className="schematic-legend-inline">
+                    <span className="schematic-leg-item"><span className="leg-line pipe-cyan" /> Electrical Bus</span>
+                    <span className="schematic-leg-item"><span className="leg-line pipe-blue" /> Water Supply</span>
+                    <span className="schematic-leg-item"><span className="leg-line pipe-amber" /> HVAC Air</span>
+                    <span className="schematic-leg-item"><span className="leg-line pipe-purple" /> Medical Gas</span>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Utility Network Legend Box on bottom left */}
-            <div className="twin-utility-legend-box">
-              <div className="legend-box-title">Utility Network</div>
-              <div className="legend-box-items">
-                <div className="legend-pipe-item">
-                  <span className="pipe-line" style={{ backgroundColor: '#00F0FF' }} />
-                  <span>Electrical</span>
-                </div>
-                <div className="legend-pipe-item">
-                  <span className="pipe-line" style={{ backgroundColor: '#00A3FF' }} />
-                  <span>Water</span>
-                </div>
-                <div className="legend-pipe-item">
-                  <span className="pipe-line" style={{ backgroundColor: '#FFB800' }} />
-                  <span>HVAC</span>
-                </div>
-                <div className="legend-pipe-item">
-                  <span className="pipe-line" style={{ backgroundColor: '#A855F7' }} />
-                  <span>Medical Gas</span>
+                <div className="schematic-body-grid">
+                  {/* Grid / Generation Tier */}
+                  <div className="schematic-tier">
+                    <div className="tier-header">
+                      <Zap size={14} className="tier-icon" />
+                      <span>PRIMARY GRID & EMERGENCY GENERATION (L0 YARD)</span>
+                    </div>
+                    <div className="tier-nodes-row">
+                      {assets.filter(a => ['grid', 'transformer', 'generator', 'ups', 'main_bus', 'emergency_bus'].includes(a.type)).map(node => (
+                        <div
+                          key={node.id}
+                          className={`schematic-node-card ${selectedAsset?.id === node.id ? 'is-selected' : ''} status-${node.status}`}
+                          onClick={() => onSelectAsset && onSelectAsset(node.id)}
+                        >
+                          <div className="node-top">
+                            <span className="node-id font-mono">{node.id}</span>
+                            <span className={`node-dot dot-${node.status}`} />
+                          </div>
+                          <div className="node-name">{node.name}</div>
+                          <div className="node-meta font-mono">
+                            <span>{node.current_load ? `${node.current_load} ${node.capacity_unit || 'kW'}` : node.status.toUpperCase()}</span>
+                            <span>{node.health_score || 100}% HP</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Central Plants Tier */}
+                  <div className="schematic-tier">
+                    <div className="tier-header">
+                      <Wind size={14} className="tier-icon" />
+                      <span>CENTRAL UTILITY & LIFE-SUPPORT PLANTS (AUXILIARY YARD)</span>
+                    </div>
+                    <div className="tier-nodes-row">
+                      {assets.filter(a => ['chiller', 'water_pump', 'oxygen_manifold', 'mechanical'].includes(a.type) || ['CHILLER_PLANT', 'WATER_PUMP_STATION', 'OXYGEN_MANIFOLD'].includes(a.id)).map(node => (
+                        <div
+                          key={node.id}
+                          className={`schematic-node-card ${selectedAsset?.id === node.id ? 'is-selected' : ''} status-${node.status}`}
+                          onClick={() => onSelectAsset && onSelectAsset(node.id)}
+                        >
+                          <div className="node-top">
+                            <span className="node-id font-mono">{node.id}</span>
+                            <span className={`node-dot dot-${node.status}`} />
+                          </div>
+                          <div className="node-name">{node.name}</div>
+                          <div className="node-meta font-mono">
+                            <span>{node.pressure_psi ? `${node.pressure_psi} PSI` : node.current_load ? `${node.current_load} kW` : 'ONLINE'}</span>
+                            <span>{node.health_score || 100}% HP</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Critical Services Destination Tier */}
+                  <div className="schematic-tier">
+                    <div className="tier-header">
+                      <HeartPulse size={14} className="tier-icon" />
+                      <span>CRITICAL HOSPITAL CLINICAL SERVICES & WARDS</span>
+                    </div>
+                    <div className="tier-nodes-row">
+                      {services.map(svc => (
+                        <div
+                          key={svc.id}
+                          className={`schematic-node-card service-card ${selectedAsset?.id === svc.id ? 'is-selected' : ''} status-${svc.status}`}
+                          onClick={() => onSelectAsset && onSelectAsset(svc.id)}
+                        >
+                          <div className="node-top">
+                            <span className="node-id font-mono">{svc.id}</span>
+                            <span className={`node-dot dot-${svc.status}`} />
+                          </div>
+                          <div className="node-name">{svc.name}</div>
+                          <div className="node-meta font-mono">
+                            <span>{svc.service_continuity_pct || 100}% Continuity</span>
+                            <span style={{ color: svc.at_risk ? 'var(--status-critical)' : 'var(--status-normal)' }}>
+                              {svc.at_risk ? 'AT RISK' : 'HEALTHY'}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </div>
-            </div>
-
-            {/* Top-Left Compass HUD */}
-            <div className="twin-compass-hud">
-              <div className="compass-circle">
-                <span className="compass-dir compass-n">N</span>
-                <span className="compass-dir compass-e">E</span>
-                <span className="compass-dir compass-s">S</span>
-                <span className="compass-dir compass-w">W</span>
-                <div className="compass-needle" />
-              </div>
-            </div>
-
-            {/* Right Zoom / Camera Controls */}
-            <div className="twin-floating-camera-controls">
-              <button type="button" className="camera-ctrl-btn" title="Fullscreen">
-                <Maximize2 size={13} />
-              </button>
-              <button
-                type="button"
-                className="camera-ctrl-btn"
-                title="Reset Camera"
-                onClick={() => onSelectAsset && onSelectAsset(null)}
-              >
-                <Navigation size={13} />
-              </button>
-              <button type="button" className="camera-ctrl-btn" title="Zoom In">
-                <Plus size={13} />
-              </button>
-              <button type="button" className="camera-ctrl-btn" title="Zoom Out">
-                <Minus size={13} />
-              </button>
-            </div>
+            )}
           </div>
         </div>
 
