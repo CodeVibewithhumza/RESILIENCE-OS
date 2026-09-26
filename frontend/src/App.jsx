@@ -17,6 +17,7 @@ import StartSimulationView from './components/StartSimulation/StartSimulationVie
 import { useResilienceRealtime } from './hooks/useResilienceRealtime'
 import { getApiBaseUrl } from './config/api'
 import { getWhatIfAnalysis, injectFailure } from './services/simulationApi'
+import { getServiceExplanation } from './services/explainabilityApi'
 import {
   INITIAL_ASSETS,
   INITIAL_SERVICES,
@@ -25,7 +26,6 @@ import {
   INITIAL_INCIDENT_STATE,
   CASCADE_TIMELINE,
   WHAT_IF_STRATEGIES,
-  CAUSAL_EXPLANATION_DATA,
   INITIAL_TELEMETRY
 } from './mock/hospitalInitialData'
 import './components/IncidentControl/IncidentControl.css'
@@ -229,6 +229,88 @@ export default function App() {
   const [whatIfLoading, setWhatIfLoading] = useState(false)
   const [whatIfError, setWhatIfError] = useState(null)
 
+  // Phase 4D: Live Explainability State
+  const [liveExplanations, setLiveExplanations] = useState({})
+  const [isLoadingExplanations, setIsLoadingExplanations] = useState(false)
+  const [explanationsError, setExplanationsError] = useState(null)
+
+  // Fetch live causal explanations from backend for active incident
+  const fetchExplanationsForIncident = useCallback(async (sourceAsset, affectedServices) => {
+    if (!sourceAsset) {
+      setLiveExplanations({})
+      setExplanationsError(null)
+      return
+    }
+
+    setIsLoadingExplanations(true)
+    setExplanationsError(null)
+    // Clear previous incident explanations immediately so old paths never linger
+    setLiveExplanations({})
+
+    const targets = affectedServices && affectedServices.length > 0
+      ? affectedServices
+      : ['SERVICE_ICU', 'SERVICE_OT']
+
+    try {
+      const results = await Promise.all(
+        targets.map((sid) => getServiceExplanation(sid, sourceAsset))
+      )
+
+      const newExplanations = {}
+      let hasSuccess = false
+      results.forEach((res) => {
+        if (res.success && res.data?.service_id) {
+          newExplanations[res.data.service_id] = res.data
+          hasSuccess = true
+        }
+      })
+
+      if (hasSuccess) {
+        setLiveExplanations(newExplanations)
+        setExplanationsError(null)
+      } else {
+        setExplanationsError('Unable to load causal explanations for affected services.')
+      }
+    } catch (err) {
+      setExplanationsError(err?.message || 'Error loading causal explanations.')
+    } finally {
+      setIsLoadingExplanations(false)
+    }
+  }, [])
+
+  // Auto-fetch/clear explanations when active incident changes
+  useEffect(() => {
+    if (incident.is_active && incident.source_asset_id) {
+      fetchExplanationsForIncident(incident.source_asset_id, incident.affected_service_ids)
+    } else {
+      setLiveExplanations({})
+      setExplanationsError(null)
+    }
+  }, [
+    incident.is_active,
+    incident.source_asset_id,
+    incident.incident_id,
+    incident.affected_service_ids,
+    fetchExplanationsForIncident
+  ])
+
+  // Open explainability drawer and ensure current incident explanations are loaded
+  const handleOpenExplainability = useCallback(() => {
+    setIsExplainDrawerOpen(true)
+    if (incident.is_active && incident.source_asset_id) {
+      if (Object.keys(liveExplanations).length === 0 && !isLoadingExplanations) {
+        fetchExplanationsForIncident(incident.source_asset_id, incident.affected_service_ids)
+      }
+    }
+  }, [
+    incident.is_active,
+    incident.source_asset_id,
+    incident.affected_service_ids,
+    liveExplanations,
+    isLoadingExplanations,
+    fetchExplanationsForIncident
+  ])
+
   // Controlled fetch of What-If Simulation Analysis
   const fetchWhatIfAnalysis = useCallback(async () => {
     setWhatIfLoading(true)
@@ -258,6 +340,8 @@ export default function App() {
     setSelectedStrategyId(null)
     setSelectedAssetId(null)
     setSelectedServiceId(null)
+    setLiveExplanations({})
+    setExplanationsError(null)
     setIsExplainDrawerOpen(false)
 
     try {
@@ -603,15 +687,17 @@ export default function App() {
     ? whatIfData.strategies
     : WHAT_IF_STRATEGIES
 
-  // Enrich CausalDrawer with real backend causal_explanation if available
+  // Phase 4D: Live Explainability Data (100% backend-driven, no static CAUSAL_EXPLANATION_DATA)
   const effectiveExplanationData = useMemo(() => {
-    if (!whatIfData?.causal_explanation) return CAUSAL_EXPLANATION_DATA
-    const recStrategy = whatIfData.strategies?.find(
-      (s) => s.is_recommended || s.strategy_id === whatIfData.recommended_strategy_id
-    )
-    return {
-      ...CAUSAL_EXPLANATION_DATA,
-      strategy_recommendation: {
+    const data = { ...liveExplanations }
+
+    // Enrich CausalDrawer with real backend What-If strategy recommendation explanation if available
+    if (whatIfData?.causal_explanation || (whatIfData?.strategies && whatIfData.strategies.length > 0)) {
+      const recStrategy = whatIfData.strategies?.find(
+        (s) => s.is_recommended || s.strategy_id === whatIfData.recommended_strategy_id
+      ) || whatIfData.strategies?.[0]
+
+      data.strategy_recommendation = {
         recommended_strategy: recStrategy ? recStrategy.strategy_code : (whatIfData.recommended_strategy_id || 'Recommended Strategy'),
         strategy_name: recStrategy ? recStrategy.strategy_name : 'Optimal Response Intervention',
         decision_factors: (recStrategy?.pros && recStrategy.pros.length > 0)
@@ -622,10 +708,12 @@ export default function App() {
               `Backup runtime: ${recStrategy?.backup_runtime_remaining_hours?.toFixed(1) || '0.0'} hours`,
               `Load shed: ${recStrategy?.non_critical_load_shed_kw?.toFixed(0) || '0'} kW`
             ],
-        summary: whatIfData.causal_explanation
+        summary: whatIfData.causal_explanation || recStrategy?.trade_off_summary || 'Multi-criteria decision analysis identified this strategy as optimal.'
       }
     }
-  }, [whatIfData])
+
+    return data
+  }, [liveExplanations, whatIfData])
 
   // Step through deterministic cascade checkpoints (T+0 -> T+5 -> T+10 -> T+20)
   const handleNextCheckpoint = () => {
@@ -725,7 +813,7 @@ export default function App() {
                       onReset={handleReset}
                       activeCheckpointIndex={activeCheckpointIndex}
                       onNextCheckpoint={handleNextCheckpoint}
-                      onOpenExplainability={() => setIsExplainDrawerOpen(true)}
+                      onOpenExplainability={handleOpenExplainability}
                     />
                   </div>
                 </div>
@@ -873,7 +961,7 @@ export default function App() {
                     onReset={handleReset}
                     activeCheckpointIndex={activeCheckpointIndex}
                     onNextCheckpoint={handleNextCheckpoint}
-                    onOpenExplainability={() => setIsExplainDrawerOpen(true)}
+                    onOpenExplainability={handleOpenExplainability}
                   />
                 </div>
               </div>
@@ -927,6 +1015,8 @@ export default function App() {
         isOpen={isExplainDrawerOpen}
         onClose={() => setIsExplainDrawerOpen(false)}
         explanationData={effectiveExplanationData}
+        isLoading={isLoadingExplanations}
+        error={explanationsError}
       />
     </div>
   )
