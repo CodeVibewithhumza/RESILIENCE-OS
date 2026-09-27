@@ -230,7 +230,36 @@ export default function App() {
 
   // Navigation state for sidebar active indicator (dashboard, digital-twin, start-simulation, what-if, incident-timeline, risk-resilience, reports, settings)
   const [activeSection, setActiveSection] = useState('dashboard')
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const mainContentRef = useRef(null)
+
+  // Keyboard shortcut Ctrl+B or Cmd+B to toggle sidebar collapse
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key?.toLowerCase() === 'b') {
+        e.preventDefault()
+        setSidebarCollapsed((prev) => !prev)
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [])
+
+  // Auto-close mobile navigation drawer on section change or large viewport resize
+  useEffect(() => {
+    setMobileNavOpen(false)
+  }, [activeSection])
+
+  useEffect(() => {
+    const handleResize = () => {
+      if (window.innerWidth > 1024) {
+        setMobileNavOpen(false)
+      }
+    }
+    window.addEventListener('resize', handleResize)
+    return () => window.removeEventListener('resize', handleResize)
+  }, [])
 
   // Scroll to top of main viewport when switching pages
   useEffect(() => {
@@ -818,12 +847,25 @@ export default function App() {
 
   return (
     <div className="dashboard-shell" data-theme={theme}>
-      {/* 1. Left Persistent Full-Height Command Sidebar */}
+      {/* 1. Left Persistent / Off-canvas Command Sidebar */}
       <Sidebar
         activeSection={activeSection}
         onNavigate={(sec) => setActiveSection(sec)}
         incidentActive={incident.is_active}
+        isCollapsed={sidebarCollapsed}
+        isMobileOpen={mobileNavOpen}
+        onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
+        onCloseMobile={() => setMobileNavOpen(false)}
       />
+
+      {/* Mobile Drawer Backdrop Overlay */}
+      {mobileNavOpen && (
+        <div
+          className="sidebar-mobile-backdrop"
+          onClick={() => setMobileNavOpen(false)}
+          aria-label="Close navigation overlay"
+        />
+      )}
 
       {/* 2. Main Content Workspace: Header + Page Content */}
       <div className="dashboard-body-container">
@@ -842,6 +884,9 @@ export default function App() {
           onReconnect={reconnect}
           onReset={handleReset}
           isResetting={isResetting}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
+          onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
         />
 
         {/* Center Main Application Scroll View */}

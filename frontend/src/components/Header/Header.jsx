@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react'
 import {
   Sun,
   Moon,
-  Bell
+  Bell,
+  Menu
 } from 'lucide-react'
 import './Header.css'
 
@@ -54,7 +55,10 @@ export default function Header({
   onToggleTheme,
   onReconnect,
   onReset,
-  isResetting = false
+  isResetting = false,
+  sidebarCollapsed = false,
+  onToggleSidebar,
+  onToggleMobileNav
 }) {
   const [timeStr, setTimeStr] = useState('')
   const [dateStr, setDateStr] = useState('')
@@ -75,12 +79,38 @@ export default function Header({
   const pageInfo = PAGE_TITLES[activeSection] || PAGE_TITLES['dashboard']
   const isLive = connectionStatus === 'connected'
 
+  const handleMenuClick = () => {
+    if (typeof window !== 'undefined' && window.innerWidth <= 1024) {
+      if (onToggleMobileNav) {
+        onToggleMobileNav()
+        return
+      }
+    }
+    if (onToggleSidebar) {
+      onToggleSidebar()
+    } else if (onToggleMobileNav) {
+      onToggleMobileNav()
+    }
+  }
+
   return (
     <header className="cmd-header">
-      {/* LEFT: Dynamic Page Title & Subtitle */}
+      {/* LEFT: Menu Toggle + Dynamic Page Title & Subtitle */}
       <div className="cmd-header-left">
-        <h1 className="header-page-title">{pageInfo.title}</h1>
-        <span className="header-page-subtitle">{pageInfo.subtitle}</span>
+        <button
+          type="button"
+          className="header-icon-btn header-menu-toggle-btn"
+          onClick={handleMenuClick}
+          title={sidebarCollapsed ? 'Expand navigation sidebar' : 'Toggle navigation sidebar'}
+          aria-label="Toggle navigation menu"
+        >
+          <Menu size={18} />
+        </button>
+
+        <div className="header-title-text-group">
+          <h1 className="header-page-title">{pageInfo.title}</h1>
+          <span className="header-page-subtitle">{pageInfo.subtitle}</span>
+        </div>
       </div>
 
       {/* RIGHT: Live Stream Pill, Theme Toggle, Date, Time, Notifications */}
@@ -112,7 +142,7 @@ export default function Header({
           )}
         </button>
 
-        {/* Live Date */}
+        {/* Live Date (Auto-hidden on tablet/mobile screens) */}
         <div className="header-meta-item header-date font-mono">
           {dateStr || '20 Sep 2026'}
         </div>

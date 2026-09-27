@@ -26,13 +26,19 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1400px) {
   .dashboard-top-cards-row {
     grid-template-columns: repeat(3, 1fr);
   }
 }
 
-@media (max-width: 768px) {
+@media (max-width: 900px) {
+  .dashboard-top-cards-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 580px) {
   .dashboard-top-cards-row {
     grid-template-columns: 1fr;
   }
@@ -185,6 +191,19 @@
   pointer-events: none;
 }
 
+@media (max-width: 1200px) {
+  .subsystem-sparkline-wrap {
+    width: 85px;
+    opacity: 0.6;
+  }
+}
+
+@media (max-width: 600px) {
+  .subsystem-sparkline-wrap {
+    display: none;
+  }
+}
+
 .subsystem-sparkline {
   width: 100%;
   height: 100%;
@@ -208,6 +227,36 @@
 @media (max-width: 1280px) {
   .dashboard-middle-grid {
     grid-template-columns: 1fr;
+  }
+  .dashboard-campus-card {
+    min-height: 400px;
+  }
+  .dashboard-right-stack {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .dashboard-campus-card {
+    min-height: 330px;
+  }
+  .dashboard-embedded-twin-wrap {
+    min-height: 280px;
+  }
+  .dashboard-right-stack {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .dashboard-campus-card {
+    min-height: 280px;
+    padding: 10px;
+  }
+  .dashboard-embedded-twin-wrap {
+    min-height: 240px;
   }
 }
 
@@ -925,9 +974,21 @@
   flex-shrink: 0;
 }
 
-@media (max-width: 1100px) {
+@media (max-width: 1200px) {
+  .dashboard-bottom-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-bottom-grid .dashboard-panel-card:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 768px) {
   .dashboard-bottom-grid {
     grid-template-columns: 1fr;
+  }
+  .dashboard-bottom-grid .dashboard-panel-card:last-child {
+    grid-column: auto;
   }
 }
 
@@ -1186,12 +1247,17 @@
   flex-shrink: 0;
 }
 
-/* Key Metrics Card */
 .key-metrics-tiles-grid {
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 8px;
   padding: 4px 0;
+}
+
+@media (max-width: 900px) {
+  .key-metrics-tiles-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 .metric-tile-item {

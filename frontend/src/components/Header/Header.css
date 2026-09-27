@@ -21,15 +21,37 @@
   gap: 16px;
 }
 
-/* LEFT: Page Title & Subtitle */
+/* LEFT: Page Title & Subtitle + Menu Toggle */
 .cmd-header-left {
   flex: 1;
   min-width: 0;
   overflow: hidden;
   display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-menu-toggle-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.18s ease;
+}
+
+.header-menu-toggle-btn:hover {
+  border-color: var(--accent-cyan);
+  color: var(--accent-cyan);
+}
+
+.header-title-text-group {
+  display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 2px;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .header-page-title {
@@ -390,6 +412,56 @@
   background: var(--bg-hover);
   border-color: var(--border-active);
   box-shadow: 0 1px 4px rgba(22, 130, 237, 0.15);
+}
+
+/* ==========================================================================
+   Header Responsive Breakpoints (Tablet & Mobile)
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .cmd-header {
+    padding: 0 16px;
+    gap: 12px;
+  }
+
+  .header-meta-item.header-date {
+    display: none;
+  }
+
+  .header-page-title {
+    font-size: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .cmd-header {
+    padding: 0 12px;
+    gap: 8px;
+  }
+
+  .header-page-subtitle {
+    display: none;
+  }
+
+  .header-page-title {
+    font-size: 15px;
+  }
+
+  .header-divider {
+    display: none;
+  }
+
+  .header-meta-item.header-time {
+    padding: 0 6px;
+    font-size: 10px;
+  }
+
+  .header-stream-pill {
+    padding: 0 6px;
+  }
+
+  .cmd-header-right {
+    gap: 6px;
+  }
 }
 
 /* ==========================================================================

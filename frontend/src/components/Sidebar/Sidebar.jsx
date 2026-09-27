@@ -6,14 +6,21 @@ import {
   Clock,
   ShieldCheck,
   FileText,
-  Settings
+  Settings,
+  ChevronLeft,
+  ChevronRight,
+  X
 } from 'lucide-react'
 import './Sidebar.css'
 
 export default function Sidebar({
   activeSection = 'dashboard',
   onNavigate,
-  incidentActive = false
+  incidentActive = false,
+  isCollapsed = false,
+  isMobileOpen = false,
+  onToggleCollapse,
+  onCloseMobile
 }) {
   const navItems = [
     {
@@ -65,16 +72,47 @@ export default function Sidebar({
     if (onNavigate) {
       onNavigate(id)
     }
+    if (onCloseMobile) {
+      onCloseMobile()
+    }
   }
 
   return (
-    <aside className="command-sidebar">
+    <aside
+      className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${
+        isMobileOpen ? 'is-mobile-open' : ''
+      }`}
+      aria-label="Sidebar Navigation"
+    >
+      {/* Mobile Drawer Close Button */}
+      {isMobileOpen && (
+        <button
+          type="button"
+          className="sidebar-mobile-close-btn"
+          onClick={onCloseMobile}
+          aria-label="Close navigation menu"
+        >
+          <X size={18} />
+        </button>
+      )}
+
       {/* 1. Sidebar Top Domain Brand Header & Vector Hospital Skyline Logo */}
       <div className="sidebar-top-branding">
-        <div className="sidebar-logo-graphic">
+        <div
+          className="sidebar-logo-graphic"
+          onClick={onToggleCollapse}
+          title={isCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+          role="button"
+          tabIndex={0}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              onToggleCollapse && onToggleCollapse()
+            }
+          }}
+        >
           <svg
-            width="48"
-            height="48"
+            width={isCollapsed ? '34' : '44'}
+            height={isCollapsed ? '34' : '44'}
             viewBox="0 0 48 48"
             fill="none"
             xmlns="http://www.w3.org/2000/svg"
@@ -115,7 +153,7 @@ export default function Sidebar({
               fill="currentColor"
               fillOpacity="0.12"
             />
-            
+
             {/* Medical Cross */}
             <rect x="22.25" y="13.5" width="3.5" height="11" rx="0.75" fill="currentColor" />
             <rect x="18.5" y="17.25" width="11" height="3.5" rx="0.75" fill="currentColor" />
@@ -137,13 +175,15 @@ export default function Sidebar({
           </svg>
         </div>
 
-        <div className="sidebar-brand-text">
-          <div className="brand-main-title">
-            Resilience<span className="brand-accent-text">OS</span>
+        {!isCollapsed && (
+          <div className="sidebar-brand-text">
+            <div className="brand-main-title">
+              Resilience<span className="brand-accent-text">OS</span>
+            </div>
+            <div className="brand-sub-line1">Hospital Infrastructure</div>
+            <div className="brand-sub-line2">Digital Twin</div>
           </div>
-          <div className="brand-sub-line1">Hospital Infrastructure</div>
-          <div className="brand-sub-line2">Digital Twin</div>
-        </div>
+        )}
       </div>
 
       {/* 2. Main Navigation Section */}
@@ -160,9 +200,11 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    aria-label={item.label}
                   >
                     <Icon size={18} className="nav-btn-icon" />
-                    <span className="nav-btn-label">{item.label}</span>
+                    {!isCollapsed && <span className="nav-btn-label">{item.label}</span>}
                   </button>
                 </li>
               )
@@ -173,7 +215,7 @@ export default function Sidebar({
         {/* SYSTEM Header & Settings link */}
         <div className="sidebar-nav-group system-group">
           <div className="system-group-divider" />
-          <span className="sidebar-group-label">SYSTEM</span>
+          {!isCollapsed && <span className="sidebar-group-label">SYSTEM</span>}
           <ul className="sidebar-menu">
             {systemItems.map((item) => {
               const Icon = item.icon
@@ -185,9 +227,11 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
+                    title={isCollapsed ? item.label : undefined}
+                    aria-label={item.label}
                   >
                     <Icon size={18} className="nav-btn-icon" />
-                    <span className="nav-btn-label">{item.label}</span>
+                    {!isCollapsed && <span className="nav-btn-label">{item.label}</span>}
                   </button>
                 </li>
               )
@@ -196,16 +240,36 @@ export default function Sidebar({
         </div>
       </nav>
 
-      {/* 3. Bottom Simulation Mode Badge Container */}
+      {/* 3. Bottom Simulation Mode Badge & Collapse Toggle */}
       <div className="sidebar-footer">
-        <div className="sidebar-sim-mode-card">
-          <div className="sim-mode-status-row">
-            <span className="sim-mode-dot" />
-            <span className="sim-mode-title">SIMULATION MODE</span>
+        {!isCollapsed ? (
+          <div className="sidebar-sim-mode-card">
+            <div className="sim-mode-status-row">
+              <span className="sim-mode-dot" />
+              <span className="sim-mode-title">SIMULATION MODE</span>
+            </div>
+            <div className="sim-mode-sub">Synthetic Infrastructure Data</div>
+            <div className="sim-mode-version">v0.1 • Prototype</div>
           </div>
-          <div className="sim-mode-sub">Synthetic Infrastructure Data</div>
-          <div className="sim-mode-version">v0.1 • Prototype</div>
-        </div>
+        ) : (
+          <div className="sidebar-sim-dot-only" title="Simulation Mode Active: Synthetic Infrastructure">
+            <span className="sim-mode-dot" />
+          </div>
+        )}
+
+        {/* Desktop / Laptop Collapse Toggle Button */}
+        {onToggleCollapse && (
+          <button
+            type="button"
+            className="sidebar-collapse-btn"
+            onClick={onToggleCollapse}
+            title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
+            aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+            {!isCollapsed && <span className="collapse-btn-text">Collapse Menu</span>}
+          </button>
+        )}
       </div>
     </aside>
   )

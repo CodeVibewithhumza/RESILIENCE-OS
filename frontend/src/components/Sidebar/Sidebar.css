@@ -14,11 +14,60 @@
   justify-content: space-between;
   flex-shrink: 0;
   height: 100vh;
+  height: 100dvh;
   z-index: 40;
   user-select: none;
   overflow-y: auto;
   overflow-x: hidden;
-  transition: background-color 0.25s ease, border-color 0.25s ease;
+  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* Collapsed Icon-Only Rail Mode */
+.command-sidebar.is-collapsed {
+  width: 68px;
+  min-width: 68px;
+  max-width: 68px;
+}
+
+.command-sidebar.is-collapsed .sidebar-top-branding {
+  padding: 16px 8px 12px;
+}
+
+.command-sidebar.is-collapsed .sidebar-nav {
+  padding: 12px 6px;
+  align-items: center;
+}
+
+.command-sidebar.is-collapsed .sidebar-nav-group {
+  width: 100%;
+  align-items: center;
+}
+
+.command-sidebar.is-collapsed .sidebar-menu {
+  width: 100%;
+  align-items: center;
+}
+
+.command-sidebar.is-collapsed .sidebar-menu li {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.command-sidebar.is-collapsed .sidebar-nav-btn {
+  justify-content: center;
+  padding: 10px 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+}
+
+.command-sidebar.is-collapsed .sidebar-footer {
+  padding: 12px 6px 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 /* 1. Sidebar Top Domain Brand Header & Vector/Image Logo */
@@ -376,9 +425,124 @@
   font-weight: 500;
 }
 
+/* Collapse Toggle Button (Laptop & Desktop) */
+.sidebar-collapse-btn {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 8px 12px;
+  background: var(--bg-hover, rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(0, 240, 255, 0.15);
+  border-radius: 7px;
+  color: var(--text-secondary, #94A3B8);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.sidebar-collapse-btn:hover {
+  background: rgba(0, 240, 255, 0.1);
+  border-color: var(--accent-cyan, #00F0FF);
+  color: var(--accent-cyan, #00F0FF);
+}
+
+.command-sidebar.is-collapsed .sidebar-collapse-btn {
+  padding: 8px 0;
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+}
+
+.sidebar-sim-dot-only {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(0, 240, 255, 0.05);
+  border: 1px solid rgba(0, 240, 255, 0.25);
+  cursor: pointer;
+}
+
+/* Mobile Drawer Close Button */
+.sidebar-mobile-close-btn {
+  display: none;
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  background: var(--bg-surface, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--border-subtle, rgba(255, 255, 255, 0.12));
+  color: var(--text-secondary, #94A3B8);
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.15s ease;
+}
+
+.sidebar-mobile-close-btn:hover {
+  color: #FFFFFF;
+  border-color: var(--accent-cyan, #00F0FF);
+}
+
 /* ==========================================================================
-   Print Isolation — Never render sidebar in print/PDF output
+   Tablet & Mobile Responsive Breakpoints (<= 1024px)
    ========================================================================== */
+@media (max-width: 1024px) {
+  .command-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100vh;
+    height: 100dvh;
+    width: 260px;
+    min-width: 260px;
+    max-width: 85vw;
+    z-index: 100;
+    transform: translateX(-100%);
+    box-shadow: none;
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease;
+  }
+
+  .command-sidebar.is-mobile-open {
+    transform: translateX(0);
+    box-shadow: 12px 0 40px rgba(0, 0, 0, 0.75);
+  }
+
+  .sidebar-mobile-close-btn {
+    display: flex;
+  }
+
+  .sidebar-collapse-btn {
+    display: none;
+  }
+}
+
+/* Light theme collapse button */
+[data-theme="light"] .sidebar-collapse-btn {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+  color: #475569;
+}
+
+[data-theme="light"] .sidebar-collapse-btn:hover {
+  background: #E2E8F0;
+  border-color: #0284C7;
+  color: #0284C7;
+}
+
+[data-theme="light"] .sidebar-sim-dot-only {
+  background: #E8F7F5;
+  border-color: #C8F0E8;
+}
 @media print {
   aside.command-sidebar,
   .command-sidebar {

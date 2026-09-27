@@ -196,11 +196,33 @@
 .twin-canvas-container {
   position: relative;
   width: 100%;
-  min-height: 580px;
-  height: 600px;
+  height: calc(100vh - 240px);
+  min-height: 480px;
+  max-height: 720px;
   flex: 1;
   background: radial-gradient(ellipse at 50% 40%, #0c1830 0%, #060b17 65%, #03060c 100%);
   overflow: hidden;
+}
+
+@media (max-width: 1200px) {
+  .twin-canvas-container {
+    height: 460px;
+    min-height: 400px;
+  }
+}
+
+@media (max-width: 900px) {
+  .twin-canvas-container {
+    height: 380px;
+    min-height: 320px;
+  }
+}
+
+@media (max-width: 600px) {
+  .twin-canvas-container {
+    height: 300px;
+    min-height: 260px;
+  }
 }
 
 .twin-overlay-legend {
@@ -769,5 +791,50 @@
 [data-theme="light"] .drawer-action-btn.secondary:hover {
   background: #e2e8f0;
   color: #0f172a;
+}
+
+/* ==========================================================================
+   Responsive Tablet & Laptop Breakpoints for 3D Twin HUD
+   ========================================================================== */
+@media (max-width: 1024px) {
+  .twin-header-compact {
+    padding: 8px 10px;
+    gap: 8px;
+  }
+
+  .twin-floor-pills {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    max-width: 100%;
+    order: 3;
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .floor-pill-btn {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+
+  .twin-compact-btn {
+    padding: 4px 7px;
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 640px) {
+  .twin-overlay-legend {
+    display: none;
+  }
+
+  .twin-header-compact {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .twin-actions-compact {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 

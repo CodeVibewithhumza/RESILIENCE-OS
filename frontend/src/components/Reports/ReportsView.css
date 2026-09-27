@@ -140,6 +140,12 @@
   gap: 10px;
 }
 
+@media (max-width: 800px) {
+  .report-config-dropdowns-row {
+    grid-template-columns: 1fr;
+  }
+}
+
 .config-select-group {
   display: flex;
   flex-direction: column;
@@ -166,6 +172,12 @@
   gap: 14px;
   padding-top: 6px;
   border-top: 1px solid var(--border-subtle);
+}
+
+@media (max-width: 800px) {
+  .report-config-bottom-split {
+    grid-template-columns: 1fr;
+  }
 }
 
 .config-sub-col {

@@ -7,6 +7,7 @@
   display: flex;
   flex-direction: row;
   height: 100vh;
+  height: 100dvh;
   width: 100vw;
   background-color: var(--bg-base);
   color: var(--text-primary);
@@ -19,6 +20,7 @@
   flex-direction: column;
   flex: 1;
   height: 100vh;
+  height: 100dvh;
   min-width: 0;
   overflow: hidden;
   position: relative;
@@ -33,7 +35,37 @@
   overflow-x: hidden;
   width: 100%;
   height: calc(100vh - 60px);
+  height: calc(100dvh - 60px);
   box-sizing: border-box;
+}
+
+/* Tablet & Mobile Main Padding */
+@media (max-width: 1024px) {
+  .dashboard-main-content {
+    padding: 10px 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .dashboard-main-content {
+    padding: 8px 10px;
+  }
+}
+
+/* Mobile Sidebar Backdrop Overlay */
+.sidebar-mobile-backdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(2, 6, 17, 0.7);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 95;
+  animation: backdropFadeIn 0.2s ease;
+}
+
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 

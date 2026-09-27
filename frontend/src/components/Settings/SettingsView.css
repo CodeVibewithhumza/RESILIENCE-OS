@@ -100,7 +100,16 @@
   align-items: stretch;
 }
 
-@media (max-width: 1200px) {
+@media (max-width: 1250px) and (min-width: 850px) {
+  .settings-top-cards-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+  .settings-top-cards-grid .settings-panel-card:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 850px) {
   .settings-top-cards-grid {
     grid-template-columns: 1fr;
   }
