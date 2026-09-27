@@ -603,3 +603,59 @@
 .a4-t-desc {
   color: #475569;
 }
+
+/* Print specific styles */
+@media print {
+  /* Hide all siblings of the printable hierarchy */
+  .dashboard-shell > :not(.dashboard-body-container),
+  .dashboard-body-container > :not(main.dashboard-main-content),
+  main.dashboard-main-content > :not(.reports-view-container),
+  .reports-view-container > :not(.reports-main-content),
+  .reports-main-content > :not(.reports-right-column),
+  .reports-right-column > :not(.print-fullscreen),
+  .hide-on-print {
+    display: none !important;
+  }
+
+  /* Reset layout constraints on the hierarchy so the PDF scales correctly */
+  body, html,
+  #root,
+  .dashboard-shell,
+  .dashboard-body-container,
+  main.dashboard-main-content,
+  .reports-view-container,
+  .reports-main-content,
+  .reports-right-column {
+    display: block !important;
+    position: static !important;
+    height: auto !important;
+    width: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
+
+  /* Make sure the print-fullscreen container acts like a normal block */
+  .print-fullscreen {
+    display: block !important;
+    position: relative !important;
+    width: 100% !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  /* Remove screen-only visual styling for the paper itself */
+  .a4-document-paper {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+}
