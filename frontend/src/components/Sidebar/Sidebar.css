@@ -375,3 +375,25 @@
   color: #64748B;
   font-weight: 500;
 }
+
+/* ==========================================================================
+   Print Isolation — Never render sidebar in print/PDF output
+   ========================================================================== */
+@media print {
+  aside.command-sidebar,
+  .command-sidebar {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    left: -9999px !important;
+  }
+}
+

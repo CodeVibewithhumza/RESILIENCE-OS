@@ -221,21 +221,85 @@
 }
 
 .fmt-btn.fmt-pdf.is-active {
-  border-color: rgba(255, 77, 77, 0.5);
-  background: rgba(255, 77, 77, 0.08);
+  border-color: rgba(255, 77, 77, 0.7);
+  background: rgba(255, 77, 77, 0.12);
   color: #FF4D4D;
+  box-shadow: 0 0 8px rgba(255, 77, 77, 0.25);
 }
 
-.fmt-btn.fmt-excel.is-active {
-  border-color: rgba(0, 229, 163, 0.5);
-  background: rgba(0, 229, 163, 0.08);
+.fmt-btn.fmt-markdown.is-active {
+  border-color: rgba(0, 240, 255, 0.7);
+  background: rgba(0, 240, 255, 0.12);
+  color: var(--accent-cyan, #00F0FF);
+  box-shadow: 0 0 8px rgba(0, 240, 255, 0.25);
+}
+
+.fmt-btn.fmt-json.is-active {
+  border-color: rgba(0, 229, 163, 0.7);
+  background: rgba(0, 229, 163, 0.12);
   color: #00E5A3;
+  box-shadow: 0 0 8px rgba(0, 229, 163, 0.25);
 }
 
-.fmt-btn.fmt-ppt.is-active {
-  border-color: rgba(255, 184, 0, 0.5);
-  background: rgba(255, 184, 0, 0.08);
-  color: #FFB800;
+/* Code & Raw Data Live Preview Container (Markdown / JSON) */
+.code-preview-container {
+  display: flex;
+  flex-direction: column;
+  background: #010E1A;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.code-preview-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: #02182B;
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: 11px;
+}
+
+.code-file-tag {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.copy-code-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-subtle);
+  border-radius: 4px;
+  color: var(--text-secondary);
+  font-size: 10px;
+  padding: 4px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.copy-code-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--text-primary);
+  border-color: var(--border-default);
+}
+
+.code-content-block {
+  margin: 0;
+  padding: 14px;
+  max-height: 600px;
+  overflow-y: auto;
+  font-size: 11px;
+  line-height: 1.5;
+  color: #93C5FD;
+  white-space: pre-wrap;
+  word-break: break-word;
 }
 
 /* Key Findings 4 Tiles */
@@ -249,10 +313,16 @@
   background: var(--bg-primary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-sm);
-  padding: 10px;
+  padding: 10px 12px;
   display: flex;
   align-items: center;
   gap: 10px;
+  transition: all 0.15s ease;
+}
+
+.finding-tile:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
 }
 
 .finding-icon-wrap {
@@ -286,6 +356,118 @@
   font-size: 9px;
   color: var(--text-muted);
 }
+
+/* ==========================================================================
+   Infrastructure Risk Posture (Panel 3)
+   ========================================================================== */
+.risk-posture-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+@media (max-width: 768px) {
+  .risk-posture-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.risk-posture-cell {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.risk-posture-cell:hover {
+  border-color: var(--border-default);
+  box-shadow: var(--shadow-sm);
+}
+
+.risk-cell-label {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.risk-cell-value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.risk-level-badge {
+  font-size: 10px;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 4px;
+  letter-spacing: 0.5px;
+}
+
+.risk-level-badge.badge-green {
+  background: rgba(16, 185, 129, 0.12);
+  color: #10B981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.risk-level-badge.badge-gold {
+  background: rgba(245, 158, 11, 0.12);
+  color: #F59E0B;
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.risk-level-badge.badge-red {
+  background: rgba(239, 68, 68, 0.12);
+  color: #EF4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.risk-pct-val {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.risk-asset-code {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--accent-cyan, #00F0FF);
+  background: rgba(0, 240, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 240, 255, 0.2);
+}
+
+[data-theme="light"] .risk-asset-code {
+  color: #0284C7;
+  background: rgba(2, 132, 199, 0.08);
+  border-color: rgba(2, 132, 199, 0.2);
+}
+
+.risk-count-num {
+  font-size: 16px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.risk-count-unit {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.risk-cell-sub {
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
 
 /* Subgrid row */
 .reports-subgrid-row {
@@ -604,58 +786,241 @@
   color: #475569;
 }
 
-/* Print specific styles */
+/* Tag classification badge in A4 header */
+.a4-tag-badge {
+  font-size: 7px;
+  font-weight: 700;
+  color: #475569;
+  background: #F1F5F9;
+  padding: 1px 5px;
+  border-radius: 3px;
+  border: 1px solid #CBD5E1;
+  letter-spacing: 0.5px;
+}
+
+/* Table styles for A4 Report */
+.a4-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid #E2E8F0;
+  border-radius: 3px;
+}
+
+.a4-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 8px;
+  text-align: left;
+}
+
+.a4-table th {
+  background: #F8FAFC;
+  color: #475569;
+  font-weight: 700;
+  padding: 4px 6px;
+  border-bottom: 1px solid #CBD5E1;
+}
+
+.a4-table td {
+  padding: 4px 6px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #1E293B;
+}
+
+.a4-table tr:nth-child(even) td {
+  background: #FAFAFA;
+}
+
+/* A4 Badge pills */
+.a4-badge {
+  display: inline-block;
+  font-size: 7px;
+  font-weight: 700;
+  padding: 1px 5px;
+  border-radius: 3px;
+  text-align: center;
+}
+
+.a4-badge.badge-green {
+  background: #ECFDF5;
+  color: #059669;
+  border: 1px solid #A7F3D0;
+}
+
+.a4-badge.badge-blue {
+  background: #EFF6FF;
+  color: #2563EB;
+  border: 1px solid #BFDBFE;
+}
+
+.a4-badge.badge-gold {
+  background: #FEF3C7;
+  color: #D97706;
+  border: 1px solid #FDE68A;
+}
+
+.a4-badge.badge-red {
+  background: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
+}
+
+/* A4 Footer with verification stamp */
+.a4-doc-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 7px;
+  color: #94A3B8;
+  border-top: 1px solid #E2E8F0;
+  padding-top: 6px;
+  margin-top: 6px;
+}
+
+/* Export Dropdown in Preview Header */
+.export-menu-dropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  display: flex;
+  flex-direction: column;
+  min-width: 170px;
+  z-index: 50;
+  overflow: hidden;
+}
+
+.export-menu-dropdown button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  font-size: 11px;
+  background: transparent;
+  border: none;
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.15s ease;
+}
+
+.export-menu-dropdown button:hover {
+  background: rgba(0, 240, 255, 0.08);
+  color: var(--accent-cyan);
+}
+
+.dropdown-toggle-btn {
+  padding: 4px 6px !important;
+}
+
+.spin-icon {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* ==========================================================================
+   Print & PDF Generation Specific Styles
+   ========================================================================== */
 @media print {
-  /* Hide all siblings of the printable hierarchy */
-  .dashboard-shell > :not(.dashboard-body-container),
-  .dashboard-body-container > :not(main.dashboard-main-content),
-  main.dashboard-main-content > :not(.reports-view-container),
-  .reports-view-container > :not(.reports-main-content),
-  .reports-main-content > :not(.reports-right-column),
-  .reports-right-column > :not(.print-fullscreen),
-  .hide-on-print {
-    display: none !important;
+  @page {
+    size: A4 portrait;
+    margin: 8mm 10mm;
   }
 
-  /* Reset layout constraints on the hierarchy so the PDF scales correctly */
-  body, html,
+  /* Force hide all navigation chrome and peripherals */
+  aside,
+  aside.command-sidebar,
+  .command-sidebar,
+  header,
+  header.cmd-header,
+  .cmd-header,
+  .sidebar,
+  .dashboard-header,
+  .reports-top-tabs-bar,
+  .reports-left-column,
+  .quick-reports-card,
+  .quick-reports-grid,
+  .panel-header-with-action,
+  .hide-on-print,
+  .toast-container,
+  .error-banner,
+  .causal-drawer {
+    display: none !important;
+    visibility: hidden !important;
+    width: 0 !important;
+    height: 0 !important;
+    min-width: 0 !important;
+    max-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    overflow: hidden !important;
+    position: absolute !important;
+    top: -9999px !important;
+    left: -9999px !important;
+  }
+
+  /* Reset layout constraints so A4 document renders cleanly starting on Page 1 */
+  html,
+  body,
   #root,
   .dashboard-shell,
   .dashboard-body-container,
   main.dashboard-main-content,
-  .reports-view-container,
-  .reports-main-content,
-  .reports-right-column {
+  .reports-page,
+  .reports-main-grid,
+  .reports-right-column,
+  .preview-sheet-card {
     display: block !important;
     position: static !important;
     height: auto !important;
-    width: auto !important;
+    width: 100% !important;
     min-height: 0 !important;
     max-height: none !important;
     overflow: visible !important;
     margin: 0 !important;
     padding: 0 !important;
     border: none !important;
-    background: transparent !important;
+    background: #FFFFFF !important;
+    color: #0F172A !important;
     box-shadow: none !important;
   }
 
-  /* Make sure the print-fullscreen container acts like a normal block */
-  .print-fullscreen {
-    display: block !important;
-    position: relative !important;
-    width: 100% !important;
-    height: auto !important;
-    margin: 0 !important;
-    padding: 0 !important;
+  .preview-sheet-card {
+    border: none !important;
     background: transparent !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .a4-document-paper {
+    width: 100% !important;
+    max-width: 100% !important;
     box-shadow: none !important;
     border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #FFFFFF !important;
+    color: #0F172A !important;
+    font-size: 9.5px !important;
   }
 
-  /* Remove screen-only visual styling for the paper itself */
-  .a4-document-paper {
-    box-shadow: none !important;
-    margin: 0 !important;
+  .a4-section-block {
+    page-break-inside: avoid;
+    break-inside: avoid;
+    margin-bottom: 6px;
+  }
+
+  .a4-table {
+    font-size: 8.5px !important;
   }
 }
+
