@@ -6,7 +6,7 @@
 [![React](https://img.shields.io/badge/React-19+-61DAFB.svg?logo=react&logoColor=black)](https://reactjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-R3F-black.svg?logo=three.js&logoColor=white)](https://threejs.org/)
 [![NetworkX](https://img.shields.io/badge/NetworkX-3.2+-orange.svg)](https://networkx.org/)
-[![pytest](https://img.shields.io/badge/pytest-103%2F103%20Passing-brightgreen.svg)](tests/)
+[![pytest](https://img.shields.io/badge/pytest-106%2F106%20Passing-brightgreen.svg)](tests/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](docker-compose.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
@@ -40,11 +40,11 @@
 
 ## 🎯 Executive Summary & Problem Statement
 
-Modern tertiary hospitals are complex interconnected systems where clinical life-support services rely entirely on multi-utility physical infrastructure:
+Modern tertiary hospitals are complex interconnected ecosystems where clinical life-support services rely entirely on multi-utility physical infrastructure:
 
-* **Electrical Power:** Medium voltage (11kV) grid feeds, step-down transformers (415V), emergency diesel generators, transfer switches (ATS), and static uninterruptible power supply (UPS) batteries.
-* **Medical Gases:** Cryogenic liquid oxygen (LOX) storage, vaporizers, manifold systems, and high-pressure distribution pipelines to ICU mechanical ventilators and surgical pendants.
-* **HVAC & Environment:** Water chillers, cooling towers, primary/secondary pumps, and air handling units (AHU) maintaining sterile positive pressure in cleanrooms and Operating Theatres.
+* **Electrical Power:** Medium voltage (11kV) grid feeds, step-down transformers (415V), emergency diesel generators, automatic transfer switches (ATS), and static uninterruptible power supply (UPS) battery banks.
+* **Medical Gases:** Cryogenic liquid oxygen (LOX) bulk storage, atmospheric vaporizers, manifold back-ups, and high-pressure distribution pipelines to ICU mechanical ventilators and surgical pendants.
+* **HVAC & Environment:** Centrifugal water chillers, cooling towers, primary/secondary circulation pumps, and air handling units (AHU) maintaining sterile positive air pressure in cleanrooms and Operating Theatres.
 * **Domestic & Process Water:** Municipal mains, underground reservoirs, rooftop storage tanks, and hydro-pneumatic booster pumps supplying central sterilization (CSSD), dialyzers, and sanitary systems.
 
 ### The Cascade Failure Threat
@@ -56,14 +56,14 @@ When a primary asset experiences an unexpected fault (e.g., an 11kV transformer 
 
 ## ⚡ Core Platform Capabilities
 
-* 🌐 **BIM-Grade 3D Digital Twin:** Spatial WebGL campus reconstruction (React Three Fiber) rendering 5 architectural floor levels (Basement B1, Ground L1, Floor 2, Floor 3, Roof L4), clinical room polygons, interactive 3D assets, dynamic heatmaps, and volumetric status glow shaders.
+* 🌐 **BIM-Grade 3D Digital Twin:** Spatial WebGL campus reconstruction (React Three Fiber) rendering 5 architectural floor levels (Basement B1, Ground L1, Floor 2, Floor 3, Roof L4), clinical room polygons, interactive 3D equipment assets, dynamic heatmaps, volumetric status glow shaders, and orthogonal Manhattan utility pipelines (color-coded for Power, MedGas, HVAC, Water) with dual Daylight Cleanroom / Dark Command Center lighting.
 * 🔗 **Graph Knowledge Engine:** Directed property graph ($G = (\mathcal{V}, \mathcal{E})$) modeling 52 physical nodes and 112 multi-tier dependency edges with relationship taxonomies (`POWERS`, `BACKS_UP`, `SUPPLIES`, `COOLS`, `PROVIDES_WATER`, `PROVIDES_GAS`).
 * ⏱️ **Temporal Cascade Simulator:** Simulates discrete multi-hop failure propagation across $T+0 \to T+45$ minute horizons with physics-based battery decay curves, diesel generator startup delays, and cryogenic boil-off dynamics.
 * 📊 **Multi-Criteria Resilience Synthesis ($0-100$):** Real-time composite metric aggregating Service Continuity ($S_c$), Backup Redundancy ($R_b$), Dynamic Adaptability ($A_p$), and Recovery Latency ($L_r$).
 * ⚖️ **TOPSIS Strategy Lab:** Evaluates and ranks 6 operational response strategies (**Strategies A through F**) against multi-criteria trade-offs (ICU continuity, time-to-impact, operational cost, grid dependency).
 * 🧠 **Explainable AI (XAI) Causal Engine:** Generates natural-language reasoning chains directly extracted from graph traversal paths (*"Why is ICU at risk? Because Primary Transformer T1 tripped $\to$ Main Bus dropped $\to$ UPS discharging at 1.8x load"*).
-* 📑 **Autonomous Report Generation:** Produces formal executive incident reports, compliance logs, and data exports in PDF, Excel, and PowerPoint formats with live paper-sheet previews.
-* 🌓 **Adaptive Dual Theme:** Futuristic Dark Command Center interface and Light Medical Cleanroom visual mode.
+* 📑 **Autonomous Document Studio & Reports:** Produces formal executive incident reports, compliance logs, and data exports in PDF, Excel, PowerPoint, and JSON formats with live WYSIWYG paper-sheet previews and print-isolated stylesheets.
+* 🌓 **Adaptive Dual Theme:** Futuristic Dark Command Center interface and Light Medical Cleanroom visual mode across all 8 operational views.
 
 ---
 
@@ -162,12 +162,12 @@ To evaluate mitigation strategies (**Strategies A through F**), the platform uti
 The platform provides 8 specialized operational views matching medical command center workflows:
 
 1. 📊 **Dashboard (Executive Overview):** Real-time campus telemetry strip, 4 core KPI cards, interactive 3D campus overlay pins, and live incident log.
-2. 🌐 **Digital Twin (3D Spatial BIM):** Full 3D interactive viewport with layer isolation, floor level slicing (B1 to L4), room polygon focus, and individual asset telemetry inspection.
+2. 🌐 **Digital Twin (3D Spatial BIM):** Full 3D interactive viewport with layer isolation, floor level slicing (B1 to L4), room polygon focus, orthogonal utility pipelines (Power, MedGas, HVAC, Water), and individual asset telemetry inspection.
 3. ⚡ **Start Simulation (Failure Injection):** Scenario selector (Electrical Grid Outage, Transformer Trip, O2 Rupture, Chiller Trip, Combined Disaster), severity & duration controls, and real-time 3D twin reaction canvas.
 4. 🔬 **What-If Analysis (Decision Lab):** Side-by-side comparison of Strategies A through F with TOPSIS scores, trade-off radar charts, and execution levers.
-5. ⏱️ **Incident Timeline (Cascade Stepper):** Milestone-based temporal scrubber ($T+0, T+5, T+10, T+20$ min) showing subsystem failure propagation and explainability drawer.
+5. ⏱️ **Incident Timeline (Cascade Stepper):** Milestone-based temporal scrubber ($T+0, T+5, T+10, T+20, T+45$ min) showing subsystem failure propagation and explainability drawer.
 6. 🛡️ **Risk & Resilience (Vulnerability Analytics):** 6 KPI summary pills, 5 circular SVG factor dials, ranked single-point-of-failure (SPOF) table, and clinical care continuity bars.
-7. 📑 **Reports (Executive Document Studio):** Incident report generator with PDF, Excel, and PowerPoint export options and formatted live paper sheet preview.
+7. 📑 **Reports (Executive Document Studio):** Incident report generator with PDF, Excel, PowerPoint, and JSON export options and formatted live paper sheet preview.
 8. ⚙️ **Settings (Model & Rules Configuration):** Hospital topology profiles, simulation speed multipliers, safety threshold rules, 3D options, and Dark/Light theme toggles.
 
 ---
@@ -205,7 +205,7 @@ Resilience OS/
 ├── frontend/                       # React 19 + Three.js Command Center
 │   ├── src/
 │   │   ├── components/
-│   │   │   ├── DigitalTwin3D/      # 3D BIM Canvas, Rooms, Floors & Shaders
+│   │   │   ├── DigitalTwin3D/      # 3D BIM Canvas, Rooms, Floors, Pipelines & Shaders
 │   │   │   ├── IncidentControl/    # Failure Injection & Cascade Stepper
 │   │   │   ├── ResilienceGauge/    # SVG Circular Resilience Dial
 │   │   │   ├── StrategyLab/        # Strategy Comparison & TOPSIS Matrix
@@ -218,7 +218,7 @@ Resilience OS/
 │   │   └── App.jsx                 # 8-View Coordinator
 │   ├── Dockerfile                  # Production Frontend Nginx Container
 │   └── nginx.conf                  # Reverse Proxy Configuration
-├── tests/                          # 103 Unit & Integration Tests (100% Passing)
+├── tests/                          # 106 Unit & Integration Tests (100% Passing)
 ├── docker-compose.yml              # Multi-Container Orchestration
 ├── start.bat                       # One-Click Windows Development Runner
 └── requirements.txt                # Python Backend Dependencies
@@ -250,7 +250,7 @@ The backend provides OpenAPI 3.0 documentation at `/docs`.
 ## 🚀 Installation & Deployment Guide
 
 ### Prerequisites
-* **Python 3.10+** (Python 3.11 / 3.14 fully supported)
+* **Python 3.10+** (Python 3.11 / 3.12 / 3.13 / 3.14 fully supported)
 * **Node.js 18+** & `npm`
 * **Docker & Docker Compose** *(Optional, for containerized deployment)*
 
@@ -310,7 +310,7 @@ docker compose up --build -d
 ---
 
 ### Running Automated Verification Tests
-Run the comprehensive test suite (103 unit and integration tests covering cascade propagation, graph traversal, TOPSIS ranking, resilience formulation, and REST/WebSocket APIs):
+Run the comprehensive test suite (106 unit and integration tests covering cascade propagation, graph traversal, TOPSIS ranking, resilience formulation, report generation, and REST/WebSocket APIs):
 
 ```bash
 pytest -v
