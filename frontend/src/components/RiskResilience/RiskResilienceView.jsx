@@ -478,32 +478,34 @@ export default function RiskResilienceView({ resilience, assets = [], services =
             <button type="button" className="view-all-link">View All &gt;</button>
           </div>
 
-          <table className="risk-table font-mono">
-            <thead>
-              <tr>
-                <th>Rank</th>
-                <th className="th-left">Asset</th>
-                <th>System</th>
-                <th>Risk Level</th>
-                <th>Risk Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topRiskAssets.map((item) => (
-                <tr key={item.rank}>
-                  <td>{item.rank}</td>
-                  <td className="td-left font-sans">{item.asset}</td>
-                  <td>{item.system}</td>
-                  <td>
-                    <span className={`risk-badge badge-${item.level.toLowerCase()}`}>
-                      {item.level}
-                    </span>
-                  </td>
-                  <td className="font-bold">{item.score}</td>
+          <div className="risk-table-wrap">
+            <table className="risk-table font-mono">
+              <thead>
+                <tr>
+                  <th>Rank</th>
+                  <th className="th-left">Asset</th>
+                  <th>System</th>
+                  <th>Risk Level</th>
+                  <th>Risk Score</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {topRiskAssets.map((item) => (
+                  <tr key={item.rank}>
+                    <td>{item.rank}</td>
+                    <td className="td-left font-sans">{item.asset}</td>
+                    <td>{item.system}</td>
+                    <td>
+                      <span className={`risk-badge badge-${item.level.toLowerCase()}`}>
+                        {item.level}
+                      </span>
+                    </td>
+                    <td className="font-bold">{item.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Card 5: Service Risk Overview */}
@@ -520,35 +522,37 @@ export default function RiskResilienceView({ resilience, assets = [], services =
             </select>
           </div>
 
-          <table className="risk-table font-mono">
-            <thead>
-              <tr>
-                <th className="th-left">Service</th>
-                <th>Current Status</th>
-                <th>Risk Level</th>
-                <th>Resilience Score</th>
-              </tr>
-            </thead>
-            <tbody>
-              {serviceRiskOverview.map((srv) => (
-                <tr key={srv.service}>
-                  <td className="td-left font-sans">{srv.service}</td>
-                  <td>
-                    <span className="status-inline">
-                      <span className="dot" style={{ backgroundColor: srv.statusColor }} />
-                      {srv.status}
-                    </span>
-                  </td>
-                  <td>
-                    <span className={`risk-badge badge-${srv.level.toLowerCase()}`}>
-                      {srv.level}
-                    </span>
-                  </td>
-                  <td className="font-bold">{srv.score}</td>
+          <div className="risk-table-wrap">
+            <table className="risk-table font-mono">
+              <thead>
+                <tr>
+                  <th className="th-left">Service</th>
+                  <th>Current Status</th>
+                  <th>Risk Level</th>
+                  <th>Resilience Score</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {serviceRiskOverview.map((srv) => (
+                  <tr key={srv.service}>
+                    <td className="td-left font-sans">{srv.service}</td>
+                    <td>
+                      <span className="status-inline">
+                        <span className="dot" style={{ backgroundColor: srv.statusColor }} />
+                        {srv.status}
+                      </span>
+                    </td>
+                    <td>
+                      <span className={`risk-badge badge-${srv.level.toLowerCase()}`}>
+                        {srv.level}
+                      </span>
+                    </td>
+                    <td className="font-bold">{srv.score}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
         {/* Card 6: Resilience Trend Multi-line Chart */}

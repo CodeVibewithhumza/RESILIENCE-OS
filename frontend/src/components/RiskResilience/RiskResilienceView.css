@@ -486,6 +486,23 @@
   line-height: 1.1;
 }
 
+@media (max-width: 480px) {
+  .resilience-components-dials-row {
+    gap: 4px;
+    padding: 2px 0;
+  }
+  .r-dial-svg-wrap {
+    width: 38px !important;
+    height: 38px !important;
+  }
+  .r-dial-num {
+    font-size: 9.5px !important;
+  }
+  .r-dial-lbl {
+    font-size: 7.5px !important;
+  }
+}
+
 /* --------------------------------------------------------------------------
    3. BOTTOM 3 CARDS ROW
    -------------------------------------------------------------------------- */
@@ -514,8 +531,15 @@
   }
 }
 
+.risk-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .risk-table {
   width: 100%;
+  min-width: 290px;
   border-collapse: collapse;
   font-size: 9px;
   text-align: center;

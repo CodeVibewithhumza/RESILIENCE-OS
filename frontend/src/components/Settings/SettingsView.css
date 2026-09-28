@@ -26,9 +26,18 @@
   }
 }
 
-@media (max-width: 800px) {
+@media (max-width: 900px) {
   .settings-top-tabs-row {
-    grid-template-columns: repeat(2, 1fr);
+    display: flex;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  .settings-nav-tab {
+    flex-shrink: 0;
+    white-space: nowrap;
   }
 }
 
@@ -265,11 +274,13 @@
 .assets-table-scroll,
 .services-table-scroll {
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   max-height: 220px;
 }
 
 .settings-data-table {
   width: 100%;
+  min-width: 270px;
   border-collapse: collapse;
   font-size: 9px;
   text-align: center;

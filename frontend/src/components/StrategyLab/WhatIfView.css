@@ -26,6 +26,19 @@
   }
 }
 
+@media (max-width: 520px) {
+  .whatif-process-bar {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .process-step-box {
+    padding: 8px 12px;
+  }
+  .step-arrow {
+    display: none;
+  }
+}
+
 .process-step-box {
   background: var(--bg-surface);
   border: 1px solid var(--border-subtle);

@@ -434,7 +434,7 @@
 
 @media (max-width: 768px) {
   .cmd-header {
-    padding: 0 12px;
+    padding: 0 10px;
     gap: 8px;
   }
 
@@ -443,7 +443,10 @@
   }
 
   .header-page-title {
-    font-size: 15px;
+    font-size: 14px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .header-divider {
@@ -451,16 +454,38 @@
   }
 
   .header-meta-item.header-time {
-    padding: 0 6px;
+    padding: 0 5px;
     font-size: 10px;
   }
 
   .header-stream-pill {
     padding: 0 6px;
+    font-size: 9px;
   }
 
   .cmd-header-right {
+    gap: 5px;
+  }
+}
+
+@media (max-width: 480px) {
+  .cmd-header {
+    padding: 0 8px;
     gap: 6px;
+  }
+
+  .header-meta-item.header-time {
+    display: none;
+  }
+
+  .header-page-title {
+    font-size: 13px;
+    max-width: 140px;
+  }
+
+  .header-icon-btn {
+    width: 30px;
+    height: 30px;
   }
 }
 

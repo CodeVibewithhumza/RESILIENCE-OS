@@ -79,20 +79,22 @@ export default function IncidentTimelineView({
     <div className="incident-timeline-page">
       {/* 1. TOP MILESTONE PROGRESSION BAR */}
       <section className="timeline-progression-bar-card">
-        <div className="milestone-gradient-line" />
-        <div className="milestones-nodes-row">
-          {TIMELINE_MILESTONES.map((m, idx) => (
-            <div
-              key={m.t}
-              className={`prog-milestone-node ${idx <= 3 ? 'is-past' : ''} ${idx === 3 ? 'is-active' : ''}`}
-            >
-              <div className="milestone-dot-wrap">
-                <span className="milestone-dot" style={{ backgroundColor: m.color }} />
+        <div className="milestones-track-wrapper">
+          <div className="milestone-gradient-line" />
+          <div className="milestones-nodes-row">
+            {TIMELINE_MILESTONES.map((m, idx) => (
+              <div
+                key={m.t}
+                className={`prog-milestone-node ${idx <= 3 ? 'is-past' : ''} ${idx === 3 ? 'is-active' : ''}`}
+              >
+                <div className="milestone-dot-wrap">
+                  <span className="milestone-dot" style={{ backgroundColor: m.color }} />
+                </div>
+                <span className="milestone-time font-mono">{m.t}</span>
+                <span className="milestone-label">{m.label}</span>
               </div>
-              <span className="milestone-time font-mono">{m.t}</span>
-              <span className="milestone-label">{m.label}</span>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
 

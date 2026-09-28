@@ -175,7 +175,7 @@ export default function Sidebar({
           </svg>
         </div>
 
-        {!isCollapsed && (
+        {(!isCollapsed || isMobileOpen) && (
           <div className="sidebar-brand-text">
             <div className="brand-main-title">
               Resilience<span className="brand-accent-text">OS</span>
@@ -200,11 +200,11 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed && !isMobileOpen ? item.label : undefined}
                     aria-label={item.label}
                   >
                     <Icon size={18} className="nav-btn-icon" />
-                    {!isCollapsed && <span className="nav-btn-label">{item.label}</span>}
+                    {(!isCollapsed || isMobileOpen) && <span className="nav-btn-label">{item.label}</span>}
                   </button>
                 </li>
               )
@@ -215,7 +215,7 @@ export default function Sidebar({
         {/* SYSTEM Header & Settings link */}
         <div className="sidebar-nav-group system-group">
           <div className="system-group-divider" />
-          {!isCollapsed && <span className="sidebar-group-label">SYSTEM</span>}
+          {(!isCollapsed || isMobileOpen) && <span className="sidebar-group-label">SYSTEM</span>}
           <ul className="sidebar-menu">
             {systemItems.map((item) => {
               const Icon = item.icon
@@ -227,11 +227,11 @@ export default function Sidebar({
                     type="button"
                     className={`sidebar-nav-btn ${isActive ? 'is-active' : ''}`}
                     onClick={() => handleNavClick(item.id)}
-                    title={isCollapsed ? item.label : undefined}
+                    title={isCollapsed && !isMobileOpen ? item.label : undefined}
                     aria-label={item.label}
                   >
                     <Icon size={18} className="nav-btn-icon" />
-                    {!isCollapsed && <span className="nav-btn-label">{item.label}</span>}
+                    {(!isCollapsed || isMobileOpen) && <span className="nav-btn-label">{item.label}</span>}
                   </button>
                 </li>
               )
@@ -242,7 +242,7 @@ export default function Sidebar({
 
       {/* 3. Bottom Simulation Mode Badge & Collapse Toggle */}
       <div className="sidebar-footer">
-        {!isCollapsed ? (
+        {(!isCollapsed || isMobileOpen) ? (
           <div className="sidebar-sim-mode-card">
             <div className="sim-mode-status-row">
               <span className="sim-mode-dot" />
@@ -266,8 +266,15 @@ export default function Sidebar({
             title={isCollapsed ? 'Expand sidebar (Ctrl+B)' : 'Collapse sidebar (Ctrl+B)'}
             aria-label={isCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            {isCollapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
-            {!isCollapsed && <span className="collapse-btn-text">Collapse Menu</span>}
+            <span className="collapse-icon-wrap">
+              {isCollapsed ? <ChevronRight size={15} /> : <ChevronLeft size={15} />}
+            </span>
+            {!isCollapsed && (
+              <>
+                <span className="collapse-btn-text">Collapse Menu</span>
+                <span className="collapse-shortcut-tag">Ctrl+B</span>
+              </>
+            )}
           </button>
         )}
       </div>

@@ -135,6 +135,12 @@
   display: flex;
 }
 
+@media (max-width: 640px) {
+  .twin-col {
+    min-height: 320px;
+  }
+}
+
 .incident-col {
   display: flex;
 }

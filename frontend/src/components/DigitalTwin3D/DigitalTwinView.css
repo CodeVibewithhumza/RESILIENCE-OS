@@ -22,6 +22,30 @@
   gap: 12px;
 }
 
+@media (max-width: 768px) {
+  .twin-top-filter-bar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .twin-filters-group {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+  }
+  .twin-filter-pill {
+    flex-shrink: 0;
+    padding: 5px 10px;
+    font-size: 11px;
+  }
+  .twin-controls-group {
+    justify-content: space-between;
+    width: 100%;
+  }
+}
+
 .twin-filters-group {
   display: flex;
   align-items: center;
@@ -184,6 +208,16 @@
   min-height: 480px;
   display: flex;
   flex-direction: column;
+}
+
+@media (max-width: 640px) {
+  .twin-canvas-card {
+    min-height: 320px;
+    padding: 6px;
+  }
+  .twin-viewport-container {
+    min-height: 300px;
+  }
 }
 
 .twin-viewport-container {
@@ -623,7 +657,19 @@
 
 @media (max-width: 768px) {
   .layers-cards-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .layers-cards-row .layer-toggle-card:last-child {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 480px) {
+  .layers-cards-row {
     grid-template-columns: 1fr;
+  }
+  .layers-cards-row .layer-toggle-card:last-child {
+    grid-column: auto;
   }
 }
 

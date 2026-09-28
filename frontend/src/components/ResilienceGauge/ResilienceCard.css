@@ -63,6 +63,27 @@
   flex-shrink: 0;
 }
 
+@media (max-width: 480px) {
+  .resilience-hero-section {
+    justify-content: center;
+    text-align: center;
+  }
+  .resilience-gauge-wrapper {
+    width: 140px;
+    height: 140px;
+  }
+  .gauge-center-num {
+    font-size: 30px;
+  }
+  .resilience-meta-summary {
+    min-width: 100%;
+    align-items: center;
+  }
+  .meta-summary-chips {
+    justify-content: center;
+  }
+}
+
 .resilience-gauge-svg {
   transform: rotate(0deg);
   overflow: visible;

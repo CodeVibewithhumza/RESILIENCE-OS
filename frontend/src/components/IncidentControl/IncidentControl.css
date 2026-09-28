@@ -94,6 +94,13 @@
   font-size: 11px;
 }
 
+@media (max-width: 480px) {
+  .incident-meta-grid {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+}
+
 .incident-meta-cell {
   display: flex;
   flex-direction: column;
