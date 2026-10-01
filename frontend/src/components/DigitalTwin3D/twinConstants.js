@@ -607,3 +607,158 @@ export const CAMERA_PRESETS = {
     target: [2.0, 0, 0]
   }
 }
+
+/**
+ * Builds normalized asset state map by combining static topology definitions,
+ * live backend telemetry, clinical services health, and incident status overrides.
+ */
+export function buildAssetsMap(assets = [], services = [], incident = null, simulatedOverrides = {}) {
+  const map = {}
+
+  // 1. Seed with rich default topology specifications for all modeled assets
+  Object.entries(ASSET_TOPOLOGY_DEFS).forEach(([id, def]) => {
+    map[id] = {
+      id,
+      name: def.subsystem || def.label,
+      status: 'normal',
+      health_score: 100,
+      current_load: 0,
+      capacity_unit: 'kW',
+      ...def
+    }
+  })
+
+  // 2. Overlay live backend assets
+  if (Array.isArray(assets)) {
+    assets.forEach((a) => {
+      map[a.id] = { ...(map[a.id] || {}), ...a }
+    })
+  }
+
+  // 3. Overlay clinical services health onto matching clinical beds/rooms/wings
+  if (Array.isArray(services) && services.length > 0) {
+    const svcMap = new Map(services.map((s) => [s.id, s]))
+    Object.entries(ASSET_TOPOLOGY_DEFS).forEach(([id, def]) => {
+      if (def.serviceId && svcMap.has(def.serviceId)) {
+        const s = svcMap.get(def.serviceId)
+        if (
+          s.at_risk ||
+          s.status === 'compromised' ||
+          s.status === 'critical_only' ||
+          (typeof s.service_continuity_pct === 'number' && s.service_continuity_pct < 90)
+        ) {
+          const isCritical =
+            s.status === 'compromised' ||
+            (s.service_continuity_pct != null && s.service_continuity_pct < 50)
+          map[id] = {
+            ...map[id],
+            status: isCritical ? 'critical' : 'degraded',
+            health_score:
+              typeof s.service_continuity_pct === 'number' ? s.service_continuity_pct : 60,
+            serviceStatus: s.status,
+            serviceContinuity: s.service_continuity_pct
+          }
+        }
+      }
+    })
+  }
+
+  // 4. Overlay active incident overrides directly on source and affected assets
+  if (incident?.is_active) {
+    if (incident.source_asset_id && map[incident.source_asset_id]) {
+      map[incident.source_asset_id] = {
+        ...map[incident.source_asset_id],
+        status: 'failed',
+        health_score: 0.0
+      }
+    }
+    if (Array.isArray(incident.affected_asset_ids)) {
+      incident.affected_asset_ids.forEach((affId) => {
+        if (map[affId] && affId !== incident.source_asset_id) {
+          if (map[affId].status === 'normal') {
+            map[affId] = {
+              ...map[affId],
+              status: 'degraded',
+              health_score: Math.min(map[affId].health_score || 100, 50.0)
+            }
+          }
+        }
+      })
+    }
+  }
+
+  // 5. Overlay active simulated crisis scenario overrides
+  if (simulatedOverrides) {
+    Object.entries(simulatedOverrides).forEach(([id, override]) => {
+      if (map[id]) {
+        map[id] = { ...map[id], ...override }
+      } else {
+        map[id] = { id, status: 'normal', ...override }
+      }
+    })
+  }
+
+  return map
+}
+
+/**
+ * Builds live structured row records for the Telemetry Matrix table.
+ */
+export function buildTelemetryMatrixRows(assetsMap = {}, incident = null) {
+  return Object.entries(ASSET_TOPOLOGY_DEFS).map(([id, def]) => {
+    const asset = assetsMap[id] || {}
+    const status = asset.status || 'normal'
+
+    let telemetry = null
+    if (asset.metadata?.ventilator_active) telemetry = 'Ventilator: ON'
+    else if (asset.metadata?.spo2_pct) telemetry = `SpO2: ${asset.metadata.spo2_pct}%`
+    else if (asset.current_load != null && asset.capacity_unit) {
+      telemetry = `${asset.current_load.toFixed(0)} ${asset.capacity_unit}`
+    } else if (asset.fuel_level_pct != null) telemetry = `${asset.fuel_level_pct}% Fuel`
+    else if (asset.battery_level_pct != null) telemetry = `${asset.battery_level_pct}% Bat`
+    else if (asset.temperature_c != null) telemetry = `${asset.temperature_c}°C`
+    else if (asset.pressure_psi != null) telemetry = `${asset.pressure_psi} PSI`
+
+    let shortName = def.label
+    if (def.meshType === 'icu_bed') shortName = `ICU Bed ${def.bedNumber}`
+    else if (def.meshType === 'operating_theatre')
+      shortName = `OT Suite ${def.label.replace('OT_SUITE_', '')}`
+    else if (def.meshType === 'emergency_bay') shortName = `Trauma Bay ${def.bayNumber}`
+    else if (def.meshType === 'ward_bed') shortName = `Ward Room ${def.roomNumber}`
+    else if (def.meshType === 'nurse_station') shortName = 'Nurse Station'
+    else if (def.meshType === 'admin_hub') shortName = 'Admin Operations'
+    else if (def.meshType === 'ambulance_bay') shortName = 'Ambulance Intake'
+    else if (def.meshType === 'transformer') shortName = 'Primary Transformer'
+    else if (def.meshType === 'generator') shortName = 'Diesel Generator'
+    else if (def.meshType === 'ups') shortName = 'Critical Battery UPS'
+    else if (def.meshType === 'chiller') shortName = 'Chiller Plant'
+    else if (def.meshType === 'oxygen') shortName = 'Cryo O2 Manifold'
+    else if (def.meshType === 'water_pump') shortName = 'Water Pump Station'
+    else if (def.meshType === 'switchgear') shortName = 'Main Power Bus'
+    else if (def.meshType === 'substation') shortName = '11kV Grid Main'
+
+    const floorBadge =
+      def.floorId === 'floor_3'
+        ? 'L3'
+        : def.floorId === 'floor_2'
+        ? 'L2'
+        : def.floorId === 'floor_1'
+        ? 'L1'
+        : 'L0'
+
+    return {
+      id,
+      shortName,
+      subsystem: def.subsystem || def.label,
+      floorId: def.floorId,
+      floorBadge,
+      status,
+      healthScore: asset.health_score != null ? Math.round(asset.health_score) : 100,
+      telemetryText: telemetry || 'Nominal',
+      isSourceFailure:
+        (incident?.source_asset_id &&
+          (id === incident.source_asset_id || def.label === incident.source_asset_id)) ||
+        status === 'failed'
+    }
+  })
+}

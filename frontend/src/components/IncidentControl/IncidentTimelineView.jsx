@@ -39,7 +39,7 @@ const EVENT_LOGS = [
 export default function IncidentTimelineView({
   incident,
   timeline = [],
-  activeCheckpointIndex = 3,
+  activeCheckpointIndex = 0,
   onSelectCheckpoint,
   onNextCheckpoint,
   onOpenExplainability,
@@ -52,24 +52,54 @@ export default function IncidentTimelineView({
   const [currentTimeStep, setCurrentTimeStep] = useState('T+10m')
   const [viewMode, setViewMode] = useState('3d') // '3d' | '2d'
 
-  // Temporal 3D HUD Pins at T+10m
+  // Dynamic Event Logs from live backend timeline
+  const effectiveEventLogs = (timeline && timeline.length > 0)
+    ? timeline.map((evt, idx) => {
+        const score = typeof evt.system_resilience_score === 'number' ? evt.system_resilience_score : 50
+        return {
+          time: `T+${evt.t_offset_min ?? (idx * 5)} min`,
+          title: evt.title || `Cascade Checkpoint ${idx + 1}`,
+          desc: evt.description || evt.service_impact_summary || 'Cascading infrastructure state update.',
+          type: score < 40 ? 'critical' : score < 70 ? 'warn' : 'cog',
+          score
+        }
+      })
+    : EVENT_LOGS
+
+  const filteredLogs = effectiveEventLogs.filter((evt) => {
+    if (selectedEventFilter === 'critical') return evt.type === 'critical'
+    if (selectedEventFilter === 'warnings') return evt.type === 'warn' || evt.type === 'critical'
+    return true
+  })
+
+  // Dynamic milestones derived from timeline or standard intervals
+  const dynamicMilestones = (timeline && timeline.length > 0)
+    ? timeline.map((evt, idx) => ({
+        t: `T+${evt.t_offset_min ?? (idx * 5)}m`,
+        label: evt.title?.replace(/^(T\+\d+ min:?\s*)/i, '') || `T+${idx * 5}`,
+        color: (evt.system_resilience_score < 40 ? '#FF4D4D' : evt.system_resilience_score < 70 ? '#FFB800' : '#00E5A3')
+      }))
+    : TIMELINE_MILESTONES
+
+  // Temporal 3D HUD Pins
+  const isIncActive = incident?.is_active || (incident?.affected_asset_ids?.length > 0)
   const temporalPins = [
-    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '38%', left: '44%', color: 'red' },
-    { id: 'GEN_01', label: 'Generator', status: 'Starting', top: '32%', left: '53%', color: 'orange' },
-    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'Degraded', top: '32%', left: '69%', color: 'orange' },
-    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Partial Power', top: '40%', left: '59%', color: 'orange' },
-    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '43%', left: '73%', color: 'cyan' },
-    { id: 'SERVICE_ICU', label: 'ICU', status: 'At Risk', top: '50%', left: '48%', color: 'red' },
-    { id: 'SERVICE_ER', label: 'Emergency', status: 'Stable', top: '56%', left: '56%', color: 'cyan' },
-    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '51%', left: '68%', color: 'orange' }
+    { id: 'TRANSFORMER', label: 'Transformer', status: isIncActive ? 'Trip Outage' : 'Normal', top: '38%', left: '44%', color: isIncActive ? 'red' : 'cyan' },
+    { id: 'GEN_01', label: 'Generator', status: isIncActive ? 'Online (520 kW)' : 'Standby', top: '32%', left: '53%', color: 'cyan' },
+    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: isIncActive ? 'Throttled (75%)' : 'Normal', top: '32%', left: '69%', color: isIncActive ? 'amber' : 'cyan' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: isIncActive ? 'Stabilized' : 'Normal', top: '40%', left: '59%', color: 'cyan' },
+    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Optimal (98%)', top: '43%', left: '73%', color: 'cyan' },
+    { id: 'SERVICE_ICU', label: 'ICU', status: isIncActive ? 'Protected (100%)' : 'Normal', top: '50%', left: '48%', color: 'cyan' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Full Operation', top: '56%', left: '56%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: isIncActive ? 'Safe (95%)' : 'Normal', top: '51%', left: '68%', color: 'cyan' }
   ]
 
   // Service impact matrix rows
   const serviceMatrixRows = [
     { name: 'Emergency', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'ICU', t0: 'normal', t5: 'degraded', t10: 'risk', t15: 'risk', t30: 'degraded', t45: 'normal' },
-    { name: 'OT', t0: 'normal', t5: 'degraded', t10: 'risk', t15: 'risk', t30: 'degraded', t45: 'normal' },
-    { name: 'Wards', t0: 'normal', t5: 'normal', t10: 'degraded', t15: 'degraded', t30: 'normal', t45: 'normal' },
+    { name: 'ICU', t0: 'normal', t5: isIncActive ? 'risk' : 'normal', t10: isIncActive ? 'risk' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
+    { name: 'OT', t0: 'normal', t5: isIncActive ? 'degraded' : 'normal', t10: isIncActive ? 'risk' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
+    { name: 'Wards', t0: 'normal', t5: 'normal', t10: isIncActive ? 'degraded' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
     { name: 'OPD', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
     { name: 'Laboratory', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
     { name: 'Radiology', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' }
@@ -82,10 +112,12 @@ export default function IncidentTimelineView({
         <div className="milestones-track-wrapper">
           <div className="milestone-gradient-line" />
           <div className="milestones-nodes-row">
-            {TIMELINE_MILESTONES.map((m, idx) => (
+            {dynamicMilestones.map((m, idx) => (
               <div
-                key={m.t}
-                className={`prog-milestone-node ${idx <= 3 ? 'is-past' : ''} ${idx === 3 ? 'is-active' : ''}`}
+                key={m.t + idx}
+                className={`prog-milestone-node ${idx <= activeCheckpointIndex ? 'is-past' : ''} ${idx === activeCheckpointIndex ? 'is-active' : ''}`}
+                onClick={() => onSelectCheckpoint && onSelectCheckpoint(idx)}
+                style={{ cursor: 'pointer' }}
               >
                 <div className="milestone-dot-wrap">
                   <span className="milestone-dot" style={{ backgroundColor: m.color }} />
@@ -241,7 +273,7 @@ export default function IncidentTimelineView({
           </div>
 
           <div className="event-logs-list-scroll">
-            {EVENT_LOGS.map((evt, idx) => (
+            {filteredLogs.map((evt, idx) => (
               <div key={idx} className="event-log-item">
                 <div className="event-log-left-col">
                   <span className="event-time-tag font-mono">{evt.time}</span>

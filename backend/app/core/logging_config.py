@@ -11,6 +11,24 @@ LOG_DIR.mkdir(exist_ok=True)
 LOG_FILE = LOG_DIR / "resilienceos.log"
 
 
+class SafeRotatingFileHandler(logging.handlers.RotatingFileHandler):
+    """Windows-safe rotating file handler.
+    
+    Closes file stream before renaming to prevent [WinError 32] file lock collisions,
+    and safely catches OS lock conflicts to ensure server execution is never interrupted.
+    """
+
+    def doRollover(self):
+        try:
+            if self.stream:
+                self.stream.close()
+                self.stream = None
+            super().doRollover()
+        except (PermissionError, OSError):
+            if not self.stream:
+                self.stream = self._open()
+
+
 def configure_logging() -> None:
     """Configure application-wide logging."""
 
@@ -34,9 +52,9 @@ def configure_logging() -> None:
                 "level": "INFO",
             },
             "file": {
-                "class": "logging.handlers.RotatingFileHandler",
+                "()": SafeRotatingFileHandler,
                 "filename": str(LOG_FILE),
-                "maxBytes": 5_000_000,
+                "maxBytes": 20_000_000,
                 "backupCount": 3,
                 "formatter": "standard",
                 "level": "INFO",

@@ -13,7 +13,7 @@ import StartSimulationView from './components/StartSimulation/StartSimulationVie
 import Toast from './components/common/Toast'
 import { useResilienceRealtime } from './hooks/useResilienceRealtime'
 import { getApiBaseUrl } from './config/api'
-import { getWhatIfAnalysis, injectFailure } from './services/simulationApi'
+import { getWhatIfAnalysis, injectFailure, applyStrategy } from './services/simulationApi'
 import { getServiceExplanation } from './services/explainabilityApi'
 import {
   INITIAL_ASSETS,
@@ -191,6 +191,38 @@ function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAsset
   })
 }
 
+function getServicesForCheckpoint(incident, timeline, checkpointIdx = 0, baseServices = INITIAL_SERVICES) {
+  if (!incident || !incident.is_active) return INITIAL_SERVICES
+
+  const milestone = Array.isArray(timeline) && timeline[checkpointIdx]
+    ? timeline[checkpointIdx]
+    : null
+
+  const affectedNodeIds = new Set(milestone?.affected_node_ids || [])
+  const allAffected = new Set([...(incident.affected_service_ids || [])])
+
+  return baseServices.map((svc) => {
+    if (affectedNodeIds.has(svc.id) || (checkpointIdx > 0 && allAffected.has(svc.id))) {
+      const dropPct = checkpointIdx >= 3 ? 35 : checkpointIdx >= 2 ? 60 : checkpointIdx >= 1 ? 80 : 92
+      const isCrit = dropPct < 50
+      return {
+        ...svc,
+        status: isCrit ? 'compromised' : 'reduced_capacity',
+        at_risk: true,
+        service_continuity_pct: dropPct,
+        risk_reason: milestone?.service_impact_summary || 'Cascading infrastructure depletion'
+      }
+    }
+    return {
+      ...svc,
+      status: 'full_operation',
+      at_risk: false,
+      service_continuity_pct: 100.0,
+      risk_reason: null
+    }
+  })
+}
+
 export default function App() {
   // Phase 1: Local state coordinator initialized from canonical mock schemas
   const [resilience, setResilience] = useState(INITIAL_RESILIENCE)
@@ -231,6 +263,29 @@ export default function App() {
   // Navigation state for sidebar active indicator (dashboard, digital-twin, start-simulation, what-if, incident-timeline, risk-resilience, reports, settings)
   const [activeSection, setActiveSection] = useState('dashboard')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('resilience_sidebar_width')
+      if (saved) {
+        const val = parseInt(saved, 10)
+        if (!isNaN(val) && val >= 130 && val <= 500) return val
+      }
+    } catch {}
+    return 240
+  })
+
+  const handleResizeSidebarWidth = useCallback((newWidth) => {
+    if (newWidth <= 75) {
+      setSidebarCollapsed(true)
+    } else {
+      setSidebarCollapsed(false)
+      setSidebarWidth(newWidth)
+      try {
+        localStorage.setItem('resilience_sidebar_width', String(newWidth))
+      } catch {}
+    }
+  }, [])
+
   const [mobileNavOpen, setMobileNavOpen] = useState(false)
   const mainContentRef = useRef(null)
 
@@ -562,6 +617,125 @@ export default function App() {
   // Initial / Reconnect Hydration from backend authoritative state
   const hasHydratedRef = useRef(false)
 
+  // Reusable authoritative state hydration from backend
+  const fetchHospitalState = useCallback(async () => {
+    try {
+      const baseUrl = getApiBaseUrl()
+      const res = await fetch(`${baseUrl}/api/hospital/state`)
+      if (!res.ok) return
+      const data = await res.json()
+      if (!data) return
+
+      // 1. Unconditionally sync authoritative Resilience Index from backend
+      if (data.resilience_index) {
+        setResilience((prev) => ({
+          ...prev,
+          overall_score: typeof data.resilience_index.overall_score === 'number'
+            ? data.resilience_index.overall_score
+            : prev.overall_score,
+          status_label: data.resilience_index.status_label || prev.status_label,
+          status_color: data.resilience_index.status_color || prev.status_color,
+          delta_from_baseline: typeof data.resilience_index.delta_from_baseline === 'number'
+            ? data.resilience_index.delta_from_baseline
+            : prev.delta_from_baseline,
+          sub_scores: data.resilience_index.sub_scores || prev.sub_scores
+        }))
+      }
+
+      // 2. Unconditionally sync telemetry onto assets
+      if (data.telemetry) {
+        setAssets((prev) => updateAssetsWithTelemetry(prev, data.telemetry))
+      }
+
+      // 3. Unconditionally fetch and synchronize live assets and services from backend
+      try {
+        const [assetsRes, servicesRes] = await Promise.all([
+          fetch(`${baseUrl}/api/assets`),
+          fetch(`${baseUrl}/api/services`)
+        ])
+
+        if (assetsRes.ok) {
+          const liveAssets = await assetsRes.json()
+          if (Array.isArray(liveAssets) && liveAssets.length > 0) {
+            const liveMap = new Map(liveAssets.map((a) => [a.id, a]))
+            setAssets((prev) =>
+              prev.map((asset) => {
+                const live = liveMap.get(asset.id)
+                if (live) {
+                  return {
+                    ...asset,
+                    status: live.status || asset.status,
+                    health_score: typeof live.health_score === 'number' ? live.health_score : asset.health_score,
+                    current_load: typeof live.current_load === 'number' ? live.current_load : asset.current_load,
+                    available_capacity: typeof live.available_capacity === 'number' ? live.available_capacity : asset.available_capacity
+                  }
+                }
+                return asset
+              })
+            )
+          }
+        }
+
+        if (servicesRes.ok) {
+          const liveServices = await servicesRes.json()
+          if (Array.isArray(liveServices) && liveServices.length > 0) {
+            const liveSvcMap = new Map(liveServices.map((s) => [s.id, s]))
+            setServices((prev) =>
+              prev.map((svc) => {
+                const live = liveSvcMap.get(svc.id)
+                if (live) {
+                  return {
+                    ...svc,
+                    status: live.status || svc.status,
+                    service_continuity_pct: typeof live.service_continuity_pct === 'number' ? live.service_continuity_pct : svc.service_continuity_pct,
+                    at_risk: typeof live.at_risk === 'boolean' ? live.at_risk : svc.at_risk,
+                    risk_reason: live.risk_reason !== undefined ? live.risk_reason : svc.risk_reason
+                  }
+                }
+                return svc
+              })
+            )
+          }
+        }
+      } catch {
+        // Handled defensively
+      }
+
+      // 4. Synchronize incident state
+      if (data.is_incident_active && data.active_incident) {
+        const inc = data.active_incident
+        const sourceAssetId = inc.source_asset_id || 'GRID_MAIN'
+
+        setIncident((prev) => ({
+          ...prev,
+          is_active: true,
+          source_asset_id: sourceAssetId,
+          incident_id: inc.incident_id || prev.incident_id || 'INC-LIVE-01',
+          failure_type: inc.failure_type || 'complete_outage',
+          severity: inc.severity || 'high',
+          affected_asset_ids: Array.isArray(inc.affected_asset_ids) && inc.affected_asset_ids.length > 0
+            ? inc.affected_asset_ids
+            : prev.affected_asset_ids,
+          affected_service_ids: Array.isArray(inc.affected_service_ids) && inc.affected_service_ids.length > 0
+            ? inc.affected_service_ids
+            : prev.affected_service_ids,
+          timeline: Array.isArray(inc.timeline) && inc.timeline.length > 0
+            ? inc.timeline
+            : prev.timeline,
+          current_time_offset_min: inc.current_time_offset_min || 0,
+          estimated_unmitigated_blackout_min: inc.estimated_unmitigated_blackout_min || 20.0
+        }))
+      } else if (!data.is_incident_active) {
+        setIncident((prev) => ({
+          ...prev,
+          is_active: false
+        }))
+      }
+    } catch {
+      // Fallback to existing mock state on error
+    }
+  }, [])
+
   useEffect(() => {
     if (!isLive) {
       hasHydratedRef.current = false
@@ -571,132 +745,8 @@ export default function App() {
     if (hasHydratedRef.current) return
     hasHydratedRef.current = true
 
-    let isCancelled = false
-
-    async function hydrateState() {
-      try {
-        const baseUrl = getApiBaseUrl()
-        const res = await fetch(`${baseUrl}/api/hospital/state`)
-        if (!res.ok) return
-        const data = await res.json()
-        if (isCancelled || !data) return
-
-        // 1. Unconditionally sync authoritative Resilience Index from backend
-        if (data.resilience_index) {
-          setResilience((prev) => ({
-            ...prev,
-            overall_score: typeof data.resilience_index.overall_score === 'number'
-              ? data.resilience_index.overall_score
-              : prev.overall_score,
-            status_label: data.resilience_index.status_label || prev.status_label,
-            status_color: data.resilience_index.status_color || prev.status_color,
-            delta_from_baseline: typeof data.resilience_index.delta_from_baseline === 'number'
-              ? data.resilience_index.delta_from_baseline
-              : prev.delta_from_baseline,
-            sub_scores: data.resilience_index.sub_scores || prev.sub_scores
-          }))
-        }
-
-        // 2. Unconditionally sync telemetry onto assets
-        if (data.telemetry) {
-          setAssets((prev) => updateAssetsWithTelemetry(prev, data.telemetry))
-        }
-
-        // 3. Unconditionally fetch and synchronize live assets and services from backend
-        try {
-          const [assetsRes, servicesRes] = await Promise.all([
-            fetch(`${baseUrl}/api/assets`),
-            fetch(`${baseUrl}/api/services`)
-          ])
-
-          if (assetsRes.ok) {
-            const liveAssets = await assetsRes.json()
-            if (!isCancelled && Array.isArray(liveAssets) && liveAssets.length > 0) {
-              const liveMap = new Map(liveAssets.map((a) => [a.id, a]))
-              setAssets((prev) =>
-                prev.map((asset) => {
-                  const live = liveMap.get(asset.id)
-                  if (live) {
-                    return {
-                      ...asset,
-                      status: live.status || asset.status,
-                      health_score: typeof live.health_score === 'number' ? live.health_score : asset.health_score,
-                      current_load: typeof live.current_load === 'number' ? live.current_load : asset.current_load,
-                      available_capacity: typeof live.available_capacity === 'number' ? live.available_capacity : asset.available_capacity
-                    }
-                  }
-                  return asset
-                })
-              )
-            }
-          }
-
-          if (servicesRes.ok) {
-            const liveServices = await servicesRes.json()
-            if (!isCancelled && Array.isArray(liveServices) && liveServices.length > 0) {
-              const liveSvcMap = new Map(liveServices.map((s) => [s.id, s]))
-              setServices((prev) =>
-                prev.map((svc) => {
-                  const live = liveSvcMap.get(svc.id)
-                  if (live) {
-                    return {
-                      ...svc,
-                      status: live.status || svc.status,
-                      service_continuity_pct: typeof live.service_continuity_pct === 'number' ? live.service_continuity_pct : svc.service_continuity_pct,
-                      at_risk: typeof live.at_risk === 'boolean' ? live.at_risk : svc.at_risk,
-                      risk_reason: live.risk_reason !== undefined ? live.risk_reason : svc.risk_reason
-                    }
-                  }
-                  return svc
-                })
-              )
-            }
-          }
-        } catch {
-          // Handled defensively
-        }
-
-        // 4. Synchronize incident state
-        if (data.is_incident_active && data.active_incident) {
-          const inc = data.active_incident
-          const sourceAssetId = inc.source_asset_id || 'GRID_MAIN'
-
-          setIncident((prev) => ({
-            ...prev,
-            is_active: true,
-            source_asset_id: sourceAssetId,
-            incident_id: inc.incident_id || prev.incident_id || 'INC-LIVE-01',
-            failure_type: inc.failure_type || 'complete_outage',
-            severity: inc.severity || 'high',
-            affected_asset_ids: Array.isArray(inc.affected_asset_ids) && inc.affected_asset_ids.length > 0
-              ? inc.affected_asset_ids
-              : prev.affected_asset_ids,
-            affected_service_ids: Array.isArray(inc.affected_service_ids) && inc.affected_service_ids.length > 0
-              ? inc.affected_service_ids
-              : prev.affected_service_ids,
-            timeline: Array.isArray(inc.timeline) && inc.timeline.length > 0
-              ? inc.timeline
-              : prev.timeline,
-            current_time_offset_min: inc.current_time_offset_min || 0,
-            estimated_unmitigated_blackout_min: inc.estimated_unmitigated_blackout_min || 20.0
-          }))
-        } else if (!data.is_incident_active) {
-          setIncident((prev) => ({
-            ...prev,
-            is_active: false
-          }))
-        }
-      } catch {
-        // Fallback to existing mock state on error
-      }
-    }
-
-    hydrateState()
-
-    return () => {
-      isCancelled = true
-    }
-  }, [isLive])
+    fetchHospitalState()
+  }, [isLive, fetchHospitalState])
 
   // Active backend incident timeline is used when available; CASCADE_TIMELINE remains fallback
   const effectiveTimeline = incident?.timeline && incident.timeline.length > 0
@@ -754,6 +804,38 @@ export default function App() {
     }
   }, [fetchWhatIfAnalysis, showToast])
 
+  // Dynamic response strategy application handler
+  const handleApplyStrategy = useCallback(async (strategyId) => {
+    try {
+      const res = await applyStrategy(strategyId)
+      if (res.success && res.data) {
+        showToast(res.data.message || `Strategy ${strategyId} applied successfully!`, 'success')
+        if (res.data.new_resilience_score != null) {
+          setResilience((prev) => ({
+            ...prev,
+            overall_score: res.data.new_resilience_score
+          }))
+        }
+        setIncident((prev) => ({
+          ...prev,
+          active_mitigation_strategy: strategyId
+        }))
+        // Refresh hospital state and what-if comparison to reflect recovery
+        await fetchHospitalState()
+        await fetchWhatIfAnalysis()
+        return { success: true, data: res.data }
+      } else {
+        const errText = res.error || 'Failed to apply strategy'
+        showToast(errText, 'error')
+        return { success: false, error: errText }
+      }
+    } catch (err) {
+      const errText = err?.message || 'Network error applying strategy'
+      showToast(errText, 'error')
+      return { success: false, error: errText }
+    }
+  }, [fetchHospitalState, fetchWhatIfAnalysis, showToast])
+
   // Controlled fetch: when entering what-if view, or initial load for dashboard
   useEffect(() => {
     if (activeSection === 'what-if' || activeSection === 'dashboard') {
@@ -809,6 +891,7 @@ export default function App() {
     setActiveCheckpointIndex(nextIdx)
     if (incident.is_active) {
       setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, nextIdx, INITIAL_ASSETS))
+      setServices(getServicesForCheckpoint(incident, effectiveTimeline, nextIdx, INITIAL_SERVICES))
     }
   }
 
@@ -816,6 +899,7 @@ export default function App() {
     setActiveCheckpointIndex(idx)
     if (incident.is_active) {
       setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, idx, INITIAL_ASSETS))
+      setServices(getServicesForCheckpoint(incident, effectiveTimeline, idx, INITIAL_SERVICES))
     }
   }
 
@@ -856,6 +940,8 @@ export default function App() {
         isMobileOpen={mobileNavOpen}
         onToggleCollapse={() => setSidebarCollapsed((prev) => !prev)}
         onCloseMobile={() => setMobileNavOpen(false)}
+        width={sidebarCollapsed ? 68 : sidebarWidth}
+        onResizeWidth={handleResizeSidebarWidth}
       />
 
       {/* Mobile Drawer Backdrop Overlay */}
@@ -887,6 +973,13 @@ export default function App() {
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={() => setSidebarCollapsed((prev) => !prev)}
           onToggleMobileNav={() => setMobileNavOpen((prev) => !prev)}
+          incident={incident}
+          assets={assets}
+          services={services}
+          timeline={effectiveTimeline}
+          onNavigate={(sec) => setActiveSection(sec)}
+          onSelectAsset={handleSelectAsset}
+          onSelectService={handleSelectService}
         />
 
         {/* Center Main Application Scroll View */}
@@ -922,6 +1015,9 @@ export default function App() {
               assets={assets}
               services={services}
               incident={incident}
+              timeline={effectiveTimeline}
+              activeCheckpointIndex={activeCheckpointIndex}
+              onSelectCheckpoint={handleSelectCheckpoint}
               onTriggerFailure={handleTriggerFailure}
               onReset={handleReset}
               onNotify={showToast}
@@ -937,6 +1033,7 @@ export default function App() {
               isLoading={whatIfLoading}
               error={whatIfError}
               onRefresh={fetchWhatIfAnalysis}
+              onApplyStrategy={handleApplyStrategy}
               isIncidentActive={incident.is_active}
               incident={incident}
               assets={assets}

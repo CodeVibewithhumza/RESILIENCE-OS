@@ -4,6 +4,7 @@
    ========================================================================== */
 
 .command-sidebar {
+  position: relative;
   width: 240px;
   min-width: 240px;
   max-width: 240px;
@@ -16,15 +17,80 @@
   height: 100dvh;
   z-index: 40;
   user-select: none;
-  overflow: hidden;
-  transition: width 0.25s cubic-bezier(0.16, 1, 0.3, 1), transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease;
+  overflow: visible;
+  transition: width 0.22s cubic-bezier(0.16, 1, 0.3, 1), transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), background-color 0.25s ease, border-color 0.25s ease;
+}
+
+/* While actively dragging, disable transitions for 0-lag 60fps responsiveness */
+.command-sidebar.is-resizing {
+  transition: none !important;
+  user-select: none !important;
 }
 
 /* Collapsed Icon-Only Rail Mode */
 .command-sidebar.is-collapsed {
-  width: 68px;
-  min-width: 68px;
-  max-width: 68px;
+  width: 68px !important;
+  min-width: 68px !important;
+  max-width: 68px !important;
+}
+
+/* Draggable Sidebar Resizer Handle (Right Edge) */
+.sidebar-resizer-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  right: -8px;
+  width: 16px;
+  cursor: col-resize;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  touch-action: none;
+  background: transparent;
+  user-select: none;
+}
+
+.sidebar-resizer-line {
+  width: 2px;
+  height: 100%;
+  background: transparent;
+  border-radius: 2px;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+/* On hover or active drag: glowing gradient line matching the screenshot */
+.sidebar-resizer-handle:hover .sidebar-resizer-line,
+.sidebar-resizer-handle.is-active .sidebar-resizer-line {
+  width: 3.5px;
+  background: linear-gradient(180deg, #A855F7 0%, #6366F1 50%, #00F0FF 100%);
+  box-shadow: 0 0 10px rgba(168, 85, 247, 0.75), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+/* Centered Grip Handle Indicator */
+.sidebar-resizer-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  width: 5px;
+  height: 38px;
+  border-radius: 4px;
+  background: rgba(168, 85, 247, 0.4);
+  border: 1px solid rgba(168, 85, 247, 0.7);
+  opacity: 0;
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.sidebar-resizer-handle:hover::after,
+.sidebar-resizer-handle.is-active::after {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+  background: #A855F7;
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.9), 0 0 4px #00F0FF;
 }
 
 .command-sidebar.is-collapsed .sidebar-top-branding {

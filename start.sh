@@ -12,9 +12,14 @@ echo "========================================================================="
 echo ""
 
 # Verify Python
+PYTHON_CMD="python3"
 if ! command -v python3 &> /dev/null; then
-    echo "[ERROR] python3 could not be found. Please install Python 3.10+."
-    exit 1
+    if command -v python &> /dev/null; then
+        PYTHON_CMD="python"
+    else
+        echo "[ERROR] python/python3 could not be found. Please install Python 3.10+."
+        exit 1
+    fi
 fi
 
 # Verify Node.js
@@ -30,7 +35,7 @@ if [ ! -d "frontend/node_modules" ]; then
 fi
 
 echo "[2/3] Starting FastAPI Backend on http://127.0.0.1:8000 ..."
-python3 scripts/run_backend.py &
+$PYTHON_CMD scripts/run_backend.py &
 BACKEND_PID=$!
 
 echo "[3/3] Starting Vite Frontend on http://localhost:5173 ..."

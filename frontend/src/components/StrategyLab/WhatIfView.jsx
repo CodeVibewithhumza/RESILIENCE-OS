@@ -50,6 +50,7 @@ export default function WhatIfView({
   isLoading = false,
   error = null,
   onRefresh = null,
+  onApplyStrategy = null,
   isIncidentActive = false,
   incident = {},
   assets = [],
@@ -61,8 +62,8 @@ export default function WhatIfView({
   const [severity, setSeverity] = useState('Full Failure (100%)')
   const [startTime, setStartTime] = useState('Immediate (T = 0)')
   const [duration, setDuration] = useState('2 Hours')
-  const [selectedStrategies, setSelectedStrategies] = useState(['A', 'B', 'C'])
-  const [activeStrategyCode, setActiveStrategyCode] = useState('A')
+  const [selectedStrategies, setSelectedStrategies] = useState(['A', 'B', 'C', 'D', 'E', 'F'])
+  const [activeStrategyCode, setActiveStrategyCode] = useState('C')
   const [isApplied, setIsApplied] = useState(false)
 
   const toggleStrategy = (code) => {
@@ -79,79 +80,123 @@ export default function WhatIfView({
     }
   }
 
-  const handleApply = () => {
+  const handleApply = async () => {
     setIsApplied(true)
-    if (onNotify) {
-      onNotify('Strategy A - Use Backup Generator applied successfully!', 'success')
+    const code = activeStrategyCode.toLowerCase()
+    const targetStrategyId = `strat_${code}`
+    try {
+      if (onApplyStrategy) {
+        await onApplyStrategy(targetStrategyId)
+      } else if (onNotify) {
+        onNotify(`Strategy ${activeStrategyCode} applied successfully!`, 'success')
+      }
+    } catch (err) {
+      if (onNotify) {
+        onNotify(err?.message || 'Failed to apply strategy', 'error')
+      }
     }
     setTimeout(() => setIsApplied(false), 2500)
   }
 
   // 3D HUD Pins for What-If preview
   const whatIfPins = [
-    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '38%', left: '40%', color: 'red' },
+    { id: 'TRANSFORMER', label: 'Transformer', status: isIncidentActive ? 'Disrupted' : 'Normal', top: '38%', left: '40%', color: isIncidentActive ? 'red' : 'cyan' },
     { id: 'GEN_01', label: 'Generator', status: 'Active', top: '30%', left: '48%', color: 'cyan' },
-    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'At Risk', top: '34%', left: '64%', color: 'amber' },
-    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Partial Power', top: '48%', left: '52%', color: 'amber' },
+    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'Rebalanced', top: '34%', left: '64%', color: 'amber' },
+    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'Stabilized', top: '48%', left: '52%', color: 'cyan' },
     { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Stable', top: '53%', left: '65%', color: 'cyan' },
-    { id: 'SERVICE_ICU', label: 'ICU', status: 'Stable', top: '55%', left: '44%', color: 'cyan' },
-    { id: 'SERVICE_ER', label: 'Emergency', status: 'Stable', top: '63%', left: '50%', color: 'cyan' },
-    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '59%', left: '60%', color: 'amber' }
+    { id: 'SERVICE_ICU', label: 'ICU', status: 'Full Operation', top: '55%', left: '44%', color: 'cyan' },
+    { id: 'SERVICE_ER', label: 'Emergency', status: 'Full Operation', top: '63%', left: '50%', color: 'cyan' },
+    { id: 'SERVICE_OT', label: 'OT', status: 'Full Operation', top: '59%', left: '60%', color: 'cyan' }
   ]
 
-  // Comparison Table Data
+  // Live Backend Strategies Extraction
+  const activeStrategiesList = (whatIfData?.strategies && whatIfData.strategies.length > 0)
+    ? whatIfData.strategies
+    : (Array.isArray(strategies) && strategies.length > 0 ? strategies : [])
+
+  const getStrat = (code) => {
+    return activeStrategiesList.find(
+      (s) => s.strategy_code?.toUpperCase() === code || s.strategy_id === `strat_${code.toLowerCase()}`
+    )
+  }
+
+  const sA = getStrat('A')
+  const sB = getStrat('B')
+  const sC = getStrat('C')
+  const sD = getStrat('D')
+  const sE = getStrat('E')
+  const sF = getStrat('F')
+
+  const baseScore = whatIfData?.unmitigated_baseline_score != null
+    ? Math.round(whatIfData.unmitigated_baseline_score)
+    : (sA?.projected_resilience_score ? Math.round(sA.projected_resilience_score) : 28)
+
+  // Live Dynamic Comparison Table Data
   const comparisonRows = [
     {
       metric: 'Resilience Index (0-100)',
-      baseline: '28',
-      stratA: '76',
-      stratB: '68',
-      stratC: '72',
-      stratD: '61',
-      stratE: '55',
-      stratF: '82'
+      baseline: `${baseScore}`,
+      stratA: sA ? `${Math.round(sA.projected_resilience_score)}` : '76',
+      stratB: sB ? `${Math.round(sB.projected_resilience_score)}` : '68',
+      stratC: sC ? `${Math.round(sC.projected_resilience_score)}` : '91',
+      stratD: sD ? `${Math.round(sD.projected_resilience_score)}` : '87',
+      stratE: sE ? `${Math.round(sE.projected_resilience_score)}` : '84',
+      stratF: sF ? `${Math.round(sF.projected_resilience_score)}` : '89'
     },
     {
-      metric: 'Services At Risk',
-      baseline: '6',
-      stratA: '2',
-      stratB: '3',
-      stratC: '2',
-      stratD: '3',
-      stratE: '4',
-      stratF: '1'
+      metric: 'ICU Continuity',
+      baseline: isIncidentActive ? '0%' : '100%',
+      stratA: sA?.icu_continuity_pct != null ? `${Math.round(sA.icu_continuity_pct)}%` : '85%',
+      stratB: sB?.icu_continuity_pct != null ? `${Math.round(sB.icu_continuity_pct)}%` : '100%',
+      stratC: sC?.icu_continuity_pct != null ? `${Math.round(sC.icu_continuity_pct)}%` : '100%',
+      stratD: sD?.icu_continuity_pct != null ? `${Math.round(sD.icu_continuity_pct)}%` : '100%',
+      stratE: sE?.icu_continuity_pct != null ? `${Math.round(sE.icu_continuity_pct)}%` : '100%',
+      stratF: sF?.icu_continuity_pct != null ? `${Math.round(sF.icu_continuity_pct)}%` : '100%'
     },
     {
-      metric: 'Affected Assets',
-      baseline: '18',
-      stratA: '12',
-      stratB: '14',
-      stratC: '11',
-      stratD: '13',
-      stratE: '10',
-      stratF: '8'
+      metric: 'Operating Theatre (OT)',
+      baseline: isIncidentActive ? '0%' : '100%',
+      stratA: sA?.operating_theatre_continuity_pct != null ? `${Math.round(sA.operating_theatre_continuity_pct)}%` : '75%',
+      stratB: sB?.operating_theatre_continuity_pct != null ? `${Math.round(sB.operating_theatre_continuity_pct)}%` : '95%',
+      stratC: sC?.operating_theatre_continuity_pct != null ? `${Math.round(sC.operating_theatre_continuity_pct)}%` : '98%',
+      stratD: sD?.operating_theatre_continuity_pct != null ? `${Math.round(sD.operating_theatre_continuity_pct)}%` : '92%',
+      stratE: sE?.operating_theatre_continuity_pct != null ? `${Math.round(sE.operating_theatre_continuity_pct)}%` : '100%',
+      stratF: sF?.operating_theatre_continuity_pct != null ? `${Math.round(sF.operating_theatre_continuity_pct)}%` : '100%'
     },
     {
-      metric: 'Time to First Impact',
-      baseline: '~3 min',
-      stratA: '~8 min',
-      stratB: '~10 min',
-      stratC: '~9 min',
-      stratD: '~12 min',
-      stratE: '~15 min',
-      stratF: '~14 min'
+      metric: 'Backup Runtime Remaining',
+      baseline: '< 1.0h',
+      stratA: sA?.backup_runtime_remaining_hours != null ? `${sA.backup_runtime_remaining_hours.toFixed(1)}h` : '4.5h',
+      stratB: sB?.backup_runtime_remaining_hours != null ? `${sB.backup_runtime_remaining_hours.toFixed(1)}h` : '5.2h',
+      stratC: sC?.backup_runtime_remaining_hours != null ? `${sC.backup_runtime_remaining_hours.toFixed(1)}h` : '6.4h',
+      stratD: sD?.backup_runtime_remaining_hours != null ? `${sD.backup_runtime_remaining_hours.toFixed(1)}h` : '4.8h',
+      stratE: sE?.backup_runtime_remaining_hours != null ? `${sE.backup_runtime_remaining_hours.toFixed(1)}h` : '5.0h',
+      stratF: sF?.backup_runtime_remaining_hours != null ? `${sF.backup_runtime_remaining_hours.toFixed(1)}h` : '6.8h'
     },
     {
-      metric: 'Estimated Recovery Time',
-      baseline: '> 4 hours',
-      stratA: '~1.5 hours',
-      stratB: '~2 hours',
-      stratC: '~1.8 hours',
-      stratD: '~2.5 hours',
-      stratE: '~3 hours',
-      stratF: '~1 hour'
+      metric: 'Non-Critical Load Shed',
+      baseline: '0 kW',
+      stratA: sA?.non_critical_load_shed_kw != null ? `${Math.round(sA.non_critical_load_shed_kw)} kW` : '150 kW',
+      stratB: sB?.non_critical_load_shed_kw != null ? `${Math.round(sB.non_critical_load_shed_kw)} kW` : '380 kW',
+      stratC: sC?.non_critical_load_shed_kw != null ? `${Math.round(sC.non_critical_load_shed_kw)} kW` : '120 kW',
+      stratD: sD?.non_critical_load_shed_kw != null ? `${Math.round(sD.non_critical_load_shed_kw)} kW` : '160 kW',
+      stratE: sE?.non_critical_load_shed_kw != null ? `${Math.round(sE.non_critical_load_shed_kw)} kW` : '200 kW',
+      stratF: sF?.non_critical_load_shed_kw != null ? `${Math.round(sF.non_critical_load_shed_kw)} kW` : '80 kW'
+    },
+    {
+      metric: 'MCDA TOPSIS Rank',
+      baseline: 'N/A',
+      stratA: sA?.recommendation_rank ? `#${sA.recommendation_rank}` : '#6',
+      stratB: sB?.recommendation_rank ? `#${sB.recommendation_rank}` : '#4',
+      stratC: sC?.recommendation_rank ? `#${sC.recommendation_rank} (Best)` : '#1 (Best)',
+      stratD: sD?.recommendation_rank ? `#${sD.recommendation_rank}` : '#2',
+      stratE: sE?.recommendation_rank ? `#${sE.recommendation_rank}` : '#3',
+      stratF: sF?.recommendation_rank ? `#${sF.recommendation_rank}` : '#5'
     }
   ]
+
+  const activeStrategyObj = getStrat(activeStrategyCode) || sC || sA
 
   return (
     <div className="whatif-page">

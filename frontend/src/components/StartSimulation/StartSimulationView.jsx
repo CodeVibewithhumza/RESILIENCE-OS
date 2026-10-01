@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useState, useMemo, useEffect, useRef } from 'react'
 import {
   Play,
+  Pause,
   RotateCcw,
   Zap,
   Droplets,
@@ -14,9 +15,15 @@ import {
   Minus,
   Clock,
   Box,
-  ChevronRight
+  ChevronRight,
+  ShieldCheck,
+  CheckCircle2,
+  Columns,
+  Table
 } from 'lucide-react'
 import TwinContainer from '../DigitalTwin3D/TwinContainer'
+import SimulationTelemetryTable from './SimulationTelemetryTable'
+import { buildAssetsMap, buildTelemetryMatrixRows } from '../DigitalTwin3D/twinConstants'
 import './StartSimulationView.css'
 
 const CATEGORY_TILES = [
@@ -46,7 +53,7 @@ const CATEGORY_TILES = [
     name: 'Medical Gas System',
     sub: 'Oxygen / Air / Vacuum',
     icon: Flame,
-    color: '#00F0FF'
+    color: '#A855F7'
   },
   {
     id: 'combined',
@@ -86,29 +93,22 @@ const INCIDENTS_BY_CATEGORY = {
       desc: 'UPS runtime exhausted',
       asset_id: 'UPS_CRITICAL',
       failure_type: 'battery_depletion'
-    },
-    {
-      id: 'ats',
-      name: 'ATS Failure',
-      desc: 'Automatic transfer switch failure',
-      asset_id: 'TRANSFORMER_01',
-      failure_type: 'ats_failure'
     }
   ],
   water: [
-    {
-      id: 'water_tank',
-      name: 'Main Storage Tank Contamination',
-      desc: 'Primary reservoir breach',
-      asset_id: 'WATER_PUMP_STATION',
-      failure_type: 'tank_contamination'
-    },
     {
       id: 'water_pump',
       name: 'Booster Pump Cavitation',
       desc: 'Loss of potable water header pressure',
       asset_id: 'WATER_PUMP_STATION',
       failure_type: 'pump_cavitation'
+    },
+    {
+      id: 'water_tank',
+      name: 'Main Storage Tank Contamination',
+      desc: 'Primary reservoir breach',
+      asset_id: 'WATER_PUMP_STATION',
+      failure_type: 'tank_contamination'
     }
   ],
   hvac: [
@@ -144,10 +144,118 @@ export default function StartSimulationView({
   assets = [],
   services = [],
   incident = {},
+  timeline = [],
+  activeCheckpointIndex = 0,
+  onSelectCheckpoint,
   onTriggerFailure,
   onReset,
   onNotify
 }) {
+  const [displayMode, setDisplayMode] = useState('split') // 'split' | 'twin' | 'table'
+  const [selectedAssetId, setSelectedAssetId] = useState(null)
+
+  // Draggable Split-Pane Resizer State (User-controlled width for 3D Twin vs Telemetry Matrix)
+  const [splitPercent, setSplitPercent] = useState(() => {
+    try {
+      const saved = localStorage.getItem('resilience_sim_split_ratio')
+      if (saved) {
+        const val = parseFloat(saved)
+        if (!isNaN(val) && val >= 25 && val <= 75) return val
+      }
+    } catch {}
+    return 58
+  })
+  const [isDraggingSplit, setIsDraggingSplit] = useState(false)
+  const isDraggingRef = useRef(false)
+  const splitWorkspaceRef = useRef(null)
+
+  const handleSplitPointerDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingRef.current = true
+    setIsDraggingSplit(true)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleSplitMouseDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingRef.current = true
+    setIsDraggingSplit(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleSplitTouchStart = (e) => {
+    e.stopPropagation()
+    isDraggingRef.current = true
+    setIsDraggingSplit(true)
+  }
+
+  useEffect(() => {
+    const handlePointerMove = (e) => {
+      if (!isDraggingRef.current || !splitWorkspaceRef.current) return
+      const rect = splitWorkspaceRef.current.getBoundingClientRect()
+      if (!rect || rect.width <= 0) return
+
+      const clientX =
+        e.clientX !== undefined
+          ? e.clientX
+          : e.touches && e.touches[0]
+          ? e.touches[0].clientX
+          : undefined
+      if (clientX === undefined) return
+
+      const rawPct = ((clientX - rect.left) / rect.width) * 100
+      const clampedPct = Math.min(Math.max(rawPct, 15), 85)
+      setSplitPercent(Math.round(clampedPct * 10) / 10)
+    }
+
+    const handlePointerUp = (e) => {
+      if (isDraggingRef.current) {
+        isDraggingRef.current = false
+        setIsDraggingSplit(false)
+        try {
+          if (e?.pointerId !== undefined && e?.target?.hasPointerCapture?.(e.pointerId)) {
+            e.target.releasePointerCapture(e.pointerId)
+          }
+        } catch {}
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false })
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('mouseup', handlePointerUp)
+    window.addEventListener('touchmove', handlePointerMove, { passive: true })
+    window.addEventListener('touchend', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('mouseup', handlePointerUp)
+      window.removeEventListener('touchmove', handlePointerMove)
+      window.removeEventListener('touchend', handlePointerUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('resilience_sim_split_ratio', splitPercent.toFixed(1))
+    } catch {}
+  }, [splitPercent])
+
   const [selectedCategory, setSelectedCategory] = useState('electrical')
   const [selectedIncident, setSelectedIncident] = useState('transformer')
   const [severity, setSeverity] = useState('Full Failure')
@@ -155,10 +263,27 @@ export default function StartSimulationView({
   const [duration, setDuration] = useState('2 Hours')
   const [isAdvancedOpen, setIsAdvancedOpen] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isAutoStepping, setIsAutoStepping] = useState(false)
 
   const isIncidentActive = Boolean(incident?.is_active)
   const currentIncidentsList = INCIDENTS_BY_CATEGORY[selectedCategory] || INCIDENTS_BY_CATEGORY.electrical
 
+  // Synchronized telemetry matrix state for Option A & Option B
+  const assetsMap = useMemo(() => {
+    return buildAssetsMap(assets, services, incident)
+  }, [assets, services, incident])
+
+  const matrixRows = useMemo(() => {
+    return buildTelemetryMatrixRows(assetsMap, incident)
+  }, [assetsMap, incident])
+
+  const crisisAssetCount = useMemo(() => {
+    return matrixRows.filter(
+      (r) => r.status === 'failed' || r.status === 'critical' || r.status === 'degraded'
+    ).length
+  }, [matrixRows])
+
+  // Auto-switch selected incident to match category
   const handleCategorySelect = (catId) => {
     setSelectedCategory(catId)
     const list = INCIDENTS_BY_CATEGORY[catId]
@@ -167,6 +292,21 @@ export default function StartSimulationView({
     }
   }
 
+  // Auto-play timeline progression loop when isAutoStepping is active
+  useEffect(() => {
+    if (!isAutoStepping || !isIncidentActive || !timeline || timeline.length === 0) return
+
+    const timer = setInterval(() => {
+      if (onSelectCheckpoint) {
+        const nextIdx = (activeCheckpointIndex + 1) % timeline.length
+        onSelectCheckpoint(nextIdx)
+      }
+    }, 3500)
+
+    return () => clearInterval(timer)
+  }, [isAutoStepping, isIncidentActive, timeline, activeCheckpointIndex, onSelectCheckpoint])
+
+  // Launch Simulation handler
   const handleLaunch = async () => {
     if (isSubmitting) return
     setIsSubmitting(true)
@@ -184,31 +324,51 @@ export default function StartSimulationView({
 
     try {
       if (onTriggerFailure) {
-        await onTriggerFailure(payload)
-      }
-      if (onNotify) {
-        onNotify(`Failure injected: ${foundInc.name}`, 'warning')
+        const res = await onTriggerFailure(payload)
+        if (res && res.success) {
+          setIsAutoStepping(true)
+        }
       }
     } catch (err) {
       if (onNotify) {
-        onNotify(`Simulation execution failed: ${err.message}`, 'error')
+        onNotify(`Simulation failed: ${err.message}`, 'error')
       }
     } finally {
       setIsSubmitting(false)
     }
   }
 
-  // Visual simulation pins
-  const simPins = [
-    { id: 'TRANSFORMER', label: 'Transformer', status: 'Failed', top: '35%', left: '42%', color: 'red' },
-    { id: 'GEN_01', label: 'Generator', status: 'Standby', top: '30%', left: '59%', color: 'cyan' },
-    { id: 'HVAC_PLANT', label: 'HVAC Plant', status: 'Normal', top: '36%', left: '87%', color: 'cyan' },
-    { id: 'MAIN_HOSPITAL', label: 'Main Hospital', status: 'At Risk', top: '46%', left: '68%', color: 'amber' },
-    { id: 'MED_GAS_PLANT', label: 'Medical Gas Plant', status: 'Normal', top: '49%', left: '90%', color: 'cyan' },
-    { id: 'SERVICE_ICU', label: 'ICU', status: 'At Risk', top: '55%', left: '53%', color: 'amber' },
-    { id: 'SERVICE_ER', label: 'Emergency', status: 'Normal', top: '63%', left: '63%', color: 'cyan' },
-    { id: 'SERVICE_OT', label: 'OT', status: 'At Risk', top: '60%', left: '79%', color: 'amber' }
-  ]
+  // Reset simulation handler
+  const handleResetClick = async () => {
+    setIsAutoStepping(false)
+    if (onReset) {
+      await onReset()
+    }
+  }
+
+  // Current selected asset matching user scenario choice
+  const targetAssetId = useMemo(() => {
+    const found = currentIncidentsList.find((i) => i.id === selectedIncident)
+    return found?.asset_id || 'TRANSFORMER_01'
+  }, [currentIncidentsList, selectedIncident])
+
+  // Effective timeline items to render in the scrubber
+  const timelineNodes = useMemo(() => {
+    if (Array.isArray(timeline) && timeline.length > 0) {
+      return timeline
+    }
+    return [
+      { t_offset_min: 0, title: 'Failure Injected' },
+      { t_offset_min: 2, title: 'ATS Transfer' },
+      { t_offset_min: 5, title: 'Generator Start' },
+      { t_offset_min: 10, title: 'Load Transfer' },
+      { t_offset_min: 20, title: 'Service Impact' }
+    ]
+  }, [timeline])
+
+  // Count active impact numbers
+  const servicesAtRiskCount = services.filter((s) => s.at_risk).length || (isIncidentActive ? 2 : 0)
+  const affectedAssetsCount = (incident?.affected_asset_ids?.length || 0) + (isIncidentActive ? 1 : 0)
 
   return (
     <div className="start-sim-page">
@@ -239,28 +399,22 @@ export default function StartSimulationView({
       <section className="sim-main-grid">
         {/* Left Controls Column */}
         <aside className="sim-left-controls">
-          {/* Section 1: Select Incident */}
+          {/* Section 1: Select Incident Scenario */}
           <div className="sim-panel-box">
-            <div className="sim-panel-title">1. Select Incident</div>
+            <div className="sim-panel-title">1. Select Incident Scenario</div>
             <div className="sim-incident-radio-list">
               {currentIncidentsList.map((inc) => {
                 const isSelected = selectedIncident === inc.id
                 return (
-                  <label
+                  <div
                     key={inc.id}
                     className={`sim-radio-card ${isSelected ? 'is-selected' : ''}`}
                     onClick={() => setSelectedIncident(inc.id)}
                   >
-                    <input
-                      type="radio"
-                      name="incident_choice"
-                      checked={isSelected}
-                      onChange={() => setSelectedIncident(inc.id)}
-                    />
                     <div className="sim-radio-left-icon">
                       {selectedCategory === 'electrical' && <Zap size={14} style={{ color: '#00F0FF' }} />}
                       {selectedCategory === 'water' && <Droplets size={14} style={{ color: '#00A3FF' }} />}
-                      {selectedCategory === 'hvac' && <Wind size={14} style={{ color: '#FFB800' }} />}
+                      {selectedCategory === 'hvac' && <Wind size={14} style={{ color: '#14B8A6' }} />}
                       {selectedCategory === 'gas' && <Flame size={14} style={{ color: '#A855F7' }} />}
                       {selectedCategory === 'combined' && <AlertTriangle size={14} style={{ color: '#FF4D4D' }} />}
                     </div>
@@ -269,7 +423,7 @@ export default function StartSimulationView({
                       <span className="sim-radio-desc">{inc.desc}</span>
                     </div>
                     <span className="sim-radio-indicator" />
-                  </label>
+                  </div>
                 )
               })}
             </div>
@@ -329,27 +483,99 @@ export default function StartSimulationView({
             </div>
           </div>
 
-          {/* Section 4: Run Simulation CTA */}
+          {/* Section 3: Run Simulation CTA */}
           <div className="sim-panel-box run-sim-box">
-            <div className="sim-panel-title">4. Run Simulation</div>
-            <button
-              type="button"
-              className={`sim-start-cta-btn ${isSubmitting ? 'is-loading' : ''}`}
-              onClick={handleLaunch}
-              disabled={isSubmitting}
-            >
-              <Play size={16} fill="currentColor" />
-              <span>{isSubmitting ? 'Simulating Cascade...' : 'Start Simulation'}</span>
-            </button>
+            <div className="sim-panel-title">3. Launch Simulation</div>
+            {isIncidentActive ? (
+              <div className="sim-active-control-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div className="sim-active-badge" style={{ padding: '8px 12px', background: 'rgba(239, 68, 68, 0.12)', border: '1px solid #EF4444', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span className="hud-dot dot-red" style={{ animation: 'pulse 1.5s infinite' }} />
+                  <span style={{ fontSize: '12px', fontWeight: 600, color: '#EF4444' }}>Simulation Active ({incident.source_asset_id})</span>
+                </div>
+                <button
+                  type="button"
+                  className="sim-start-cta-btn"
+                  style={{ background: '#10B981', borderColor: '#10B981' }}
+                  onClick={handleResetClick}
+                >
+                  <RotateCcw size={16} />
+                  <span>Restore Operational Baseline</span>
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className={`sim-start-cta-btn ${isSubmitting ? 'is-loading' : ''}`}
+                onClick={handleLaunch}
+                disabled={isSubmitting}
+              >
+                <Play size={16} fill="currentColor" />
+                <span>{isSubmitting ? 'Simulating Cascade...' : 'Start Simulation'}</span>
+              </button>
+            )}
           </div>
         </aside>
 
         {/* Right Main Area: 3D Visual + Timeline & Expected Impact */}
         <div className="sim-right-workspace">
-          {/* Section 3: Visualize & Simulate Canvas */}
+          {/* Main Visual: Digital Twin Canvas + Dedicated External Telemetry Matrix */}
           <div className="sim-visual-card">
             <div className="sim-visual-header">
-              <span className="sim-visual-title">3. Visualize & Simulate</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span className="sim-visual-title">Live Digital Twin Simulation</span>
+                {isIncidentActive && (
+                  <span
+                    style={{
+                      fontSize: '10px',
+                      background: '#EF4444',
+                      color: '#fff',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em'
+                    }}
+                  >
+                    DISRUPTION ACTIVE
+                  </span>
+                )}
+              </div>
+
+              {/* Option A: View Mode Switcher */}
+              <div className="sim-view-mode-switcher">
+                <button
+                  type="button"
+                  className={`sim-view-mode-btn ${displayMode === 'split' ? 'is-active' : ''}`}
+                  onClick={() => setDisplayMode('split')}
+                  title="Side-by-Side: 3D Twin on Left + Telemetry Matrix on Right"
+                >
+                  <Columns size={13} />
+                  <span>Split View</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`sim-view-mode-btn ${displayMode === 'twin' ? 'is-active' : ''}`}
+                  onClick={() => setDisplayMode('twin')}
+                  title="Full-Width 3D Digital Twin View"
+                >
+                  <Box size={13} />
+                  <span>3D Twin</span>
+                </button>
+
+                <button
+                  type="button"
+                  className={`sim-view-mode-btn ${displayMode === 'table' ? 'is-active' : ''}`}
+                  onClick={() => setDisplayMode('table')}
+                  title="Full-Width Comprehensive Telemetry Matrix"
+                >
+                  <Table size={13} />
+                  <span>Telemetry Table</span>
+                  {crisisAssetCount > 0 && (
+                    <span className="sim-mode-badge-counter">{crisisAssetCount}</span>
+                  )}
+                </button>
+              </div>
+
               <div className="sim-status-legend">
                 <span className="legend-item"><span className="leg-dot leg-normal" /> Normal</span>
                 <span className="legend-item"><span className="leg-dot leg-degraded" /> Degraded</span>
@@ -358,98 +584,162 @@ export default function StartSimulationView({
               </div>
             </div>
 
-            <div className="sim-canvas-viewport">
-              <TwinContainer
-                assets={assets}
-                services={services}
-                incident={incident}
-              />
-
-              {/* Sim HUD Pins */}
-              <div className="sim-hud-pins-layer">
-                {simPins.map((pin) => (
-                  <div
-                    key={pin.id}
-                    className={`sim-hud-pin pin-${pin.color}`}
-                    style={{ top: pin.top, left: pin.left }}
-                  >
-                    <span className="sim-pin-icon">
-                      {pin.color === 'red' ? '⚡' : pin.color === 'amber' ? '●' : '●'}
-                    </span>
-                    <div className="sim-pin-text">
-                      <span className="sim-pin-name">{pin.label}</span>
-                      <span className="sim-pin-status font-mono">
-                        <span className={`hud-dot ${pin.color === 'red' ? 'dot-red' : pin.color === 'amber' ? 'dot-amber' : 'dot-cyan'}`} />
-                        {pin.status}
-                      </span>
-                    </div>
+            {/* Option B: Synchronized Layout Dispatcher with Draggable Splitter Handle */}
+            {displayMode === 'split' && (
+              <div
+                ref={splitWorkspaceRef}
+                className={`sim-split-workspace ${isDraggingSplit ? 'is-resizing' : ''}`}
+              >
+                {/* Left Resizable Column: 3D Digital Twin */}
+                <div
+                  className="sim-split-canvas-col"
+                  style={{
+                    width: `calc(${splitPercent}% - 9px)`,
+                    flex: `0 0 calc(${splitPercent}% - 9px)`,
+                    maxWidth: `calc(${splitPercent}% - 9px)`
+                  }}
+                >
+                  <div className="sim-canvas-viewport is-split-mode">
+                    <TwinContainer
+                      assets={assets}
+                      services={services}
+                      incident={incident}
+                      selectedAssetId={selectedAssetId}
+                      onSelectAsset={setSelectedAssetId}
+                      filterSubsystem="all"
+                      hudMode={isIncidentActive ? 'alerts' : 'smart'}
+                      autoOpenInspector={false}
+                      enableInternalMatrix={false}
+                    />
                   </div>
-                ))}
-              </div>
+                </div>
 
-              {/* Compass HUD */}
-              <div className="sim-compass-hud">
-                <div className="compass-circle">
-                  <span className="compass-dir compass-n">N</span>
-                  <span className="compass-dir compass-e">E</span>
-                  <span className="compass-dir compass-s">S</span>
-                  <span className="compass-dir compass-w">W</span>
-                  <div className="compass-needle" />
+                {/* Draggable Splitter Divider Handle Bar */}
+                <div
+                  className={`sim-split-divider-handle ${isDraggingSplit ? 'is-active' : ''}`}
+                  onPointerDown={handleSplitPointerDown}
+                  onMouseDown={handleSplitMouseDown}
+                  onTouchStart={handleSplitTouchStart}
+                  onDoubleClick={() => setSplitPercent(55)}
+                  title="Drag left or right to resize panels (Double-click to reset)"
+                  role="separator"
+                  aria-orientation="vertical"
+                  aria-valuenow={Math.round(splitPercent)}
+                >
+                  <div className="sim-split-accent-bar" />
+                  <div className="divider-grip-indicator">
+                    <span className="grip-dot" />
+                    <span className="grip-dot" />
+                    <span className="grip-dot" />
+                  </div>
+                </div>
+
+                {/* Right Resizable Column: Telemetry Matrix */}
+                <div
+                  className="sim-split-table-col"
+                  style={{
+                    width: `calc(${100 - splitPercent}% - 9px)`,
+                    flex: `0 0 calc(${100 - splitPercent}% - 9px)`,
+                    maxWidth: `calc(${100 - splitPercent}% - 9px)`
+                  }}
+                >
+                  <SimulationTelemetryTable
+                    matrixRows={matrixRows}
+                    crisisAssetCount={crisisAssetCount}
+                    selectedAssetId={selectedAssetId}
+                    onSelectAsset={setSelectedAssetId}
+                    compactMode={true}
+                  />
                 </div>
               </div>
+            )}
 
-              {/* Floating Camera Controls */}
-              <div className="sim-camera-controls">
-                <button type="button" className="sim-ctrl-btn" title="Fullscreen"><Maximize2 size={12} /></button>
-                <button type="button" className="sim-ctrl-btn" title="Reset View"><Navigation size={12} /></button>
-                <button type="button" className="sim-ctrl-btn" title="Zoom In"><Plus size={12} /></button>
-                <button type="button" className="sim-ctrl-btn" title="Zoom Out"><Minus size={12} /></button>
+            {displayMode === 'twin' && (
+              <div className="sim-canvas-viewport is-fullwidth">
+                <TwinContainer
+                  assets={assets}
+                  services={services}
+                  incident={incident}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={setSelectedAssetId}
+                  filterSubsystem="all"
+                  hudMode={isIncidentActive ? 'alerts' : 'smart'}
+                  autoOpenInspector={false}
+                  enableInternalMatrix={false}
+                />
               </div>
-            </div>
+            )}
+
+            {displayMode === 'table' && (
+              <div className="sim-table-fullscreen-wrap">
+                <SimulationTelemetryTable
+                  matrixRows={matrixRows}
+                  crisisAssetCount={crisisAssetCount}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={setSelectedAssetId}
+                  compactMode={false}
+                />
+              </div>
+            )}
           </div>
 
           {/* Bottom Row: Simulation Timeline + Expected Impact Preview */}
           <div className="sim-bottom-row-grid">
-            {/* Simulation Timeline track */}
+            {/* Interactive Simulation Timeline track */}
             <div className="sim-timeline-box">
-              <div className="sim-timeline-title">Simulation Timeline</div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div className="sim-timeline-title">Simulation Timeline & Cascade Scrubbing</div>
+                {isIncidentActive && (
+                  <button
+                    type="button"
+                    onClick={() => setIsAutoStepping(!isAutoStepping)}
+                    className="sim-autostep-btn"
+                  >
+                    {isAutoStepping ? <Pause size={11} /> : <Play size={11} fill="currentColor" />}
+                    <span>{isAutoStepping ? 'Pause Auto-Step' : 'Auto-Step Sequence'}</span>
+                  </button>
+                )}
+              </div>
+
               <div className="sim-nodes-track">
-                <div className="sim-node-step node-active">
-                  <span className="node-dot dot-red" />
-                  <span className="node-time font-mono">T+0</span>
-                  <span className="node-label">Failure Injected</span>
+                {/* Visual track progress line */}
+                <div className="sim-track-progress-bar">
+                  <div
+                    className="sim-track-progress-fill"
+                    style={{
+                      width: `${(activeCheckpointIndex / Math.max(timelineNodes.length - 1, 1)) * 100}%`
+                    }}
+                  />
                 </div>
-                <div className="track-connector" />
-                <div className="sim-node-step">
-                  <span className="node-dot dot-cyan" />
-                  <span className="node-time font-mono">T+2 min</span>
-                  <span className="node-label">ATS Switch</span>
-                </div>
-                <div className="track-connector" />
-                <div className="sim-node-step">
-                  <span className="node-dot dot-cyan" />
-                  <span className="node-time font-mono">T+5 min</span>
-                  <span className="node-label">Generator Start</span>
-                </div>
-                <div className="track-connector" />
-                <div className="sim-node-step">
-                  <span className="node-dot dot-cyan" />
-                  <span className="node-time font-mono">T+10 min</span>
-                  <span className="node-label">Load Transfer</span>
-                </div>
-                <div className="track-connector" />
-                <div className="sim-node-step">
-                  <span className="node-dot dot-cyan" />
-                  <span className="node-time font-mono">T+30 min</span>
-                  <span className="node-label">Service Impact</span>
-                </div>
+                {timelineNodes.map((step, idx) => {
+                  const isActive = idx === activeCheckpointIndex
+                  const isPast = idx < activeCheckpointIndex
+                  return (
+                    <div
+                      key={`step-${idx}`}
+                      className={`sim-node-step ${isActive ? 'node-active' : ''} ${isPast ? 'node-past' : ''}`}
+                      onClick={() => onSelectCheckpoint && onSelectCheckpoint(idx)}
+                      title={`Jump to T+${step.t_offset_min} min milestone`}
+                    >
+                      <div className="node-dot-indicator">
+                        <span className="node-dot" />
+                      </div>
+                      <span className="node-time font-mono">
+                        T+{step.t_offset_min}m
+                      </span>
+                      <span className="node-label">
+                        {step.title || `Milestone ${idx + 1}`}
+                      </span>
+                    </div>
+                  )
+                })}
               </div>
             </div>
 
             {/* Expected Impact (Preview) 3 KPI cards */}
             <div className="sim-expected-impact-box">
               <div className="impact-box-header">
-                <span className="impact-box-title">Expected Impact (Preview)</span>
+                <span className="impact-box-title">Live Cascade Impact</span>
                 <Info size={12} className="panel-info-icon" />
               </div>
 
@@ -459,7 +749,7 @@ export default function StartSimulationView({
                     <AlertTriangle size={15} />
                   </div>
                   <div className="impact-metric-info">
-                    <span className="impact-num font-mono">3</span>
+                    <span className="impact-num font-mono">{servicesAtRiskCount}</span>
                     <span className="impact-lbl">Services At Risk</span>
                   </div>
                 </div>
@@ -469,7 +759,7 @@ export default function StartSimulationView({
                     <Box size={15} />
                   </div>
                   <div className="impact-metric-info">
-                    <span className="impact-num font-mono">12</span>
+                    <span className="impact-num font-mono">{affectedAssetsCount}</span>
                     <span className="impact-lbl">Affected Assets</span>
                   </div>
                 </div>
@@ -479,8 +769,10 @@ export default function StartSimulationView({
                     <Clock size={15} />
                   </div>
                   <div className="impact-metric-info">
-                    <span className="impact-num font-mono">~8 min</span>
-                    <span className="impact-lbl">Time to First Impact</span>
+                    <span className="impact-num font-mono">
+                      {isIncidentActive ? `T+${timelineNodes[activeCheckpointIndex]?.t_offset_min || 0}m` : '0 min'}
+                    </span>
+                    <span className="impact-lbl">Active Time Offset</span>
                   </div>
                 </div>
               </div>

@@ -679,6 +679,128 @@ class HospitalStateEngine:
                 "new_resilience_score": self.get_resilience_breakdown().overall_score
             }
 
+        # Strategy D: Redistribute Loads across buses & shift priorities
+        elif strategy_id in ("strat_d", "D_redistribute_loads", "D_mobile_aux_generator"):
+            if "GEN_01" in self.assets:
+                self.transition_asset_state("GEN_01", OperationalStatus.NORMAL, "Strategy D: Generator 1 online", bypass_validation=True)
+                self.assets["GEN_01"].current_load = 450.0
+            if "GEN_02" in self.assets:
+                self.transition_asset_state("GEN_02", OperationalStatus.NORMAL, "Strategy D: Generator 2 online", bypass_validation=True)
+                self.assets["GEN_02"].current_load = 300.0
+
+            if "EMERGENCY_BUS" in self.assets:
+                self.transition_asset_state("EMERGENCY_BUS", OperationalStatus.NORMAL, "Strategy D: Priority bus powered", bypass_validation=True)
+                self.assets["EMERGENCY_BUS"].available_capacity = 600.0
+            if "MAIN_BUS" in self.assets:
+                self.transition_asset_state("MAIN_BUS", OperationalStatus.DEGRADED, "Strategy D: Main bus load constrained", bypass_validation=True)
+                self.assets["MAIN_BUS"].available_capacity = 350.0
+
+            if "SERVICE_ICU" in self.services:
+                self.services["SERVICE_ICU"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_ICU"].service_continuity_pct = 100.0
+                self.services["SERVICE_ICU"].at_risk = False
+            if "SERVICE_ER" in self.services:
+                self.services["SERVICE_ER"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_ER"].service_continuity_pct = 95.0
+                self.services["SERVICE_ER"].at_risk = False
+            if "SERVICE_OT" in self.services:
+                self.services["SERVICE_OT"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_OT"].service_continuity_pct = 92.0
+                self.services["SERVICE_OT"].at_risk = False
+            if "SERVICE_WARD" in self.services:
+                self.services["SERVICE_WARD"].status = ServiceStatus.REDUCED_CAPACITY
+                self.services["SERVICE_WARD"].service_continuity_pct = 65.0
+                self.services["SERVICE_WARD"].at_risk = False
+            if "SERVICE_ADMIN" in self.services:
+                self.services["SERVICE_ADMIN"].status = ServiceStatus.REDUCED_CAPACITY
+                self.services["SERVICE_ADMIN"].service_continuity_pct = 30.0
+
+            self.evaluate_services_health()
+            return {
+                "status": "applied",
+                "strategy": "Strategy D",
+                "message": "Strategy D applied: Loads redistributed to protect critical services; General Ward throttled.",
+                "new_resilience_score": self.get_resilience_breakdown().overall_score
+            }
+
+        # Strategy E: Prioritize Critical Services (Guaranteed ICU/OT/ER allocation)
+        elif strategy_id in ("strat_e", "E_prioritize_critical", "E_oxygen_conservation"):
+            if "GEN_01" in self.assets:
+                self.transition_asset_state("GEN_01", OperationalStatus.NORMAL, "Strategy E: Dedicated generator dispatch", bypass_validation=True)
+                self.assets["GEN_01"].current_load = 420.0
+            if "UPS_CRITICAL" in self.assets:
+                self.transition_asset_state("UPS_CRITICAL", OperationalStatus.NORMAL, "Strategy E: UPS dedicated to ICU", bypass_validation=True)
+                self.assets["UPS_CRITICAL"].battery_level_pct = 98.0
+            if "EMERGENCY_BUS" in self.assets:
+                self.transition_asset_state("EMERGENCY_BUS", OperationalStatus.NORMAL, "Strategy E: Emergency bus active", bypass_validation=True)
+
+            if "SERVICE_ICU" in self.services:
+                self.services["SERVICE_ICU"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_ICU"].service_continuity_pct = 100.0
+                self.services["SERVICE_ICU"].at_risk = False
+            if "SERVICE_ER" in self.services:
+                self.services["SERVICE_ER"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_ER"].service_continuity_pct = 100.0
+                self.services["SERVICE_ER"].at_risk = False
+            if "SERVICE_OT" in self.services:
+                self.services["SERVICE_OT"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_OT"].service_continuity_pct = 100.0
+                self.services["SERVICE_OT"].at_risk = False
+            if "SERVICE_WARD" in self.services:
+                self.services["SERVICE_WARD"].status = ServiceStatus.REDUCED_CAPACITY
+                self.services["SERVICE_WARD"].service_continuity_pct = 50.0
+            if "SERVICE_ADMIN" in self.services:
+                self.services["SERVICE_ADMIN"].status = ServiceStatus.COMPROMISED
+                self.services["SERVICE_ADMIN"].service_continuity_pct = 0.0
+
+            self.evaluate_services_health()
+            return {
+                "status": "applied",
+                "strategy": "Strategy E",
+                "message": "Strategy E applied: Critical life-support services prioritized at 100% capacity.",
+                "new_resilience_score": self.get_resilience_breakdown().overall_score
+            }
+
+        # Strategy F: Combined Coordinated Strategy (Most aggressive response)
+        elif strategy_id in ("strat_f", "F_combined_strategy", "F_ward_evacuation"):
+            for gen_id, load in (("GEN_01", 480.0), ("GEN_02", 240.0)):
+                if gen_id in self.assets:
+                    self.transition_asset_state(gen_id, OperationalStatus.NORMAL, "Strategy F: Synchronized power dispatch", bypass_validation=True)
+                    self.assets[gen_id].current_load = load
+
+            if "EMERGENCY_BUS" in self.assets:
+                self.transition_asset_state("EMERGENCY_BUS", OperationalStatus.NORMAL, "Strategy F: Synchronized", bypass_validation=True)
+                self.assets["EMERGENCY_BUS"].available_capacity = 600.0
+            if "MAIN_BUS" in self.assets:
+                self.transition_asset_state("MAIN_BUS", OperationalStatus.NORMAL, "Strategy F: Rebalanced", bypass_validation=True)
+                self.assets["MAIN_BUS"].available_capacity = 450.0
+
+            if "CHILLER_PLANT" in self.assets:
+                self.transition_asset_state("CHILLER_PLANT", OperationalStatus.NORMAL, "Strategy F: Intelligent thermal management", bypass_validation=True)
+                self.assets["CHILLER_PLANT"].current_load = 220.0
+
+            for s_id in ("SERVICE_ICU", "SERVICE_ER", "SERVICE_OT"):
+                if s_id in self.services:
+                    self.services[s_id].status = ServiceStatus.FULL_OPERATION
+                    self.services[s_id].service_continuity_pct = 100.0
+                    self.services[s_id].at_risk = False
+
+            if "SERVICE_WARD" in self.services:
+                self.services["SERVICE_WARD"].status = ServiceStatus.FULL_OPERATION
+                self.services["SERVICE_WARD"].service_continuity_pct = 85.0
+                self.services["SERVICE_WARD"].at_risk = False
+            if "SERVICE_ADMIN" in self.services:
+                self.services["SERVICE_ADMIN"].status = ServiceStatus.REDUCED_CAPACITY
+                self.services["SERVICE_ADMIN"].service_continuity_pct = 25.0
+
+            self.evaluate_services_health()
+            return {
+                "status": "applied",
+                "strategy": "Strategy F",
+                "message": "Strategy F applied: Coordinated generator sync, intelligent thermal throttling, and all clinical services stabilized.",
+                "new_resilience_score": self.get_resilience_breakdown().overall_score
+            }
+
         return {
             "status": "applied",
             "strategy": strategy_id,
@@ -703,10 +825,17 @@ class HospitalStateEngine:
                 service_risks = None
             if self.active_incident.active_mitigation_strategy:
                 recovery_time_min = 5.0
-                if self.active_incident.active_mitigation_strategy in ("strat_c", "C_dynamic_rebalance_hvac_throttle"):
+                strat = self.active_incident.active_mitigation_strategy
+                if strat in ("strat_c", "C_dynamic_rebalance_hvac_throttle"):
                     load_shed_kw = 120.0
-                elif self.active_incident.active_mitigation_strategy in ("strat_b", "B_start_all_generators"):
+                elif strat in ("strat_b", "B_start_all_generators"):
                     load_shed_kw = 380.0
+                elif strat in ("strat_d", "D_redistribute_loads", "D_mobile_aux_generator"):
+                    load_shed_kw = 160.0
+                elif strat in ("strat_e", "E_prioritize_critical", "E_oxygen_conservation"):
+                    load_shed_kw = 200.0
+                elif strat in ("strat_f", "F_combined_strategy", "F_ward_evacuation"):
+                    load_shed_kw = 80.0
             else:
                 recovery_time_min = self.active_incident.estimated_unmitigated_blackout_min
 

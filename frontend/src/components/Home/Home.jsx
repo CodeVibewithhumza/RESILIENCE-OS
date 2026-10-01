@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef, useEffect } from 'react'
 import {
   Zap,
   Droplets,
@@ -42,6 +42,108 @@ export default function Home({
   const [perfHorizon, setPerfHorizon] = useState('24h') // '24h' | '12h' | '7d' | '1h'
   const [utilizationFilter, setUtilizationFilter] = useState('current') // 'current' | 'peak' | 'avg' | 'min'
   const [riskFilter, setRiskFilter] = useState('by_system') // 'by_system' | 'by_severity' | 'by_dept'
+
+  // Draggable Split-Pane Resizer for Middle Grid (Campus Twin ↔ Resilience & Performance)
+  const [middleSplitPercent, setMiddleSplitPercent] = useState(() => {
+    try {
+      const saved = localStorage.getItem('resilience_dashboard_split_ratio')
+      if (saved) {
+        const val = parseFloat(saved)
+        if (!isNaN(val) && val >= 30 && val <= 75) return val
+      }
+    } catch {}
+    return 60
+  })
+  const [isDraggingMiddle, setIsDraggingMiddle] = useState(false)
+  const isDraggingMiddleRef = useRef(false)
+  const middleGridRef = useRef(null)
+
+  const handleMiddlePointerDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingMiddleRef.current = true
+    setIsDraggingMiddle(true)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleMiddleMouseDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingMiddleRef.current = true
+    setIsDraggingMiddle(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleMiddleTouchStart = (e) => {
+    e.stopPropagation()
+    isDraggingMiddleRef.current = true
+    setIsDraggingMiddle(true)
+  }
+
+  useEffect(() => {
+    const handlePointerMove = (e) => {
+      if (!isDraggingMiddleRef.current || !middleGridRef.current) return
+      const rect = middleGridRef.current.getBoundingClientRect()
+      if (!rect || rect.width <= 0) return
+
+      const clientX =
+        e.clientX !== undefined
+          ? e.clientX
+          : e.touches && e.touches[0]
+          ? e.touches[0].clientX
+          : undefined
+      if (clientX === undefined) return
+
+      const rawPct = ((clientX - rect.left) / rect.width) * 100
+      const clampedPct = Math.min(Math.max(rawPct, 28), 72)
+      setMiddleSplitPercent(Math.round(clampedPct * 10) / 10)
+    }
+
+    const handlePointerUp = (e) => {
+      if (isDraggingMiddleRef.current) {
+        isDraggingMiddleRef.current = false
+        setIsDraggingMiddle(false)
+        try {
+          if (e?.pointerId !== undefined && e?.target?.hasPointerCapture?.(e.pointerId)) {
+            e.target.releasePointerCapture(e.pointerId)
+          }
+        } catch {}
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+
+    window.addEventListener('pointermove', handlePointerMove, { passive: false })
+    window.addEventListener('pointerup', handlePointerUp)
+    window.addEventListener('pointercancel', handlePointerUp)
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('mouseup', handlePointerUp)
+    window.addEventListener('touchmove', handlePointerMove, { passive: true })
+    window.addEventListener('touchend', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('pointermove', handlePointerMove)
+      window.removeEventListener('pointerup', handlePointerUp)
+      window.removeEventListener('pointercancel', handlePointerUp)
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('mouseup', handlePointerUp)
+      window.removeEventListener('touchmove', handlePointerMove)
+      window.removeEventListener('touchend', handlePointerUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('resilience_dashboard_split_ratio', String(middleSplitPercent))
+    } catch {}
+  }, [middleSplitPercent])
 
   const totalAssets = assets.length || 52
   const totalServices = services.length || 8
@@ -624,9 +726,19 @@ export default function Home({
       </section>
 
       {/* 2. MIDDLE TWO-COLUMN GRID: Campus Visual (Left) + Resilience Index & Performance (Right) */}
-      <section className="dashboard-middle-grid">
+      <section
+        ref={middleGridRef}
+        className={`dashboard-middle-grid ${isDraggingMiddle ? 'is-resizing' : ''}`}
+      >
         {/* Left: Campus Twin Card with Header toggles, interactive pins & Compass */}
-        <div className="dashboard-campus-card">
+        <div
+          className="dashboard-campus-card"
+          style={{
+            width: `calc(${middleSplitPercent}% - 10px)`,
+            flex: `0 0 calc(${middleSplitPercent}% - 10px)`,
+            maxWidth: `calc(${middleSplitPercent}% - 10px)`
+          }}
+        >
           <div className="campus-card-header">
             <div className="campus-header-title-group">
               <div className="campus-title-with-icon">
@@ -758,8 +870,35 @@ export default function Home({
           </div>
         </div>
 
+        {/* Draggable Divider Handle (Invisible by default, reveals purple on hover/drag) */}
+        <div
+          className={`dashboard-split-divider-handle ${isDraggingMiddle ? 'is-active' : ''}`}
+          onPointerDown={handleMiddlePointerDown}
+          onMouseDown={handleMiddleMouseDown}
+          onTouchStart={handleMiddleTouchStart}
+          onDoubleClick={() => setMiddleSplitPercent(60)}
+          title="Drag left or right to resize dashboard panels (Double-click to reset)"
+          role="separator"
+          aria-orientation="vertical"
+          aria-valuenow={Math.round(middleSplitPercent)}
+        >
+          <div className="dashboard-split-accent-bar" />
+          <div className="divider-grip-indicator">
+            <span className="grip-dot" />
+            <span className="grip-dot" />
+            <span className="grip-dot" />
+          </div>
+        </div>
+
         {/* Right Stack: Resilience Index + System Performance */}
-        <div className="dashboard-right-stack">
+        <div
+          className="dashboard-right-stack"
+          style={{
+            width: `calc(${100 - middleSplitPercent}% - 10px)`,
+            flex: `0 0 calc(${100 - middleSplitPercent}% - 10px)`,
+            maxWidth: `calc(${100 - middleSplitPercent}% - 10px)`
+          }}
+        >
           {/* Card 1: Resilience Index */}
           <div className="dashboard-panel-card resilience-card">
             <div className="panel-card-header">

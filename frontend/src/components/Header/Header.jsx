@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Sun,
   Moon,
   Bell,
   Menu
 } from 'lucide-react'
+import NotificationFlyout from './NotificationFlyout'
 import './Header.css'
 
 const PAGE_TITLES = {
@@ -58,10 +59,44 @@ export default function Header({
   isResetting = false,
   sidebarCollapsed = false,
   onToggleSidebar,
-  onToggleMobileNav
+  onToggleMobileNav,
+  incident = {},
+  assets = [],
+  services = [],
+  timeline = [],
+  onNavigate,
+  onSelectAsset,
+  onSelectService
 }) {
   const [timeStr, setTimeStr] = useState('')
   const [dateStr, setDateStr] = useState('')
+  const [isNotificationsOpen, setIsNotificationsOpen] = useState(false)
+  const bellWrapperRef = useRef(null)
+
+  // Auto-close notification flyout on outside click or Escape key
+  useEffect(() => {
+    if (!isNotificationsOpen) return
+
+    const handleClickOutside = (e) => {
+      if (bellWrapperRef.current && !bellWrapperRef.current.contains(e.target)) {
+        setIsNotificationsOpen(false)
+      }
+    }
+
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        setIsNotificationsOpen(false)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutside)
+    document.addEventListener('keydown', handleKeyDown)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+      document.removeEventListener('keydown', handleKeyDown)
+    }
+  }, [isNotificationsOpen])
 
   useEffect(() => {
     const updateTime = () => {
@@ -152,14 +187,37 @@ export default function Header({
           {timeStr || '10:24 AM'}
         </div>
 
-        {/* Notification Bell */}
-        <div className="header-bell-wrapper" title={`${alertsCount} Active Alerts`}>
-          <button type="button" className="header-icon-btn header-bell-btn">
+        {/* Notification Bell with Interactive Dropdown */}
+        <div
+          ref={bellWrapperRef}
+          className="header-bell-wrapper"
+          title={`${alertsCount} Active Alerts — Click to open Notifications`}
+        >
+          <button
+            type="button"
+            className={`header-icon-btn header-bell-btn ${isNotificationsOpen ? 'is-active' : ''}`}
+            onClick={() => setIsNotificationsOpen((prev) => !prev)}
+            aria-expanded={isNotificationsOpen}
+            aria-label="Toggle notifications menu"
+          >
             <Bell size={16} />
             {alertsCount > 0 && (
               <span className="header-bell-badge">{alertsCount}</span>
             )}
           </button>
+
+          {/* Dynamic Notification Flyout Dropdown */}
+          <NotificationFlyout
+            isOpen={isNotificationsOpen}
+            onClose={() => setIsNotificationsOpen(false)}
+            incident={incident}
+            assets={assets}
+            services={services}
+            timeline={timeline}
+            onNavigate={onNavigate}
+            onSelectAsset={onSelectAsset}
+            onSelectService={onSelectService}
+          />
         </div>
       </div>
     </header>

@@ -2,7 +2,7 @@
 from enum import Enum
 from datetime import datetime
 from typing import List, Optional, Dict, Any
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 class IncidentSeverity(str, Enum):
     LOW = "low"
@@ -15,6 +15,30 @@ class FailureInjectionRequest(BaseModel):
     failure_type: str = Field(default="complete_outage", description="e.g. complete_outage, overload_trip, fuel_line_block, pipe_rupture")
     severity: IncidentSeverity = Field(default=IncidentSeverity.HIGH)
     duration_minutes: int = Field(default=60)
+    
+    @field_validator("severity", mode="before")
+    @classmethod
+    def parse_severity(cls, v: Any) -> IncidentSeverity:
+        if isinstance(v, (int, float)):
+            if v >= 0.9:
+                return IncidentSeverity.CATASTROPHIC
+            elif v >= 0.6:
+                return IncidentSeverity.HIGH
+            elif v >= 0.3:
+                return IncidentSeverity.MEDIUM
+            else:
+                return IncidentSeverity.LOW
+        if isinstance(v, str):
+            v_lower = v.lower().strip()
+            for s in IncidentSeverity:
+                if s.value == v_lower:
+                    return s
+            try:
+                num = float(v)
+                return cls.parse_severity(num)
+            except ValueError:
+                pass
+        return v
     
     # Compound Scenario Modifiers
     compound_heatwave: bool = Field(default=False, description="Simulates elevated HVAC load and higher transformer heat")

@@ -29,7 +29,8 @@ import {
   ShieldAlert,
   CheckCircle2,
   Sun,
-  Moon
+  Moon,
+  SlidersHorizontal
 } from 'lucide-react'
 import {
   STATUS_COLORS,
@@ -500,7 +501,9 @@ function HospitalAssetNode({
   topoDef,
   isSelected,
   onSelect,
-  hudMode = 'smart'
+  hudMode = 'smart',
+  sourceAssetId = null,
+  activeFloor = 'all'
 }) {
   const [hovered, setHovered] = useState(false)
   const status = asset?.status || 'normal'
@@ -539,11 +542,83 @@ function HospitalAssetNode({
     return null
   }, [asset])
 
-  // SMART HUD VISIBILITY RULE
-  const isTagVisible =
-    hudMode === 'all' ||
-    (hudMode === 'alerts' && (status === 'critical' || status === 'failed' || status === 'degraded')) ||
-    (hudMode === 'smart' && (hovered || isSelected || status === 'critical' || status === 'failed'))
+  // Is this node the primary root cause of the crisis?
+  const isSourceFailure = useMemo(() => {
+    if (sourceAssetId && (asset?.id === sourceAssetId || label === sourceAssetId)) return true
+    if (status === 'failed') return true
+    return false
+  }, [sourceAssetId, asset?.id, label, status])
+
+  // Compact, human-friendly short label to avoid horizontal crowding
+  const shortLabel = useMemo(() => {
+    if (meshType === 'icu_bed') return `ICU ${bedNumber || label.replace('ICU_BED_', '')}`
+    if (meshType === 'operating_theatre') return `OT ${label.replace('OT_SUITE_', '')}`
+    if (meshType === 'emergency_bay') return `ED ${bayNumber || label.replace('ED_BAY_', '')}`
+    if (meshType === 'ward_bed') return `Room ${roomNumber || label.replace('WARD_ROOM_', '')}`
+    if (meshType === 'nurse_station') return 'Nurse Stn'
+    if (meshType === 'admin_hub') return 'Admin Ops'
+    if (meshType === 'ambulance_bay') return 'Ambulance'
+    if (meshType === 'transformer') return 'Transformer'
+    if (meshType === 'generator') return 'Diesel Gen'
+    if (meshType === 'ups') return 'UPS Battery'
+    if (meshType === 'chiller') return 'Chiller'
+    if (meshType === 'oxygen') return 'Cryo O2'
+    if (meshType === 'water_pump') return 'Water Pump'
+    if (meshType === 'switchgear') return 'Main Bus'
+    if (meshType === 'substation') return '11kV Grid'
+    return label.replace(/_/g, ' ')
+  }, [meshType, bedNumber, roomNumber, bayNumber, label])
+
+  // Anti-Collision 3D Height Staggering:
+  // Alternates elevations between adjacent beds and rooms so tags never overlap in perspective view
+  const tagYOffset = useMemo(() => {
+    if (meshType === 'substation') return 3.4
+    if (meshType === 'oxygen') return 2.8
+    if (meshType === 'chiller') return 2.6
+    if (meshType === 'generator') return 2.1
+    if (meshType === 'transformer') return 2.4
+    if (meshType === 'ups') return 2.3
+    if (meshType === 'switchgear') return 2.0
+    if (meshType === 'water_pump') return 2.2
+
+    // Alternate elevations between adjacent beds so neighboring tags don't touch
+    if (meshType === 'icu_bed') {
+      const n = parseInt(bedNumber, 10) || 1
+      return n % 2 === 1 ? 1.85 : 2.45
+    }
+    if (meshType === 'emergency_bay') {
+      const n = parseInt(bayNumber, 10) || 1
+      return n % 2 === 1 ? 1.85 : 2.4
+    }
+    if (meshType === 'ward_bed') {
+      const n = parseInt(roomNumber, 10) || 1
+      return n % 2 === 1 ? 1.85 : 2.4
+    }
+    if (meshType === 'operating_theatre') {
+      return label.includes('02') ? 2.45 : 1.9
+    }
+    return 2.1
+  }, [meshType, bedNumber, bayNumber, roomNumber, label])
+
+  // SMART HUD VISIBILITY (Combined Option 1 & 2):
+  // - If hovered or clicked: ALWAYS show tag!
+  // - If primary failure source: ALWAYS show tag in 3D (e.g. Transformer 01)!
+  // - If activeFloor === 'all' (Campus Overview):
+  //   Keep 3D building clean and pristine! (Floor summary badges on slabs + Side matrix show the data).
+  // - If activeFloor !== 'all' (Single Floor Drill-down):
+  //   Show tags for the 4-6 assets on THIS focused floor!
+  const isTagVisible = useMemo(() => {
+    if (hovered || isSelected) return true
+    if (isSourceFailure) return true
+    if (hudMode === 'all') return true
+    if (activeFloor !== 'all') {
+      return topoDef.floorId === activeFloor
+    }
+    return false
+  }, [hovered, isSelected, isSourceFailure, hudMode, activeFloor, topoDef.floorId])
+
+  // Wide telemetry pill expands only on hover, selection, root failure, or critical distress
+  const showTelemetryPill = hovered || isSelected || isSourceFailure || status === 'critical' || status === 'failed'
 
   return (
     <group position={position}>
@@ -626,33 +701,41 @@ function HospitalAssetNode({
         />
       )}
 
-      {/* 3D Hologram Floating Tag */}
+      {/* 3D Hologram Floating Tag with Staggered Height */}
       {isTagVisible && (
         <Html
-          position={[0, meshType === 'substation' ? 3.4 : meshType === 'icu_bed' ? 2.2 : 2.0, 0]}
+          position={[0, tagYOffset, 0]}
           center
-          distanceFactor={18}
+          distanceFactor={22}
           zIndexRange={[100, 0]}
         >
           <div
             className={`twin-hologram-hud ${isSelected ? 'is-selected' : ''} ${
               hovered ? 'is-hovered' : ''
-            } status-${status}`}
+            } ${isSourceFailure ? 'is-source-failure' : ''} status-${status}`}
             onClick={handleClick}
           >
             <div className="hud-header">
               <span
-                className="hud-status-beacon"
+                className={`hud-status-beacon ${isSourceFailure ? 'beacon-alert-pulse' : ''}`}
                 style={{
                   backgroundColor: statusColor,
                   boxShadow: `0 0 8px ${statusColor}`
                 }}
               />
-              <span className="hud-label-id">{label}</span>
-              {primaryTelemetry && (
+              <span className="hud-label-id">{shortLabel}</span>
+              {isSourceFailure && (
+                <span className="hud-source-badge font-mono">
+                  {status === 'failed' ? 'FAILED' : 'ALARM'}
+                </span>
+              )}
+              {showTelemetryPill && primaryTelemetry && (
                 <span className="hud-metric-pill font-mono">{primaryTelemetry}</span>
               )}
             </div>
+
+            {/* Leader Stem Line */}
+            <div className="hud-leader-line" />
 
             {(hovered || isSelected) && (
               <div className="hud-drawer-expanded">
@@ -729,7 +812,10 @@ function DigitalTwinScene({
   activeFloor = 'all',
   activeCategory = 'all',
   cameraPreset = 'isometric',
-  theme = 'dark'
+  theme = 'dark',
+  sourceAssetId = null,
+  floorSummaries = {},
+  onSelectFloor = null
 }) {
   const controlsRef = useRef()
   const isLight = theme === 'light'
@@ -842,17 +928,35 @@ function DigitalTwinScene({
               <div
                 className="floor-slab-label-tag"
                 style={{
-                  borderLeft: `3px solid ${floor.color}`,
-                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.88)',
-                  color: isLight ? '#0F172A' : '#F8FAFC'
+                  borderLeft: `3px solid ${floorSummaries[floor.id]?.badgeColor || floor.color}`,
+                  backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.9)',
+                  color: isLight ? '#0F172A' : '#F8FAFC',
+                  cursor: 'pointer'
                 }}
+                onClick={(e) => {
+                  e.stopPropagation()
+                  if (onSelectFloor) onSelectFloor(floor.id)
+                }}
+                title={`Click to focus on ${floor.name}`}
               >
-                <span className="slab-level-num" style={{ color: floor.color }}>
+                <span className="slab-level-num" style={{ color: floorSummaries[floor.id]?.badgeColor || floor.color }}>
                   L{floor.level}
                 </span>
                 <span className="slab-name" style={{ color: isLight ? '#0F172A' : '#F8FAFC' }}>
                   {floor.shortName}
                 </span>
+                {floorSummaries[floor.id]?.badgeText && (
+                  <span
+                    className="slab-summary-pill"
+                    style={{
+                      backgroundColor: `${floorSummaries[floor.id].badgeColor}22`,
+                      color: floorSummaries[floor.id].badgeColor,
+                      borderColor: `${floorSummaries[floor.id].badgeColor}55`
+                    }}
+                  >
+                    {floorSummaries[floor.id].badgeText}
+                  </span>
+                )}
               </div>
             </Html>
           </group>
@@ -872,17 +976,35 @@ function DigitalTwinScene({
             <div
               className="floor-slab-label-tag"
               style={{
-                borderLeft: '3px solid #00F0FF',
-                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.88)',
-                color: isLight ? '#0F172A' : '#F8FAFC'
+                borderLeft: `3px solid ${floorSummaries['floor_0']?.badgeColor || '#00F0FF'}`,
+                backgroundColor: isLight ? 'rgba(255, 255, 255, 0.95)' : 'rgba(6, 11, 23, 0.9)',
+                color: isLight ? '#0F172A' : '#F8FAFC',
+                cursor: 'pointer'
               }}
+              onClick={(e) => {
+                e.stopPropagation()
+                if (onSelectFloor) onSelectFloor('floor_0')
+              }}
+              title="Click to focus on Utility Yard"
             >
-              <span className="slab-level-num" style={{ color: '#00F0FF' }}>
+              <span className="slab-level-num" style={{ color: floorSummaries['floor_0']?.badgeColor || '#00F0FF' }}>
                 L0
               </span>
               <span className="slab-name" style={{ color: isLight ? '#0F172A' : '#F8FAFC' }}>
                 Utility & Substation Plant
               </span>
+              {floorSummaries['floor_0']?.badgeText && (
+                <span
+                  className="slab-summary-pill"
+                  style={{
+                    backgroundColor: `${floorSummaries['floor_0'].badgeColor}22`,
+                    color: floorSummaries['floor_0'].badgeColor,
+                    borderColor: `${floorSummaries['floor_0'].badgeColor}55`
+                  }}
+                >
+                  {floorSummaries['floor_0'].badgeText}
+                </span>
+              )}
             </div>
           </Html>
         </group>
@@ -941,6 +1063,8 @@ function DigitalTwinScene({
             isSelected={isSelected}
             onSelect={onSelectNode}
             hudMode={hudMode}
+            sourceAssetId={sourceAssetId}
+            activeFloor={activeFloor}
           />
         )
       })}
@@ -965,24 +1089,45 @@ function DigitalTwinScene({
 export default function TwinContainer({
   assets = [],
   services = [],
-  selectedAssetId,
+  incident = null,
+  selectedAssetId: controlledSelectedAssetId,
   onSelectAsset,
   filterSubsystem = 'all',
   viewMode = '3d',
   activeLayers = {},
   theme: controlledTheme,
-  onToggleTheme: controlledToggleTheme
+  onToggleTheme: controlledToggleTheme,
+  hudMode: controlledHudMode,
+  autoOpenInspector = false,
+  enableInternalMatrix = true
 }) {
+  const [internalSelectedAssetId, setInternalSelectedAssetId] = useState(null)
+  const selectedAssetId =
+    controlledSelectedAssetId !== undefined ? controlledSelectedAssetId : internalSelectedAssetId
+
+  const handleSelectAsset = (id) => {
+    setInternalSelectedAssetId(id)
+    if (onSelectAsset) {
+      onSelectAsset(id)
+    }
+  }
+
   const [isFullscreen, setIsFullscreen] = useState(false)
   const [activeFloor, setActiveFloor] = useState('all')
   const [cameraPreset, setCameraPreset] = useState('isometric')
   const [showConduits, setShowConduits] = useState(true)
-  const [hudMode, setHudMode] = useState('smart') // 'smart' | 'alerts' | 'all'
+  const [hudMode, setHudMode] = useState(controlledHudMode || 'smart')
+
+  useEffect(() => {
+    if (controlledHudMode) setHudMode(controlledHudMode)
+  }, [controlledHudMode])
   const [showParticles, setShowParticles] = useState(true)
   const [showWalls, setShowWalls] = useState(true)
   const [xrayMode, setXrayMode] = useState(false)
   const [isDroneTour, setIsDroneTour] = useState(false)
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
+  const [isMatrixOpen, setIsMatrixOpen] = useState(enableInternalMatrix)
+  const [matrixFilter, setMatrixFilter] = useState('all')
   const [isMuted, setIsMuted] = useState(false)
   const [simulatedOverrides, setSimulatedOverrides] = useState({})
 
@@ -1059,6 +1204,50 @@ export default function TwinContainer({
       map[a.id] = { ...(map[a.id] || {}), ...a }
     })
 
+    // Overlay clinical services health onto matching clinical beds/rooms/wings
+    if (Array.isArray(services) && services.length > 0) {
+      const svcMap = new Map(services.map((s) => [s.id, s]))
+      Object.entries(ASSET_TOPOLOGY_DEFS).forEach(([id, def]) => {
+        if (def.serviceId && svcMap.has(def.serviceId)) {
+          const s = svcMap.get(def.serviceId)
+          if (s.at_risk || s.status === 'compromised' || s.status === 'critical_only' || (typeof s.service_continuity_pct === 'number' && s.service_continuity_pct < 90)) {
+            const isCritical = s.status === 'compromised' || (s.service_continuity_pct != null && s.service_continuity_pct < 50)
+            map[id] = {
+              ...map[id],
+              status: isCritical ? 'critical' : 'degraded',
+              health_score: typeof s.service_continuity_pct === 'number' ? s.service_continuity_pct : 60,
+              serviceStatus: s.status,
+              serviceContinuity: s.service_continuity_pct
+            }
+          }
+        }
+      })
+    }
+
+    // Overlay active incident overrides directly on source and affected assets
+    if (incident?.is_active) {
+      if (incident.source_asset_id && map[incident.source_asset_id]) {
+        map[incident.source_asset_id] = {
+          ...map[incident.source_asset_id],
+          status: 'failed',
+          health_score: 0.0
+        }
+      }
+      if (Array.isArray(incident.affected_asset_ids)) {
+        incident.affected_asset_ids.forEach((affId) => {
+          if (map[affId] && affId !== incident.source_asset_id) {
+            if (map[affId].status === 'normal') {
+              map[affId] = {
+                ...map[affId],
+                status: 'degraded',
+                health_score: Math.min(map[affId].health_score || 100, 50.0)
+              }
+            }
+          }
+        })
+      }
+    }
+
     // Overlay active crisis simulation overrides
     Object.entries(simulatedOverrides).forEach(([id, override]) => {
       if (map[id]) {
@@ -1069,17 +1258,17 @@ export default function TwinContainer({
     })
 
     return map
-  }, [assets, simulatedOverrides])
+  }, [assets, services, incident, simulatedOverrides])
 
   const selectedDef = selectedAssetId ? ASSET_TOPOLOGY_DEFS[selectedAssetId] : null
   const selectedAsset = selectedAssetId ? assetsMap[selectedAssetId] : null
 
-  // Auto-open inspector drawer when selecting an asset
+  // Auto-open inspector drawer only if autoOpenInspector is true
   useEffect(() => {
-    if (selectedAssetId) {
+    if (selectedAssetId && autoOpenInspector) {
       setIsInspectorOpen(true)
     }
-  }, [selectedAssetId])
+  }, [selectedAssetId, autoOpenInspector])
 
   // Aggregate statistics
   const stats = useMemo(() => {
@@ -1111,6 +1300,131 @@ export default function TwinContainer({
       setCameraPreset('floor_0')
     }
   }
+
+  // Floor-level smart summary stats for Option 2 Level-of-Detail
+  const floorSummaries = useMemo(() => {
+    const summaries = {}
+    const floorIds = ['floor_3', 'floor_2', 'floor_1', 'floor_0']
+
+    floorIds.forEach((fId) => {
+      const assetsOnFloor = Object.entries(ASSET_TOPOLOGY_DEFS)
+        .filter(([, def]) => def.floorId === fId)
+        .map(([id]) => assetsMap[id] || { id, status: 'normal' })
+
+      const failed = assetsOnFloor.filter((a) => a.status === 'failed').length
+      const critical = assetsOnFloor.filter((a) => a.status === 'critical').length
+      const degraded = assetsOnFloor.filter((a) => a.status === 'degraded').length
+      const total = assetsOnFloor.length
+
+      let badgeText = 'All Nominal'
+      let badgeColor = '#10B981'
+      let badgeStatus = 'normal'
+
+      if (failed > 0) {
+        badgeText = `${failed} FAILED`
+        badgeColor = '#EF4444'
+        badgeStatus = 'failed'
+      } else if (critical > 0) {
+        badgeText = `${critical} Critical Alerts`
+        badgeColor = '#EF4444'
+        badgeStatus = 'critical'
+      } else if (degraded > 0) {
+        badgeText = `${degraded}/${total} Degraded`
+        badgeColor = '#F59E0B'
+        badgeStatus = 'degraded'
+      }
+
+      summaries[fId] = {
+        total,
+        failed,
+        critical,
+        degraded,
+        badgeText,
+        badgeColor,
+        badgeStatus
+      }
+    })
+
+    return summaries
+  }, [assetsMap])
+
+  // Telemetry Matrix Table Data Rows (Option 1)
+  const matrixRows = useMemo(() => {
+    return Object.entries(ASSET_TOPOLOGY_DEFS).map(([id, def]) => {
+      const asset = assetsMap[id] || {}
+      const status = asset.status || 'normal'
+
+      let telemetry = null
+      if (asset.metadata?.ventilator_active) telemetry = 'Ventilator: ON'
+      else if (asset.metadata?.spo2_pct) telemetry = `SpO2: ${asset.metadata.spo2_pct}%`
+      else if (asset.current_load != null && asset.capacity_unit) {
+        telemetry = `${asset.current_load.toFixed(0)} ${asset.capacity_unit}`
+      } else if (asset.fuel_level_pct != null) telemetry = `${asset.fuel_level_pct}% Fuel`
+      else if (asset.battery_level_pct != null) telemetry = `${asset.battery_level_pct}% Bat`
+      else if (asset.temperature_c != null) telemetry = `${asset.temperature_c}°C`
+      else if (asset.pressure_psi != null) telemetry = `${asset.pressure_psi} PSI`
+
+      let shortName = def.label
+      if (def.meshType === 'icu_bed') shortName = `ICU Bed ${def.bedNumber}`
+      else if (def.meshType === 'operating_theatre') shortName = `OT Suite ${def.label.replace('OT_SUITE_', '')}`
+      else if (def.meshType === 'emergency_bay') shortName = `Trauma Bay ${def.bayNumber}`
+      else if (def.meshType === 'ward_bed') shortName = `Ward Room ${def.roomNumber}`
+      else if (def.meshType === 'nurse_station') shortName = 'Nurse Station'
+      else if (def.meshType === 'admin_hub') shortName = 'Admin Operations'
+      else if (def.meshType === 'ambulance_bay') shortName = 'Ambulance Intake'
+      else if (def.meshType === 'transformer') shortName = 'Primary Transformer'
+      else if (def.meshType === 'generator') shortName = 'Diesel Generator'
+      else if (def.meshType === 'ups') shortName = 'Critical Battery UPS'
+      else if (def.meshType === 'chiller') shortName = 'Chiller Plant'
+      else if (def.meshType === 'oxygen') shortName = 'Cryo O2 Manifold'
+      else if (def.meshType === 'water_pump') shortName = 'Water Pump Station'
+      else if (def.meshType === 'switchgear') shortName = 'Main Power Bus'
+      else if (def.meshType === 'substation') shortName = '11kV Grid Main'
+
+      const floorBadge =
+        def.floorId === 'floor_3'
+          ? 'L3'
+          : def.floorId === 'floor_2'
+          ? 'L2'
+          : def.floorId === 'floor_1'
+          ? 'L1'
+          : 'L0'
+
+      return {
+        id,
+        shortName,
+        subsystem: def.subsystem || def.label,
+        floorId: def.floorId,
+        floorBadge,
+        status,
+        healthScore: asset.health_score != null ? asset.health_score : 100,
+        telemetryText: telemetry || 'Nominal',
+        isSourceFailure:
+          (incident?.source_asset_id &&
+            (id === incident.source_asset_id || def.label === incident.source_asset_id)) ||
+          status === 'failed'
+      }
+    })
+  }, [assetsMap, incident])
+
+  const crisisAssetCount = useMemo(() => {
+    return matrixRows.filter(
+      (r) => r.status === 'failed' || r.status === 'critical' || r.status === 'degraded'
+    ).length
+  }, [matrixRows])
+
+  const filteredMatrixRows = useMemo(() => {
+    return matrixRows.filter((row) => {
+      if (matrixFilter === 'critical') {
+        return row.status === 'failed' || row.status === 'critical' || row.status === 'degraded'
+      }
+      if (matrixFilter === 'floor_3') return row.floorId === 'floor_3'
+      if (matrixFilter === 'floor_2') return row.floorId === 'floor_2'
+      if (matrixFilter === 'floor_1') return row.floorId === 'floor_1'
+      if (matrixFilter === 'floor_0') return row.floorId === 'floor_0'
+      return true
+    })
+  }, [matrixRows, matrixFilter])
 
   // CRISIS SCENARIO SIMULATION TRIGGERS ("Aaag Laga De" Interactive Scenarios)
   const triggerScenario = (scenarioKey) => {
@@ -1241,6 +1555,25 @@ export default function TwinContainer({
             <span>Conduits</span>
           </button>
 
+          {/* Option 1: Live Side Telemetry Matrix Toggle (when internal matrix is enabled) */}
+          {enableInternalMatrix && (
+            <button
+              type="button"
+              className={`twin-compact-btn ${isMatrixOpen ? 'active' : ''}`}
+              onClick={() => {
+                soundEngine.playSelect()
+                setIsMatrixOpen(!isMatrixOpen)
+              }}
+              title="Toggle Live Asset Telemetry Matrix"
+            >
+              <SlidersHorizontal size={12} />
+              <span>Matrix</span>
+              {crisisAssetCount > 0 && (
+                <span className="matrix-badge-counter">{crisisAssetCount}</span>
+              )}
+            </button>
+          )}
+
           {/* Light / Dark Theme Switcher */}
           <button
             type="button"
@@ -1295,7 +1628,7 @@ export default function TwinContainer({
           <DigitalTwinScene
             assetsMap={assetsMap}
             selectedAssetId={selectedAssetId}
-            onSelectNode={onSelectAsset}
+            onSelectNode={handleSelectAsset}
             showConduits={showConduits}
             hudMode={hudMode}
             showParticles={showParticles}
@@ -1306,8 +1639,138 @@ export default function TwinContainer({
             activeCategory={activeCategory}
             cameraPreset={cameraPreset}
             theme={twinTheme}
+            sourceAssetId={incident?.source_asset_id}
+            floorSummaries={floorSummaries}
+            onSelectFloor={handleSelectFloor}
           />
         </Canvas>
+
+        {/* Option 1: Live Side Telemetry Matrix Panel (when internal matrix is enabled) */}
+        {enableInternalMatrix && isMatrixOpen && (
+          <div className="twin-side-matrix-panel">
+            <div className="matrix-header">
+              <div className="matrix-title-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span className="matrix-title">TELEMETRY MATRIX</span>
+                  {crisisAssetCount > 0 && (
+                    <span className="matrix-alert-counter">{crisisAssetCount} ALERTS</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  className="matrix-close-btn"
+                  onClick={() => setIsMatrixOpen(false)}
+                  title="Close Telemetry Matrix"
+                >
+                  &times;
+                </button>
+              </div>
+
+              {/* Floor / Category Quick Tabs */}
+              <div className="matrix-tabs-row">
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'all' ? 'active' : ''}`}
+                  onClick={() => {
+                    setMatrixFilter('all')
+                    handleSelectFloor('all')
+                  }}
+                >
+                  All ({matrixRows.length})
+                </button>
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'critical' ? 'active' : ''}`}
+                  onClick={() => setMatrixFilter('critical')}
+                >
+                  Alerts ({crisisAssetCount})
+                </button>
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'floor_3' ? 'active' : ''}`}
+                  onClick={() => {
+                    setMatrixFilter('floor_3')
+                    handleSelectFloor('floor_3')
+                  }}
+                >
+                  L3 ICU
+                </button>
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'floor_2' ? 'active' : ''}`}
+                  onClick={() => {
+                    setMatrixFilter('floor_2')
+                    handleSelectFloor('floor_2')
+                  }}
+                >
+                  L2 Wards
+                </button>
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'floor_1' ? 'active' : ''}`}
+                  onClick={() => {
+                    setMatrixFilter('floor_1')
+                    handleSelectFloor('floor_1')
+                  }}
+                >
+                  L1 ED
+                </button>
+                <button
+                  type="button"
+                  className={`matrix-tab-btn ${matrixFilter === 'floor_0' ? 'active' : ''}`}
+                  onClick={() => {
+                    setMatrixFilter('floor_0')
+                    handleSelectFloor('floor_0')
+                  }}
+                >
+                  L0 Plant
+                </button>
+              </div>
+            </div>
+
+            {/* Matrix Rows List */}
+            <div className="matrix-list-body">
+              {filteredMatrixRows.map((row) => (
+                <div
+                  key={row.id}
+                  className={`matrix-row-card status-${row.status} ${
+                    selectedAssetId === row.id ? 'is-selected' : ''
+                  }`}
+                  onClick={() => {
+                    soundEngine.playSelect()
+                    onSelectAsset(row.id)
+                    handleSelectFloor(row.floorId || 'all')
+                  }}
+                  title={`Click to inspect ${row.shortName}`}
+                >
+                  <div className="matrix-left-col">
+                    <span
+                      className="matrix-status-dot"
+                      style={{
+                        backgroundColor: STATUS_COLORS[row.status] || '#10B981',
+                        boxShadow: `0 0 6px ${STATUS_COLORS[row.status] || '#10B981'}`
+                      }}
+                    />
+                    <div className="matrix-text-col">
+                      <div className="matrix-name-row">
+                        <span className="matrix-asset-title">{row.shortName}</span>
+                        <span className="matrix-floor-chip">{row.floorBadge}</span>
+                      </div>
+                      <span className="matrix-sub-text">{row.subsystem}</span>
+                    </div>
+                  </div>
+
+                  <div className="matrix-right-col">
+                    <span className="matrix-telemetry-text">{row.telemetryText}</span>
+                    <span className={`matrix-status-pill status-${row.status}`}>
+                      {row.status}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Floating Quick Legend */}
         <div className="twin-overlay-legend">

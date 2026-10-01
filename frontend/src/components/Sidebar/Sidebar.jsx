@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import {
   Home,
   Box,
@@ -20,8 +21,74 @@ export default function Sidebar({
   isCollapsed = false,
   isMobileOpen = false,
   onToggleCollapse,
-  onCloseMobile
+  onCloseMobile,
+  width,
+  onResizeWidth
 }) {
+  const [isResizing, setIsResizing] = useState(false)
+  const isResizingRef = useRef(false)
+
+  const handleMouseDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isResizingRef.current = true
+    setIsResizing(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleTouchStart = (e) => {
+    e.stopPropagation()
+    isResizingRef.current = true
+    setIsResizing(true)
+  }
+
+  const handleDoubleClick = () => {
+    if (onToggleCollapse) {
+      onToggleCollapse()
+    } else if (onResizeWidth) {
+      onResizeWidth(isCollapsed ? 240 : 68)
+    }
+  }
+
+  useEffect(() => {
+    const handlePointerMove = (e) => {
+      if (!isResizingRef.current || !onResizeWidth) return
+      const clientX = e.clientX !== undefined ? e.clientX : (e.touches && e.touches[0]?.clientX)
+      if (clientX === undefined) return
+
+      // Snap to collapsed below 105px, otherwise clamp between 130px and 450px
+      if (clientX < 105) {
+        onResizeWidth(68)
+      } else {
+        const clampedWidth = Math.min(Math.max(Math.round(clientX), 130), 450)
+        onResizeWidth(clampedWidth)
+      }
+    }
+
+    const handlePointerUp = () => {
+      if (isResizingRef.current) {
+        isResizingRef.current = false
+        setIsResizing(false)
+        document.body.style.cursor = ''
+        document.body.style.userSelect = ''
+      }
+    }
+
+    window.addEventListener('mousemove', handlePointerMove)
+    window.addEventListener('mouseup', handlePointerUp)
+    window.addEventListener('touchmove', handlePointerMove, { passive: true })
+    window.addEventListener('touchend', handlePointerUp)
+
+    return () => {
+      window.removeEventListener('mousemove', handlePointerMove)
+      window.removeEventListener('mouseup', handlePointerUp)
+      window.removeEventListener('touchmove', handlePointerMove)
+      window.removeEventListener('touchend', handlePointerUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+  }, [onResizeWidth])
   const navItems = [
     {
       id: 'dashboard',
@@ -81,7 +148,8 @@ export default function Sidebar({
     <aside
       className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${
         isMobileOpen ? 'is-mobile-open' : ''
-      }`}
+      } ${isResizing ? 'is-resizing' : ''}`}
+      style={!isCollapsed && width ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : undefined}
       aria-label="Sidebar Navigation"
     >
       {/* Mobile Drawer Close Button */}
@@ -278,6 +346,21 @@ export default function Sidebar({
           </button>
         )}
       </div>
+
+      {/* Draggable Sidebar Resizer Handle Bar */}
+      {!isMobileOpen && (
+        <div
+          className={`sidebar-resizer-handle ${isResizing ? 'is-active' : ''}`}
+          onMouseDown={handleMouseDown}
+          onTouchStart={handleTouchStart}
+          onDoubleClick={handleDoubleClick}
+          title="Drag horizontally to resize sidebar width (Double-click to toggle collapse)"
+          role="separator"
+          aria-orientation="vertical"
+        >
+          <div className="sidebar-resizer-line" />
+        </div>
+      )}
     </aside>
   )
 }

@@ -237,22 +237,44 @@
 }
 
 /* --------------------------------------------------------------------------
-   2. MIDDLE TWO-COLUMN GRID: Campus Twin (Left) + Right Stack
+   2. MIDDLE TWO-COLUMN GRID: Campus Twin (Left) + Right Stack (Draggable Split)
    -------------------------------------------------------------------------- */
 
 .dashboard-middle-grid {
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 12px;
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
+  gap: 0;
   flex: 1;
   min-height: 380px;
   width: 100%;
   box-sizing: border-box;
+  position: relative;
+}
+
+@media (max-width: 900px) {
+  .dashboard-middle-grid {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+
+.dashboard-middle-grid.is-resizing {
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
+.dashboard-middle-grid.is-resizing .dashboard-campus-card,
+.dashboard-middle-grid.is-resizing .dashboard-right-stack {
+  transition: none !important;
+  pointer-events: none !important;
+  user-select: none !important;
 }
 
 /* Campus Twin Card (Left) */
 .dashboard-campus-card {
+  flex: 0 0 auto !important;
+  min-width: 260px;
   background: linear-gradient(180deg, #072235 0%, #051A29 100%);
   border: 1px solid rgba(0, 240, 255, 0.18);
   border-radius: 10px;
@@ -265,6 +287,91 @@
   min-height: 380px;
   box-sizing: border-box;
   overflow: hidden;
+}
+
+/* Draggable Splitter Divider Handle for Main Dashboard (Invisible by default) */
+.dashboard-split-divider-handle {
+  width: 20px;
+  margin: 0 -2px;
+  cursor: col-resize !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  transition: all 0.18s ease;
+  user-select: none !important;
+  flex-shrink: 0;
+  touch-action: none;
+  background: transparent;
+}
+
+@media (max-width: 900px) {
+  .dashboard-split-divider-handle {
+    display: none !important;
+  }
+}
+
+/* The vertical accent line: hidden (opacity: 0) by default */
+.dashboard-split-accent-bar {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  background: linear-gradient(180deg, #A855F7 0%, #8B5CF6 50%, #6366F1 100%);
+  border-radius: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease, width 0.2s ease, box-shadow 0.2s ease;
+  pointer-events: none;
+}
+
+[data-theme="light"] .dashboard-split-accent-bar {
+  background: linear-gradient(180deg, #9333EA 0%, #8B5CF6 50%, #7C3AED 100%);
+}
+
+/* Only when user reaches the cursor at that point or drags: reveal the purple bar */
+.dashboard-split-divider-handle:hover .dashboard-split-accent-bar,
+.dashboard-split-divider-handle.is-active .dashboard-split-accent-bar {
+  opacity: 1;
+  width: 4.5px;
+  box-shadow: 0 0 10px rgba(139, 92, 246, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+}
+
+.dashboard-split-divider-handle .divider-grip-indicator {
+  position: relative;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  width: 14px;
+  height: 38px;
+  background: #8B5CF6;
+  border: 2px solid #FFFFFF;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.6), 0 0 10px rgba(0, 0, 0, 0.25);
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: none;
+}
+
+[data-theme="dark"] .dashboard-split-divider-handle .divider-grip-indicator {
+  background: #8B5CF6;
+  border: 2px solid #C084FC;
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.9), 0 2px 6px rgba(0, 0, 0, 0.8);
+}
+
+.dashboard-split-divider-handle:hover .divider-grip-indicator,
+.dashboard-split-divider-handle.is-active .divider-grip-indicator {
+  opacity: 1;
+  transform: scale(1.05);
+  background: #A855F7;
+  border-color: #FFFFFF;
+  box-shadow: 0 0 16px rgba(168, 85, 247, 0.95);
 }
 
 .campus-card-header {
@@ -641,10 +748,11 @@
 
 /* Right Stack Container */
 .dashboard-right-stack {
+  flex: 0 0 auto !important;
+  min-width: 260px;
   display: flex;
   flex-direction: column;
   gap: 12px;
-  min-width: 0;
   height: 100%;
   min-height: 380px;
   box-sizing: border-box;

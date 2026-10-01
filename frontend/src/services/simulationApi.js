@@ -154,3 +154,54 @@ export async function getSimulationReport(format = 'json', scenarioTitle = null)
   }
 }
 
+/**
+ * Applies a simulated response strategy to the active hospital incident.
+ *
+ * Endpoint: POST /api/simulation/apply-strategy
+ *
+ * @param {string} strategyId - Target strategy ID (e.g. 'strat_c' or 'strat_a')
+ * @returns {Promise<{ success: boolean, data: object|null, error: string|null }>}
+ */
+export async function applyStrategy(strategyId) {
+  try {
+    const baseUrl = getApiBaseUrl()
+    const response = await fetch(`${baseUrl}/api/simulation/apply-strategy`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ strategy_id: strategyId })
+    })
+
+    if (!response.ok) {
+      let errorDetail = `HTTP ${response.status}: ${response.statusText}`
+      try {
+        const errJson = await response.json()
+        if (errJson?.detail) {
+          errorDetail = errJson.detail
+        }
+      } catch {}
+      return {
+        success: false,
+        data: null,
+        error: errorDetail
+      }
+    }
+
+    const data = await response.json()
+    return {
+      success: true,
+      data,
+      error: null
+    }
+  } catch (err) {
+    return {
+      success: false,
+      data: null,
+      error: err?.message || 'Network error applying strategy'
+    }
+  }
+}
+
+

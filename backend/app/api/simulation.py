@@ -43,6 +43,10 @@ router = APIRouter(tags=["Simulation & What-If"])
     "/failures/inject",
     response_model=FailureInjectionResponse,
 )
+@router.post(
+    "/simulation/inject-failure",
+    response_model=FailureInjectionResponse,
+)
 async def inject_failure(
     request: FailureInjectionRequest,
     engine: HospitalStateEngine = Depends(get_state_engine),
@@ -217,6 +221,11 @@ async def retrieve_simulation_run(
 @router.post(
     "/simulation/apply-strategy",
     response_model=ApplyStrategyResponse,
+)
+@router.post(
+    "/strategies/apply",
+    response_model=ApplyStrategyResponse,
+    include_in_schema=True,
 )
 async def apply_strategy(
     request: ApplyStrategyRequest,

@@ -55,12 +55,21 @@ class EventBus:
         for queue in list(self._subscribers[channel]):
             await queue.put(event)
 
-        logger.info(
-            "Event published | channel=%s | event_type=%s | subscribers=%d",
-            channel,
-            event.get("type", "unknown"),
-            len(self._subscribers[channel]),
-        )
+        evt_type = event.get("type", "unknown")
+        if evt_type == "telemetry_tick":
+            logger.debug(
+                "Event published | channel=%s | event_type=%s | subscribers=%d",
+                channel,
+                evt_type,
+                len(self._subscribers[channel]),
+            )
+        else:
+            logger.info(
+                "Event published | channel=%s | event_type=%s | subscribers=%d",
+                channel,
+                evt_type,
+                len(self._subscribers[channel]),
+            )
 
     def publish_nowait(
         self,
@@ -74,12 +83,21 @@ class EventBus:
         def _put():
             for queue in list(self._subscribers[channel]):
                 queue.put_nowait(event)
-            logger.info(
-                "Event published | channel=%s | event_type=%s | subscribers=%d",
-                channel,
-                event.get("type", "unknown"),
-                len(self._subscribers[channel]),
-            )
+            evt_type = event.get("type", "unknown")
+            if evt_type == "telemetry_tick":
+                logger.debug(
+                    "Event published | channel=%s | event_type=%s | subscribers=%d",
+                    channel,
+                    evt_type,
+                    len(self._subscribers[channel]),
+                )
+            else:
+                logger.info(
+                    "Event published | channel=%s | event_type=%s | subscribers=%d",
+                    channel,
+                    evt_type,
+                    len(self._subscribers[channel]),
+                )
 
         try:
             current_loop = asyncio.get_running_loop()
