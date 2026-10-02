@@ -542,10 +542,12 @@ function HospitalAssetNode({
     return null
   }, [asset])
 
-  // Is this node the primary root cause of the crisis?
+  // Is this node the primary root cause of the crisis or actively distressed?
   const isSourceFailure = useMemo(() => {
-    if (sourceAssetId && (asset?.id === sourceAssetId || label === sourceAssetId)) return true
     if (status === 'failed') return true
+    if (sourceAssetId && (asset?.id === sourceAssetId || label === sourceAssetId) && (status === 'critical' || status === 'degraded')) {
+      return true
+    }
     return false
   }, [sourceAssetId, asset?.id, label, status])
 
@@ -1107,6 +1109,11 @@ export default function TwinContainer({
 
   const handleSelectAsset = (id) => {
     setInternalSelectedAssetId(id)
+    if (id) {
+      setIsInspectorOpen(true)
+    } else {
+      setIsInspectorOpen(false)
+    }
     if (onSelectAsset) {
       onSelectAsset(id)
     }
@@ -1126,7 +1133,7 @@ export default function TwinContainer({
   const [xrayMode, setXrayMode] = useState(false)
   const [isDroneTour, setIsDroneTour] = useState(false)
   const [isInspectorOpen, setIsInspectorOpen] = useState(false)
-  const [isMatrixOpen, setIsMatrixOpen] = useState(enableInternalMatrix)
+  const [isMatrixOpen, setIsMatrixOpen] = useState(false)
   const [matrixFilter, setMatrixFilter] = useState('all')
   const [isMuted, setIsMuted] = useState(false)
   const [simulatedOverrides, setSimulatedOverrides] = useState({})
@@ -1263,12 +1270,12 @@ export default function TwinContainer({
   const selectedDef = selectedAssetId ? ASSET_TOPOLOGY_DEFS[selectedAssetId] : null
   const selectedAsset = selectedAssetId ? assetsMap[selectedAssetId] : null
 
-  // Auto-open inspector drawer only if autoOpenInspector is true
+  // Auto-open inspector drawer whenever an asset ID is selected
   useEffect(() => {
-    if (selectedAssetId && autoOpenInspector) {
+    if (selectedAssetId) {
       setIsInspectorOpen(true)
     }
-  }, [selectedAssetId, autoOpenInspector])
+  }, [selectedAssetId])
 
   // Aggregate statistics
   const stats = useMemo(() => {
@@ -1738,7 +1745,7 @@ export default function TwinContainer({
                   }`}
                   onClick={() => {
                     soundEngine.playSelect()
-                    onSelectAsset(row.id)
+                    handleSelectAsset(row.id)
                     handleSelectFloor(row.floorId || 'all')
                   }}
                   title={`Click to inspect ${row.shortName}`}
@@ -1799,7 +1806,14 @@ export default function TwinContainer({
           <div className="inspector-header">
             <div className="inspector-title-row">
               <span className="inspector-tag font-mono">ASSET TELEMETRY & CLINICAL PROFILE</span>
-              <button className="inspector-close-btn" onClick={() => setIsInspectorOpen(false)}>
+              <button
+                className="inspector-close-btn"
+                onClick={() => {
+                  setIsInspectorOpen(false)
+                  handleSelectAsset(null)
+                }}
+                title="Back to Telemetry Matrix"
+              >
                 &times;
               </button>
             </div>

@@ -253,7 +253,7 @@ export default function SimulationTelemetryTable({
                   <th style={{ width: '22%' }}>Asset Name & Identifier</th>
                   <th style={{ width: '20%' }}>Subsystem & Role</th>
                   <th style={{ width: '16%' }}>Live Telemetry</th>
-                  <th style={{ width: '14%' }}>Health Score</th>
+                  <th style={{ width: '14%' }} title="Infrastructure resilience buffer and supply margin">Resilience Margin</th>
                   <th style={{ width: '10%' }}>Action</th>
                 </tr>
               </thead>

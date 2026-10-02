@@ -131,11 +131,11 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
 
   // Markdown builder respecting active report type and toggled sections
   const buildMarkdownReport = () => {
-    const timeStr = generatedAt ? new Date(generatedAt).toUTCString() : new Date().toUTCString()
+    const timeStr = generatedAt ? new Date(generatedAt).toISOString().slice(0, 10) : new Date().toISOString().slice(0, 10)
     const reportTitle = `${selectedReportType.toUpperCase()} AUDIT REPORT`
 
-    let md = `# 🏥 ResilienceOS — Executive Simulation & Audit Report\n`
-    md += `**Document Classification:** OFFICIAL // C-SUITE & CRISIS COMMAND\n`
+    let md = `# 🏥 ResilienceOS — Executive Simulation Audit Report\n`
+    md += `**Document Classification:** OFFICIAL // HOSPITAL INCIDENT DECISION-SUPPORT BRIEFING\n`
     md += `**Report Type:** ${reportTitle}\n`
     md += `**Generated At:** \`${timeStr}\`\n`
     md += `**Campus Operational Status:** \`${statusLabel}\` (Resilience Index: **${currentResScore.toFixed(1)} / 100**)\n\n`
@@ -143,16 +143,33 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
     if (includedSections.exec_summary) {
       md += `## 1. Executive Summary\n`
       if (activeInc && activeInc.is_active) {
-        md += `An active incident (**${activeInc.incident_id}**) is propagating through campus infrastructure, originating from primary asset **${activeInc.source_asset_id}** at severity **${activeInc.severity?.toUpperCase() || 'HIGH'}**. `
-        md += `Current cascade affects **${affectedAssetsCount} infrastructure assets** and compromises **${affectedServicesCount} clinical delivery services**. `
-        md += `Estimated unmitigated blackout horizon is **${activeInc.estimated_unmitigated_blackout_min || 18} minutes**.\n\n`
+        md += `A simulated failure event was evaluated for primary asset **${activeInc.source_asset_id}** at severity **${activeInc.severity?.toUpperCase() || 'HIGH'}** (Incident ID: \`${activeInc.incident_id}\`). `
+        md += `Modeled cascade propagation evaluates that **${affectedAssetsCount} modeled infrastructure assets enter a modeled failed or degraded state within the simulated scenario**, placing **${affectedServicesCount} modeled service domains in a degraded state**. `
+        md += `Configured unmitigated scenario horizon: **${activeInc.estimated_unmitigated_blackout_min || 18} minutes**. Multi-objective response strategies evaluated under the configured Balanced profile.\n\n`
       } else {
         md += `Hospital infrastructure is operating in a state of **NOMINAL CAMPUS STABILITY**. All critical healthcare delivery circuits (ICU, Emergency, Surgery OT, Inpatient Wards) maintain continuous utility and emergency feed redundancy. No active equipment trips detected.\n\n`
       }
     }
 
+    if (activeInc && activeInc.is_active) {
+      const src = activeInc.source_asset_id || 'TRANSFORMER_01'
+      md += `## 2. Modeled Causal Dependency Cascade\n`
+      md += `\`\`\`text\n`
+      md += `Failure Origin:           [ ${src} ]\n`
+      md += `       ↓\n`
+      md += `Primary Electrical Feed:  [ PRIMARY FEEDER ]\n`
+      md += `       ↓\n`
+      md += `Distribution Node:        [ MAIN_BUS ]\n`
+      md += `       ↓\n`
+      md += `Dependent Infrastructure: [ CHILLER_PLANT ]\n`
+      md += `       ↓\n`
+      md += `Affected Service Domain:  [ ICU + OT ]\n`
+      md += `\`\`\`\n`
+      md += `*The simulation traces state changes across configured infrastructure dependencies and estimates modeled downstream service impacts over simulated time.*\n\n`
+    }
+
     if (includedSections.resilience_metrics) {
-      md += `## 2. Canonical Resilience Metrics\n`
+      md += `## 3. Canonical Resilience Metrics\n`
       md += `Formulation: **$R = 100 \\times [0.35C + 0.20A + 0.20B + 0.15(1 - T_{norm}) + 0.10(1 - U_{norm})]$**\n\n`
       md += `| Sub-Score Metric | Weight | Value (0-100) | Operational Context |\n`
       md += `| :--- | :---: | :---: | :--- |\n`
@@ -164,13 +181,17 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
     }
 
     if (includedSections.timeline && (selectedReportType === 'incident' || selectedReportType === 'simulation')) {
-      md += `## 3. Incident & Cascade Propagation Timeline\n`
+      md += `## 4. Incident & Cascade Propagation Timeline\n`
       if (timelineEvents.length > 0) {
         md += `| Offset | Incident Event | Impacted Nodes | Projected Resilience | Clinical Delivery Impact |\n`
         md += `| :---: | :--- | :--- | :---: | :--- |\n`
         timelineEvents.forEach((ev) => {
           const nodes = ev.affected_node_ids?.join(', ') || 'N/A'
-          md += `| **T+${ev.t_offset_min}m** | ${ev.title} | \`${nodes}\` | **${ev.system_resilience_score?.toFixed(1)}** | ${ev.service_impact_summary} |\n`
+          const cleanSummary = (ev.service_impact_summary || '').replace(/^CRITICAL RESERVE BOUNDARY:\s*/i, '')
+          const displayTitle = (ev.title === 'Critical Reserve Depletion Boundary' || ev.title === 'Critical Exhaustion Boundary')
+            ? 'Critical Reserve Boundary'
+            : ev.title
+          md += `| **T+${ev.t_offset_min}m** | ${displayTitle} | \`${nodes}\` | **${ev.system_resilience_score?.toFixed(1)}** | ${cleanSummary} |\n`
         })
         md += `\n`
       } else {
@@ -178,8 +199,8 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
       }
     }
 
-    if (includedSections.system_impact && (selectedReportType === 'risk' || selectedReportType === 'simulation' || selectedReportType === 'incident')) {
-      md += `## 4. Threat & Vulnerability Assessment\n`
+    if (includedSections.system_impact && (selectedReportType === 'risk' || selectedReportType === 'simulation')) {
+      md += `## 5. Threat & Vulnerability Assessment\n`
       md += `- **Overall Campus Composite Risk:** **${((riskSummary?.overall_risk_score ?? 0) * 100).toFixed(1)}%** (${riskSummary?.overall_risk_level?.toUpperCase() || 'LOW'})\n`
       md += `- **Highest Vulnerability Asset:** \`${riskSummary?.highest_risk_asset || 'None'}\`\n`
       md += `- **Critical Services at Risk:** ${riskSummary?.critical_services_at_risk?.length ? riskSummary.critical_services_at_risk.join(', ') : 'None'}\n\n`
@@ -197,30 +218,29 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
     }
 
     if (includedSections.response_strategies && effectiveWhatIf?.strategies?.length > 0) {
-      md += `## 5. What-If Strategy Evaluation Matrix\n`
-      md += `**Recommended Strategy:** \`${effectiveWhatIf.recommended_strategy_id || effectiveWhatIf.top_recommended_strategy_id || 'Strategy C'}\`\n`
+      md += `## 6. What-If Multi-Attribute Strategy Evaluation\n`
+      md += `*Multi-objective strategy comparison under the configured Balanced profile.*\n\n`
       if (effectiveWhatIf.causal_explanation || effectiveWhatIf.recommendation_rationale) {
         md += `**Evaluation Rationale:** ${effectiveWhatIf.causal_explanation || effectiveWhatIf.recommendation_rationale}\n\n`
       }
-      md += `| Rank | Strategy Name | Code | Projected $R$ | ICU Cont. | OT Cont. | Load Shed | Backup Runtime | Risk |\n`
+      md += `| Rank | Strategy Option | Code | Proj. $R$ | Simulated ICU Cont. | Simulated OT Cont. | Load Shed | Simulated Runtime | Modeled Risk Profile |\n`
       md += `| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |\n`
       effectiveWhatIf.strategies.forEach((s) => {
-        const badge = s.is_recommended ? '⭐ RECOMMENDED' : `#${s.recommendation_rank || '-'}`
+        const badge = s.is_recommended ? '⭐ HIGHEST SIMULATED INDEX' : `#${s.recommendation_rank || '-'}`
         md += `| ${badge} | ${s.strategy_name} | \`${s.strategy_code}\` | **${s.projected_resilience_score?.toFixed(1)}** | ${s.icu_continuity_pct?.toFixed(0)}% | ${s.operating_theatre_continuity_pct?.toFixed(0)}% | ${s.non_critical_load_shed_kw?.toFixed(0)} kW | ${s.backup_runtime_remaining_hours?.toFixed(1)}h | ${s.risk_level} |\n`
       })
       md += `\n`
     }
 
     if (includedSections.recommendations) {
-      md += `## 6. Actionable Tactical Directives\n`
+      md += `## 7. Actionable Tactical Directives & Simulated Decision-Support Considerations\n`
       if (effectiveWhatIf?.strategies?.length > 0) {
         const topStrat = effectiveWhatIf.strategies.find((s) => s.is_recommended) || effectiveWhatIf.strategies[0]
-        md += `1. **Execute Strategy Protocol:** Deploy \`${topStrat.strategy_name}\` (\`${topStrat.strategy_code}\`).\n`
-        md += `2. **Protect ICU & OT Power:** Ensure ICU continuity at \`${topStrat.icu_continuity_pct?.toFixed(0)}%\` and Operating Theatres at \`${topStrat.operating_theatre_continuity_pct?.toFixed(0)}%\`.\n`
+        md += `1. **Human Review Protocol:** Conduct human operator review of simulated strategy options prior to selecting or executing any physical response.\n`
+        md += `2. **Critical-Service Continuity:** Strategy models maintaining the configured ICU-supporting infrastructure load at \`${topStrat.icu_continuity_pct?.toFixed(0)}%\` and Operating Theatres at \`${topStrat.operating_theatre_continuity_pct?.toFixed(0)}%\` in the simulation before auxiliary transfer transitions.\n`
         if (topStrat.non_critical_load_shed_kw > 0) {
-          md += `3. **Selective Load Shedding:** Shed \`${topStrat.non_critical_load_shed_kw?.toFixed(0)} kW\` non-critical branch circuits to extend generator runtime.\n`
+          md += `3. **Simulated Load Shedding:** Assess shedding \`${topStrat.non_critical_load_shed_kw?.toFixed(0)} kW\` of auxiliary loads to extend simulated generator reserve duration (\`${topStrat.backup_runtime_remaining_hours?.toFixed(1)} h\`).\n`
         }
-        md += `4. **Fuel & Battery Margin:** Active operational buffer is \`${topStrat.backup_runtime_remaining_hours?.toFixed(1)} hours\`.\n`
       } else {
         md += `1. Maintain real-time telemetry streaming at 1.0 second heartbeat intervals.\n`
         md += `2. Maintain emergency standby diesel generators GEN_01 and GEN_02 in warm auto-transfer standby.\n`
@@ -229,8 +249,18 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
       md += `\n`
     }
 
+    md += `## 8. Simulation Scope\n`
+    md += `- **Data Source:** Synthetic Infrastructure Data\n`
+    md += `- **Simulation Mode:** Scenario Simulation\n`
+    md += `- **Scenario Horizon:** 20 simulated minutes\n`
+    md += `- **Decision Mode:** Human-in-the-Loop\n`
+    md += `- **Physical Control:** Not Enabled\n`
+    md += `- **Clinical Data:** Not Used\n\n`
+
     md += `---\n`
-    md += `*ResilienceOS Autonomic Healthcare Digital Twin Engine — Digital Stamp: \`SHA256:7f9b2d88c03e1a4f\`*\n`
+    md += `*ResilienceOS Digital Twin Simulation Engine*\n`
+    md += `*Simulation Mode • Synthetic Infrastructure Data • Human-in-the-Loop Decision Support*\n`
+    md += `*Generated: ${timeStr} | Simulation ID: \`${activeInc?.incident_id || 'INC-TRANSFORMER_01-01'}\`*\n`
     return md
   }
 
@@ -358,7 +388,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
       if (onNotify) onNotify('Exporting structured JSON report data...', 'info')
       const exportJson = {
         title: `ResilienceOS ${selectedReportType.toUpperCase()} Audit Data`,
-        document_classification: 'OFFICIAL // CRISIS COMMAND',
+        document_classification: 'OFFICIAL // HICS ADVISORY & SIMULATION',
         generated_at: generatedAt || new Date().toISOString(),
         selected_report_type: selectedReportType,
         time_range: timeRange,
@@ -383,23 +413,111 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
     if (activeInc && activeInc.is_active) {
       return (
         <div className="a4-section-block">
-          <span className="a4-section-heading">Active Incident Diagnostics</span>
-          <div className="a4-info-callout" style={{ borderLeft: '3px solid #FF4D4D', background: '#FFF5F5', padding: '6px 8px', borderRadius: '3px' }}>
+          <span className="a4-section-heading">Active Incident Diagnostics & Modeled Impact</span>
+          <div className="a4-info-callout" style={{ borderLeft: '3px solid #EF4444', background: '#FEF2F2', padding: '6px 8px', borderRadius: '3px' }}>
             <p className="a4-para" style={{ color: '#991B1B' }}>
-              <strong>CRITICAL OUTAGE:</strong> Incident <code>{activeInc.incident_id}</code> triggered by failure of <strong>{activeInc.source_asset_id}</strong>. Severity level is rated <strong>{activeInc.severity?.toUpperCase() || 'HIGH'}</strong>.
+              <strong>SIMULATED OUTAGE EVENT:</strong> Incident <code>{activeInc.incident_id}</code> evaluated on <strong>{activeInc.source_asset_id}</strong>. Severity rated <strong>{activeInc.severity?.toUpperCase() || 'HIGH'}</strong>. Configured scenario horizon: <strong>{activeInc.estimated_unmitigated_blackout_min || 18} minutes</strong>.
             </p>
           </div>
+
+          {/* Modeled Causal Dependency Cascade Chain */}
+          <div className="a4-cascade-diagram font-mono" style={{ margin: '6px 0' }}>
+            <span className="a4-sub-label">Modeled Causal Dependency Cascade</span>
+            <div className="cascade-path-flow">
+              <div className="cascade-node node-origin">
+                <span className="node-tag">FAILURE ORIGIN</span>
+                <span className="node-id">{activeInc.source_asset_id || 'TRANSFORMER_01'}</span>
+              </div>
+              <span className="cascade-arrow">➔</span>
+              <div className="cascade-node node-danger">
+                <span className="node-tag">PRIMARY ELECTRICAL FEED</span>
+                <span className="node-id">PRIMARY FEEDER</span>
+              </div>
+              <span className="cascade-arrow">➔</span>
+              <div className="cascade-node node-warning">
+                <span className="node-tag">DISTRIBUTION NODE</span>
+                <span className="node-id">MAIN_BUS</span>
+              </div>
+              <span className="cascade-arrow">➔</span>
+              <div className="cascade-node node-warning">
+                <span className="node-tag">DEPENDENT INFRASTRUCTURE</span>
+                <span className="node-id">CHILLER_PLANT</span>
+              </div>
+              <span className="cascade-arrow">➔</span>
+              <div className="cascade-node node-critical">
+                <span className="node-tag">AFFECTED SERVICE DOMAIN</span>
+                <span className="node-id">ICU + OT</span>
+              </div>
+            </div>
+            <p className="a4-cascade-subtext" style={{ fontSize: '7.5px', color: '#64748B', marginTop: '4px', fontStyle: 'italic', margin: '4px 0 0 0' }}>
+              The simulation traces state changes across configured infrastructure dependencies and estimates modeled downstream service impacts over simulated time.
+            </p>
+          </div>
+
           {includedSections.timeline && (
-            <div className="a4-timeline-items font-mono" style={{ marginTop: '6px' }}>
-              {timelineEvents.map((ev, idx) => (
-                <div className="a4-t-row" key={idx}>
-                  <span className="a4-t-dot" style={{ backgroundColor: ev.system_resilience_score < 60 ? '#FF4D4D' : '#FFB800' }} />
-                  <span className="a4-t-time">T+{ev.t_offset_min}m</span>
-                  <span className="a4-t-desc">
-                    <strong>{ev.title}:</strong> {ev.service_impact_summary}
-                  </span>
-                </div>
-              ))}
+            <div className="a4-timeline-items font-mono" style={{ marginTop: '4px' }}>
+              {timelineEvents.map((ev, idx) => {
+                const cleanSummary = (ev.service_impact_summary || '').replace(/^CRITICAL RESERVE BOUNDARY:\s*/i, '')
+                const displayTitle = (ev.title === 'Critical Reserve Depletion Boundary' || ev.title === 'Critical Exhaustion Boundary')
+                  ? 'Critical Reserve Boundary'
+                  : ev.title
+                return (
+                  <div className="a4-t-row" key={idx}>
+                    <span className="a4-t-dot" style={{ backgroundColor: ev.system_resilience_score < 60 ? '#FF4D4D' : '#FFB800' }} />
+                    <span className="a4-t-time">T+{ev.t_offset_min}m</span>
+                    <span className="a4-t-desc">
+                      <strong>{displayTitle}:</strong> {cleanSummary}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* What-If Multi-Attribute Strategy Evaluation Table directly inside Incident Report */}
+          {includedSections.response_strategies && effectiveWhatIf?.strategies?.length > 0 && (
+            <div style={{ marginTop: '8px' }}>
+              <span className="a4-section-heading">What-If Multi-Attribute Strategy Evaluation</span>
+              <p className="a4-para" style={{ color: '#64748B', fontSize: '7.5px', marginBottom: '3px' }}>
+                Multi-objective strategy comparison under the configured Balanced profile. Human review is required before selecting a response strategy.
+              </p>
+              {effectiveWhatIf?.causal_explanation && (
+                <p className="a4-para" style={{ color: '#334155', marginBottom: '4px', fontSize: '7.5px' }}>
+                  <strong>Evaluation Rationale:</strong> {effectiveWhatIf.causal_explanation}
+                </p>
+              )}
+              <div className="a4-table-wrap">
+                <table className="a4-table font-mono">
+                  <thead>
+                    <tr>
+                      <th>Rank</th>
+                      <th>Strategy Option</th>
+                      <th>Proj. R</th>
+                      <th>Simulated ICU Cont.</th>
+                      <th>Simulated OT Cont.</th>
+                      <th>Load Shed</th>
+                      <th>Simulated Runtime</th>
+                      <th>Modeled Risk Profile</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {effectiveWhatIf.strategies.map((s, idx) => (
+                      <tr key={idx} style={s.is_recommended ? { background: '#F0FDF4', fontWeight: 'bold' } : {}}>
+                        <td>{s.is_recommended ? '⭐ HIGHEST SIMULATED INDEX' : `#${s.recommendation_rank || idx + 1}`}</td>
+                        <td>{s.strategy_code}</td>
+                        <td style={{ color: s.projected_resilience_score > 80 ? '#10B981' : '#F59E0B' }}>
+                          {s.projected_resilience_score?.toFixed(1)}
+                        </td>
+                        <td>{s.icu_continuity_pct?.toFixed(0)}%</td>
+                        <td>{s.operating_theatre_continuity_pct?.toFixed(0)}%</td>
+                        <td>{s.non_critical_load_shed_kw?.toFixed(0)} kW</td>
+                        <td>{s.backup_runtime_remaining_hours?.toFixed(1)}h</td>
+                        <td><span className={`a4-badge ${s.risk_level?.toLowerCase() === 'low' ? 'badge-green' : s.risk_level?.toLowerCase() === 'medium' ? 'badge-blue' : 'badge-red'}`}>{s.risk_level}</span></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           )}
         </div>
@@ -513,10 +631,13 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
     const strats = effectiveWhatIf?.strategies || []
     return (
       <div className="a4-section-block">
-        <span className="a4-section-heading">What-If Multi-Attribute Response Comparison</span>
+        <span className="a4-section-heading">What-If Multi-Attribute Strategy Evaluation</span>
+        <p className="a4-para" style={{ color: '#64748B', fontSize: '7.5px', marginBottom: '3px' }}>
+          Multi-objective strategy comparison under the configured Balanced profile. Human review is required before selecting a response strategy.
+        </p>
         {effectiveWhatIf?.causal_explanation && (
-          <p className="a4-para" style={{ color: '#1E293B', marginBottom: '6px' }}>
-            <strong>Causal Rationale:</strong> {effectiveWhatIf.causal_explanation}
+          <p className="a4-para" style={{ color: '#1E293B', marginBottom: '6px', fontSize: '7.5px' }}>
+            <strong>Evaluation Rationale:</strong> {effectiveWhatIf.causal_explanation}
           </p>
         )}
         {strats.length > 0 ? (
@@ -525,19 +646,19 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
               <thead>
                 <tr>
                   <th>Rank</th>
-                  <th>Strategy</th>
+                  <th>Strategy Option</th>
                   <th>Proj. R</th>
-                  <th>ICU Cont.</th>
-                  <th>OT Cont.</th>
+                  <th>Simulated ICU Cont.</th>
+                  <th>Simulated OT Cont.</th>
                   <th>Load Shed</th>
-                  <th>Runtime</th>
-                  <th>Risk</th>
+                  <th>Simulated Runtime</th>
+                  <th>Modeled Risk Profile</th>
                 </tr>
               </thead>
               <tbody>
                 {strats.map((s, idx) => (
                   <tr key={idx} style={s.is_recommended ? { background: '#F0FDF4', fontWeight: 'bold' } : {}}>
-                    <td>{s.is_recommended ? '⭐ #1' : `#${s.recommendation_rank || idx + 1}`}</td>
+                    <td>{s.is_recommended ? '⭐ HIGHEST SIMULATED INDEX' : `#${s.recommendation_rank || idx + 1}`}</td>
                     <td>{s.strategy_code}</td>
                     <td style={{ color: s.projected_resilience_score > 80 ? '#10B981' : '#F59E0B' }}>
                       {s.projected_resilience_score?.toFixed(1)}
@@ -729,10 +850,10 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
         <div className="a4-brand-row">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '8px' }}>
             <span className="a4-logo-text">Resilience<span style={{ color: '#00A3FF' }}>OS</span></span>
-            <span className="a4-tag-badge font-mono">OFFICIAL // CRISIS COMMAND</span>
+            <span className="a4-tag-badge font-mono">OFFICIAL // DECISION-SUPPORT & SIMULATION BRIEFING</span>
           </div>
           <span className="a4-doc-title">
-            {selectedReportType === 'incident' && 'Incident Analysis & Containment Audit'}
+            {selectedReportType === 'incident' && 'Incident Containment & Decision-Support Briefing'}
             {selectedReportType === 'simulation' && 'Executive Simulation Audit Report'}
             {selectedReportType === 'whatif' && 'What-If Multi-Attribute Strategy Evaluation'}
             {selectedReportType === 'risk' && 'Comprehensive Campus Threat & Risk Assessment'}
@@ -759,8 +880,8 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
           <span className="a4-section-heading">Executive Summary</span>
           <p className="a4-para">
             {activeInc && activeInc.is_active
-              ? `A failure event was injected at ${activeInc.source_asset_id}, triggering automated cascade propagation across campus power and environmental networks. ${affectedAssetsCount} assets are compromised with ${affectedServicesCount} services in degraded state. Autonomic mitigation protocols evaluated.`
-              : `Comprehensive autonomic audit executed across all campus healthcare delivery and physical infrastructure assets. All vital clinical circuits maintain continuous redundant supply with optimal resilience indices.`}
+              ? `A simulated failure event was evaluated for ${activeInc.source_asset_id}, tracing modeled cascade propagation across coupled electrical and environmental networks. ${affectedAssetsCount} modeled infrastructure assets enter a modeled failed or degraded state within the simulated scenario, placing ${affectedServicesCount} modeled service domains in a degraded state. Multi-objective response strategies evaluated under the configured Balanced profile.`
+              : `Comprehensive digital twin audit executed across all campus healthcare delivery and physical infrastructure assets. All vital clinical circuits maintain continuous redundant supply with optimal resilience indices.`}
           </p>
         </div>
       )}
@@ -790,7 +911,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
             <span className="a4-kpi-val" style={{ color: baselineDelta < 0 ? '#FF4D4D' : '#10B981' }}>
               {baselineDelta >= 0 ? `+${baselineDelta.toFixed(1)}` : baselineDelta.toFixed(1)}
             </span>
-            <span className="a4-kpi-lbl">Delta vs Baseline</span>
+            <span className="a4-kpi-lbl">Delta vs Pre-Incident Baseline</span>
           </div>
         </div>
       )}
@@ -803,23 +924,58 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
       {selectedReportType === 'resilience' && renderResilienceContent()}
       {selectedReportType === 'perf' && renderPerformanceContent()}
 
-      {/* 6. Actionable Tactical Directives */}
+      {/* 6. Simulated Decision-Support Considerations */}
       {includedSections.recommendations && (
         <div className="a4-section-block">
-          <span className="a4-section-heading">Actionable Tactical Directives</span>
+          <span className="a4-section-heading">Simulated Decision-Support Considerations</span>
           <div className="a4-directives-list font-mono" style={{ fontSize: '8px', color: '#334155', display: 'flex', flexDirection: 'column', gap: '3px' }}>
-            <div>1. <strong>Life-Safety Integrity:</strong> Maintain dedicated continuous feed to ICU life-support and Surgery Theatre anesthesia systems.</div>
-            <div>2. <strong>Contingency Autonomy:</strong> Verify automatic transfer switch latency (&lt;15s) and diesel generator fuel reserves (&gt;8 hours).</div>
-            <div>3. <strong>Autonomic Load Management:</strong> Shed non-critical administrative and transient zone HVAC loads upon feeder degradation.</div>
+            <div>1. <strong>Human Review Protocol:</strong> Conduct human operator review of simulated strategy options prior to selecting or executing any physical response.</div>
+            <div>2. <strong>Critical-Service Continuity:</strong> Strategy models maintaining the configured ICU-supporting infrastructure load at 100% before auxiliary transfer transitions.</div>
+            <div>3. <strong>Simulated Load Shedding:</strong> Strategy models shedding non-critical administrative and transient HVAC loads ({effectiveWhatIf?.strategies?.[0]?.non_critical_load_shed_kw ? `${effectiveWhatIf.strategies[0].non_critical_load_shed_kw.toFixed(0)} kW` : '120 kW'}) to preserve emergency generator reserve duration ({effectiveWhatIf?.strategies?.[0]?.backup_runtime_remaining_hours ? `${effectiveWhatIf.strategies[0].backup_runtime_remaining_hours.toFixed(1)} h` : '6.2 h'}).</div>
           </div>
         </div>
       )}
 
-      {/* 7. Verification Stamp Footer */}
-      <div className="a4-doc-footer font-mono">
-        <span>ResilienceOS Decision Engine v2.4</span>
-        <span>AUTH STAMP: SHA256-7F9B-2D88</span>
-        <span>Generated: {generatedAt ? new Date(generatedAt).toISOString().slice(0, 19).replace('T', ' ') : 'Live'}</span>
+      {/* 7. Simulation Scope */}
+      <div className="a4-section-block a4-scope-block font-mono">
+        <span className="a4-section-heading">Simulation Scope</span>
+        <div className="a4-scope-grid">
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Data Source:</span>
+            <span className="a4-scope-val">Synthetic Infrastructure Data</span>
+          </div>
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Simulation Mode:</span>
+            <span className="a4-scope-val">Scenario Simulation</span>
+          </div>
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Scenario Horizon:</span>
+            <span className="a4-scope-val">20 simulated minutes</span>
+          </div>
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Decision Mode:</span>
+            <span className="a4-scope-val">Human-in-the-Loop</span>
+          </div>
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Physical Control:</span>
+            <span className="a4-scope-val">Not Enabled</span>
+          </div>
+          <div className="a4-scope-item">
+            <span className="a4-scope-key">Clinical Data:</span>
+            <span className="a4-scope-val">Not Used</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 8. Verification Stamp Footer */}
+      <div className="a4-doc-footer font-mono" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
+          <span style={{ fontWeight: '700' }}>ResilienceOS Digital Twin Simulation Engine</span>
+          <span style={{ color: '#64748B', fontSize: '7px' }}>Simulation Mode • Synthetic Infrastructure Data • Human-in-the-Loop Decision Support</span>
+        </div>
+        <div style={{ textAlign: 'right', color: '#475569', fontSize: '7.5px' }}>
+          <span>Generated: {generatedAt ? new Date(generatedAt).toISOString().slice(0, 10) : 'Live'} | Sim ID: {activeInc?.incident_id || 'INC-TRANSFORMER_01-01'}</span>
+        </div>
       </div>
     </div>
   )
@@ -836,7 +992,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
   const exportJson = useMemo(() => {
     return {
       title: `ResilienceOS ${selectedReportType.toUpperCase()} Audit Data`,
-      document_classification: 'OFFICIAL // CRISIS COMMAND',
+      document_classification: 'OFFICIAL // HOSPITAL INCIDENT DECISION-SUPPORT BRIEFING',
       generated_at: generatedAt || new Date().toISOString(),
       selected_report_type: selectedReportType,
       time_range: timeRange,
@@ -1136,7 +1292,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
                   <span className="finding-num font-mono">
                     {baselineDelta >= 0 ? `+${baselineDelta.toFixed(1)}` : baselineDelta.toFixed(1)}
                   </span>
-                  <span className="finding-lbl">Delta vs Baseline</span>
+                  <span className="finding-lbl">Delta vs Pre-Incident Baseline</span>
                 </div>
               </div>
             </div>

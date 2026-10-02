@@ -99,23 +99,86 @@
    -------------------------------------------------------------------------- */
 
 .sim-main-grid {
-  display: grid;
-  grid-template-columns: 310px 1fr;
-  gap: 16px;
+  display: flex;
+  flex-direction: row;
   align-items: stretch;
-}
-
-@media (max-width: 1100px) {
-  .sim-main-grid {
-    grid-template-columns: 1fr;
-  }
+  gap: 0;
+  position: relative;
+  width: 100%;
 }
 
 /* Left Column */
 .sim-left-controls {
+  flex: 0 0 auto;
+  min-width: 220px;
+  max-width: 500px;
   display: flex;
   flex-direction: column;
   gap: 14px;
+}
+
+/* Draggable Vertical Resizer Handle between Left Sidebar & Right Workspace */
+.sim-sidebar-divider-handle {
+  width: 18px;
+  margin: 0 4px;
+  cursor: col-resize !important;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 40;
+  transition: all 0.18s ease;
+  user-select: none !important;
+  flex-shrink: 0;
+  touch-action: none;
+  background: transparent;
+}
+
+.sim-sidebar-divider-handle:hover .sim-split-accent-bar,
+.sim-sidebar-divider-handle.is-active .sim-split-accent-bar {
+  opacity: 1;
+  width: 4px;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 163, 255, 0.4);
+}
+
+[data-theme="light"] .sim-sidebar-divider-handle:hover .sim-split-accent-bar,
+[data-theme="light"] .sim-sidebar-divider-handle.is-active .sim-split-accent-bar {
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.5), 0 0 16px rgba(0, 163, 255, 0.3);
+}
+
+.sim-sidebar-divider-handle:hover .divider-grip-indicator,
+.sim-sidebar-divider-handle.is-active .divider-grip-indicator {
+  opacity: 1;
+  transform: scale(1.05);
+  box-shadow: 0 0 14px rgba(0, 240, 255, 0.85);
+}
+
+[data-theme="light"] .sim-sidebar-divider-handle:hover .divider-grip-indicator,
+[data-theme="light"] .sim-sidebar-divider-handle.is-active .divider-grip-indicator {
+  box-shadow: 0 2px 10px rgba(2, 132, 199, 0.4);
+}
+
+.sim-main-grid.is-sidebar-resizing {
+  user-select: none !important;
+  cursor: col-resize !important;
+}
+
+.sim-main-grid.is-sidebar-resizing .sim-canvas-viewport {
+  pointer-events: none !important;
+}
+
+@media (max-width: 1100px) {
+  .sim-main-grid {
+    flex-direction: column;
+    gap: 16px;
+  }
+  .sim-left-controls {
+    width: 100% !important;
+    max-width: none;
+  }
+  .sim-sidebar-divider-handle {
+    display: none;
+  }
 }
 
 .sim-panel-box {
@@ -288,10 +351,12 @@
    -------------------------------------------------------------------------- */
 
 .sim-right-workspace {
+  flex: 1 1 0;
+  min-width: 320px;
+  margin-left: 6px;
   display: flex;
   flex-direction: column;
   gap: 14px;
-  min-width: 0;
 }
 
 .sim-visual-card {
@@ -817,7 +882,7 @@
   background: transparent;
 }
 
-/* The vertical accent line: hidden (opacity: 0) by default */
+/* The vertical accent line: hidden (opacity: 0) by default until cursor reaches there */
 .sim-split-accent-bar {
   position: absolute;
   top: 4px;
@@ -825,7 +890,7 @@
   left: 50%;
   transform: translateX(-50%);
   width: 3px;
-  background: linear-gradient(180deg, #A855F7 0%, #8B5CF6 50%, #6366F1 100%);
+  background: linear-gradient(180deg, #00F0FF 0%, #00A3FF 50%, #38BDF8 100%);
   border-radius: 4px;
   opacity: 0;
   transition: opacity 0.2s ease, width 0.2s ease, box-shadow 0.2s ease;
@@ -833,18 +898,23 @@
 }
 
 [data-theme="light"] .sim-split-accent-bar {
-  background: linear-gradient(180deg, #9333EA 0%, #8B5CF6 50%, #7C3AED 100%);
+  background: linear-gradient(180deg, #0284C7 0%, #00A3FF 50%, #38BDF8 100%);
 }
 
-/* Only when user reaches the cursor at that point or drags: reveal the purple bar */
+/* Only when user reaches the cursor at that point or drags: reveal the cyan/blue bar */
 .sim-split-divider-handle:hover .sim-split-accent-bar,
 .sim-split-divider-handle.is-active .sim-split-accent-bar {
   opacity: 1;
-  width: 4.5px;
-  box-shadow: 0 0 10px rgba(139, 92, 246, 0.7), 0 0 20px rgba(0, 240, 255, 0.4);
+  width: 4px;
+  box-shadow: 0 0 10px rgba(0, 240, 255, 0.7), 0 0 20px rgba(0, 163, 255, 0.4);
 }
 
-/* Centered Grip Handle Pill: hidden (opacity: 0) by default */
+[data-theme="light"] .sim-split-divider-handle:hover .sim-split-accent-bar,
+[data-theme="light"] .sim-split-divider-handle.is-active .sim-split-accent-bar {
+  box-shadow: 0 0 10px rgba(2, 132, 199, 0.5), 0 0 16px rgba(0, 163, 255, 0.3);
+}
+
+/* Centered Grip Handle Pill: hidden (opacity: 0) by default until hovered/dragged */
 .divider-grip-indicator {
   position: relative;
   z-index: 2;
@@ -854,21 +924,21 @@
   justify-content: center;
   gap: 3px;
   width: 14px;
-  height: 38px;
-  background: #8B5CF6;
-  border: 2px solid #FFFFFF;
+  height: 36px;
+  background: #06152B;
+  border: 1.5px solid #00F0FF;
   border-radius: 12px;
-  box-shadow: 0 2px 10px rgba(139, 92, 246, 0.6), 0 0 10px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 0 12px rgba(0, 240, 255, 0.6);
   opacity: 0;
   transform: scale(0.85);
-  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: opacity 0.2s ease, transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
   pointer-events: none;
 }
 
-[data-theme="dark"] .divider-grip-indicator {
-  background: #8B5CF6;
-  border: 2px solid #C084FC;
-  box-shadow: 0 0 14px rgba(168, 85, 247, 0.9), 0 2px 6px rgba(0, 0, 0, 0.8);
+[data-theme="light"] .divider-grip-indicator {
+  background: #FFFFFF;
+  border: 1.5px solid #0284C7;
+  box-shadow: 0 2px 8px rgba(2, 132, 199, 0.35);
 }
 
 /* Only when user reaches the cursor at that point or drags: reveal the grip handle */
@@ -876,17 +946,19 @@
 .sim-split-divider-handle.is-active .divider-grip-indicator {
   opacity: 1;
   transform: scale(1.05);
-  background: #A855F7;
-  border-color: #FFFFFF;
-  box-shadow: 0 0 16px rgba(168, 85, 247, 0.95);
 }
 
 .grip-dot {
   width: 3px;
   height: 3px;
   border-radius: 50%;
-  background: #FFFFFF;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  background: #00F0FF;
+  box-shadow: 0 0 4px #00F0FF;
+}
+
+[data-theme="light"] .grip-dot {
+  background: #0284C7;
+  box-shadow: none;
 }
 
 .sim-canvas-viewport.is-split-mode {

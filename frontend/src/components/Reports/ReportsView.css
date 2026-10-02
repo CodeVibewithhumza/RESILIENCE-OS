@@ -827,6 +827,91 @@
   color: #475569;
 }
 
+/* Modeled Causal Dependency Cascade Chain */
+.a4-cascade-diagram {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 5px 8px;
+}
+
+.a4-sub-label {
+  font-size: 7.5px;
+  font-weight: 700;
+  color: #64748B;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.cascade-path-flow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3px;
+  flex-wrap: nowrap;
+}
+
+.cascade-node {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3px 5px;
+  border-radius: 3px;
+  flex: 1;
+  min-width: 60px;
+  text-align: center;
+  border: 1px solid transparent;
+}
+
+.cascade-node .node-tag {
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  line-height: 1.1;
+}
+
+.cascade-node .node-id {
+  font-size: 7.5px;
+  font-weight: 700;
+  margin-top: 1px;
+  line-height: 1.1;
+}
+
+.cascade-node.node-origin {
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+  color: #1D4ED8;
+}
+
+.cascade-node.node-danger {
+  background: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+
+.cascade-node.node-warning {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+  color: #D97706;
+}
+
+.cascade-node.node-critical {
+  background: #FEF2F2;
+  border-color: #FCA5A5;
+  color: #B91C1C;
+}
+
+.cascade-arrow {
+  color: #94A3B8;
+  font-size: 8px;
+  font-weight: bold;
+  flex-shrink: 0;
+}
+
 /* Tag classification badge in A4 header */
 .a4-tag-badge {
   font-size: 7px;
@@ -908,6 +993,40 @@
   border: 1px solid #FECACA;
 }
 
+/* Simulation Scope & Assumptions block */
+.a4-scope-block {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 4px;
+  padding: 4px 6px;
+  margin-top: 2px;
+}
+
+.a4-scope-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2px 6px;
+  font-size: 7px;
+  margin-top: 2px;
+}
+
+.a4-scope-item {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+
+.a4-scope-key {
+  color: #64748B;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.a4-scope-val {
+  color: #1E293B;
+  font-weight: 500;
+}
+
 /* A4 Footer with verification stamp */
 .a4-doc-footer {
   display: flex;
@@ -916,8 +1035,8 @@
   font-size: 7px;
   color: #94A3B8;
   border-top: 1px solid #E2E8F0;
-  padding-top: 6px;
-  margin-top: 6px;
+  padding-top: 5px;
+  margin-top: 4px;
 }
 
 /* Export Dropdown in Preview Header */

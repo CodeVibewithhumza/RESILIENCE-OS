@@ -669,7 +669,9 @@ export function buildAssetsMap(assets = [], services = [], incident = null, simu
       map[incident.source_asset_id] = {
         ...map[incident.source_asset_id],
         status: 'failed',
-        health_score: 0.0
+        health_score: 0.0,
+        current_load: 0.0,
+        available_capacity: 0.0
       }
     }
     if (Array.isArray(incident.affected_asset_ids)) {
@@ -710,14 +712,32 @@ export function buildTelemetryMatrixRows(assetsMap = {}, incident = null) {
     const status = asset.status || 'normal'
 
     let telemetry = null
-    if (asset.metadata?.ventilator_active) telemetry = 'Ventilator: ON'
-    else if (asset.metadata?.spo2_pct) telemetry = `SpO2: ${asset.metadata.spo2_pct}%`
-    else if (asset.current_load != null && asset.capacity_unit) {
+    if (status === 'failed') {
+      if (asset.capacity_unit === 'kW') telemetry = '0 kW (Offline)'
+      else if (asset.capacity_unit === 'PSI') telemetry = '0 PSI (Depleted)'
+      else telemetry = 'Offline'
+    } else if (status === 'starting' && (id === 'GEN_01' || id === 'GEN_02')) {
+      telemetry = '0 kW (Starting)'
+    } else if (id === 'UPS_CRITICAL') {
+      const batPct = asset.battery_level_pct != null ? asset.battery_level_pct : (asset.health_score != null ? Math.round(asset.health_score) : 95)
+      telemetry = asset.current_load != null ? `${asset.current_load.toFixed(0)} kW (${batPct}% Bat)` : `${batPct}% Battery`
+    } else if (id === 'CHILLER_PLANT' && status === 'degraded') {
+      telemetry = asset.current_load != null ? `${asset.current_load.toFixed(0)} kW (50% Flow)` : '120 kW (Curtailed)'
+    } else if (asset.metadata?.ventilator_active) {
+      telemetry = 'Ventilator: ON'
+    } else if (asset.metadata?.spo2_pct) {
+      telemetry = `SpO2: ${asset.metadata.spo2_pct}%`
+    } else if (asset.current_load != null && asset.capacity_unit) {
       telemetry = `${asset.current_load.toFixed(0)} ${asset.capacity_unit}`
-    } else if (asset.fuel_level_pct != null) telemetry = `${asset.fuel_level_pct}% Fuel`
-    else if (asset.battery_level_pct != null) telemetry = `${asset.battery_level_pct}% Bat`
-    else if (asset.temperature_c != null) telemetry = `${asset.temperature_c}°C`
-    else if (asset.pressure_psi != null) telemetry = `${asset.pressure_psi} PSI`
+    } else if (asset.fuel_level_pct != null) {
+      telemetry = `${asset.fuel_level_pct}% Fuel`
+    } else if (asset.battery_level_pct != null) {
+      telemetry = `${asset.battery_level_pct}% Bat`
+    } else if (asset.temperature_c != null) {
+      telemetry = `${asset.temperature_c}°C`
+    } else if (asset.pressure_psi != null) {
+      telemetry = `${asset.pressure_psi} PSI`
+    }
 
     let shortName = def.label
     if (def.meshType === 'icu_bed') shortName = `ICU Bed ${def.bedNumber}`
@@ -756,9 +776,11 @@ export function buildTelemetryMatrixRows(assetsMap = {}, incident = null) {
       healthScore: asset.health_score != null ? Math.round(asset.health_score) : 100,
       telemetryText: telemetry || 'Nominal',
       isSourceFailure:
-        (incident?.source_asset_id &&
-          (id === incident.source_asset_id || def.label === incident.source_asset_id)) ||
-        status === 'failed'
+        status === 'failed' ||
+        (Boolean(incident?.is_active) &&
+          incident?.source_asset_id &&
+          (id === incident.source_asset_id || def.label === incident.source_asset_id) &&
+          status !== 'normal')
     }
   })
 }

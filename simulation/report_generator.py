@@ -31,6 +31,7 @@ class SimulationReportGenerator:
 
         lines: List[str] = []
         lines.append(f"# 🏥 ResilienceOS — Executive Simulation Audit Report")
+        lines.append(f"**Document Classification:** `OFFICIAL // HOSPITAL INCIDENT DECISION-SUPPORT BRIEFING`")
         lines.append(f"**Scenario / Incident:** {title}")
         lines.append(f"**Generated At:** `{timestamp_str}`")
         lines.append(f"**Overall Campus Status:** `{resilience.status_label}` (Score: **{resilience.overall_score:.1f} / 100**)")
@@ -46,15 +47,33 @@ class SimulationReportGenerator:
             lines.append(f"| **Severity** | `{incident.severity.value.upper() if hasattr(incident.severity, 'value') else incident.severity}` |")
             lines.append(f"| **Impacted Infrastructure Assets** | `{len(incident.affected_asset_ids)} assets` |")
             lines.append(f"| **Impacted Clinical Services** | `{len(incident.affected_service_ids)} services` |")
-            lines.append(f"| **Unmitigated Blackout Horizon** | `{incident.estimated_unmitigated_blackout_min or 'N/A'} minutes` |")
-            lines.append(f"| **Active Mitigation Strategy** | `{incident.active_mitigation_strategy or 'None (Unmitigated)'}` |")
+            lines.append(f"| **Configured Scenario Horizon** | `{incident.estimated_unmitigated_blackout_min or 'N/A'} minutes` |")
+            lines.append(f"| **Mitigation Decision Model** | `Multi-Objective Strategy Evaluation (Balanced Profile)` |")
         else:
             lines.append("| **Incident Status** | `NORMAL (No Active Outage)` |")
             lines.append(f"| **Baseline Score** | `{resilience.overall_score:.1f} / 100` |")
         lines.append("")
 
+        # 1.1 Causal Cascade Propagation Chain
+        if incident and incident.is_active:
+            source = incident.source_asset_id or "TRANSFORMER_01"
+            lines.append("## 2. Modeled Causal Dependency Cascade")
+            lines.append("```text")
+            lines.append(f"Failure Origin:           [ {source} ]")
+            lines.append("       ↓")
+            lines.append("Primary Electrical Feed:  [ PRIMARY FEEDER ]")
+            lines.append("       ↓")
+            lines.append("Distribution Node:        [ MAIN_BUS ]")
+            lines.append("       ↓")
+            lines.append("Dependent Infrastructure: [ CHILLER_PLANT ]")
+            lines.append("       ↓")
+            lines.append("Affected Service Domain:  [ ICU + OT ]")
+            lines.append("```")
+            lines.append("*The simulation traces state changes across configured infrastructure dependencies and estimates modeled downstream service impacts over simulated time.*")
+            lines.append("")
+
         # 2. Canonical Resilience Index Breakdown
-        lines.append("## 2. Resilience Index Breakdown")
+        lines.append("## 3. Resilience Index Breakdown")
         lines.append("Formulation: **$R = 100 \\times [0.35C + 0.20A + 0.20B + 0.15(1 - T_{norm}) + 0.10(1 - U_{norm})]$**")
         lines.append("")
         lines.append("| Sub-Score Component | Weight | Raw Component Value [0.0 - 1.0] | Scaled Gauge [0 - 100] | Clinical Interpretation |")
@@ -76,7 +95,7 @@ class SimulationReportGenerator:
 
         # 3. Risk & Threshold Crossings
         if risk_summary:
-            lines.append("## 3. Threat Assessment & Threshold Crossings")
+            lines.append("## 4. Threat Assessment & Threshold Crossings")
             lines.append(f"- **Campus Composite Risk Score:** `{risk_summary.overall_risk_score:.2f}` (`{risk_summary.overall_risk_level.value.upper()}`)")
             lines.append(f"- **Highest Vulnerability Asset:** `{risk_summary.highest_risk_asset or 'None'}`")
             lines.append(f"- **Critical Services At Risk:** `{', '.join(risk_summary.critical_services_at_risk) if risk_summary.critical_services_at_risk else 'None'}`")
@@ -95,7 +114,7 @@ class SimulationReportGenerator:
 
         # 4. Cascade Propagation Timeline
         if incident and incident.timeline:
-            lines.append("## 4. Cascading Failure Timeline")
+            lines.append("## 5. Cascading Failure Timeline")
             lines.append("| Time Offset | Event Title | Affected Nodes | Projected Score | Service Impact |")
             lines.append("| :---: | :--- | :--- | :---: | :--- |")
             for event in incident.timeline:
@@ -107,14 +126,14 @@ class SimulationReportGenerator:
 
         # 5. What-If Strategy Evaluation Matrix
         if what_if and what_if.strategies:
-            lines.append("## 5. What-If Response Strategy Outcome Comparison")
-            lines.append(f"**Recommended Strategy:** `{what_if.recommended_strategy_id}` (Rank #1)")
-            lines.append(f"**Causal Rationale:** {what_if.causal_explanation}")
+            lines.append("## 6. What-If Response Strategy Outcome Comparison")
+            lines.append(f"**Highest Projected Resilience Score:** Strategy `{what_if.recommended_strategy_id}` (Rank #1 ⭐ **RECOMMENDED**)")
+            lines.append(f"**Evaluation Rationale:** {what_if.causal_explanation}")
             lines.append("")
-            lines.append("| Rank | Strategy Name | Code | Projected $R$ | ICU Continuity | OT Continuity | Shed Load (kW) | Backup Runtime | Risk Level |")
+            lines.append("| Rank | Strategy Option | Code | Projected $R$ | Simulated ICU Cont. | Simulated OT Cont. | Load Shed | Simulated Runtime | Modeled Risk Profile |")
             lines.append("| :---: | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: |")
             for s in what_if.strategies:
-                badge = "⭐ **RECOMMENDED**" if s.is_recommended else f"#{s.recommendation_rank}"
+                badge = "⭐ **HIGHEST SIMULATED INDEX**" if s.is_recommended else f"#{s.recommendation_rank}"
                 lines.append(
                     f"| {badge} | {s.strategy_name} | `{s.strategy_code}` | **{s.projected_resilience_score:.1f}** | "
                     f"`{s.icu_continuity_pct:.0f}%` | `{s.operating_theatre_continuity_pct:.0f}%` | `{s.non_critical_load_shed_kw:.0f} kW` | "
@@ -123,21 +142,30 @@ class SimulationReportGenerator:
             lines.append("")
 
         # 6. Tactical Directives
-        lines.append("## 6. Actionable Tactical Directives")
+        lines.append("## 7. Actionable Tactical Directives & Decision-Support Considerations")
         if what_if and what_if.strategies:
             best = what_if.strategies[0]
-            lines.append(f"1. **Deploy Recommended Strategy:** `{best.strategy_name}` (`{best.strategy_code}`).")
-            lines.append(f"2. **Preserve Life-Safety Circuits:** Maintain ICU at `{best.icu_continuity_pct:.0f}%` and OT at `{best.operating_theatre_continuity_pct:.0f}%`.")
+            lines.append(f"1. **Human Review Protocol:** Conduct human operator review of simulated strategy options prior to selecting or executing any physical response.")
+            lines.append(f"2. **Critical-Service Continuity:** Strategy models maintaining the configured ICU-supporting load at `{best.icu_continuity_pct:.0f}%` and Operating Theatres at `{best.operating_theatre_continuity_pct:.0f}%` in the simulation before auxiliary transfer transitions.")
             if best.non_critical_load_shed_kw > 0:
-                lines.append(f"3. **Execute Load Shedding:** Shed `{best.non_critical_load_shed_kw:.0f} kW` of non-critical corridors/admin HVAC to extend backup reserves.")
-            lines.append(f"4. **Monitor Blackout Reserve:** Current operational buffer is `{best.backup_runtime_remaining_hours:.1f} hours`.")
+                lines.append(f"3. **Simulated Load Shedding:** Assess shedding `{best.non_critical_load_shed_kw:.0f} kW` of auxiliary loads to extend simulated generator reserve duration (`{best.backup_runtime_remaining_hours:.1f} h`).")
         else:
             lines.append("1. Continue monitoring normal telemetry streams at 1-second intervals.")
             lines.append("2. Maintain standby generators in ready offline status.")
 
         lines.append("")
+        lines.append("## 8. Simulation Scope")
+        lines.append("- **Data Source:** Synthetic Infrastructure Data")
+        lines.append("- **Simulation Mode:** Scenario Simulation")
+        lines.append("- **Scenario Horizon:** 20 simulated minutes")
+        lines.append("- **Decision Mode:** Human-in-the-Loop")
+        lines.append("- **Physical Control:** Not Enabled")
+        lines.append("- **Clinical Data:** Not Used")
+        lines.append("")
         lines.append("---")
-        lines.append("*Report generated by ResilienceOS v2.4 Autonomic Simulation & Decision Engine.*")
+        lines.append("*ResilienceOS Digital Twin Simulation Engine*")
+        lines.append("*Simulation Mode • Synthetic Infrastructure Data • Human-in-the-Loop Decision Support*")
+        lines.append(f"*Generated: {timestamp_str} | Simulation ID: `{incident.incident_id if incident else 'INC-BASELINE'}`*")
 
         return "\n".join(lines)
 

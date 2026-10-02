@@ -94,15 +94,58 @@ export default function IncidentTimelineView({
     { id: 'SERVICE_OT', label: 'OT', status: isIncActive ? 'Safe (95%)' : 'Normal', top: '51%', left: '68%', color: 'cyan' }
   ]
 
-  // Service impact matrix rows
+  // Dynamic Service impact matrix rows reflecting active scenario
+  const isGas = incident?.source_asset_id === 'OXYGEN_MANIFOLD'
+  const isWater = incident?.source_asset_id === 'WATER_PUMP_STATION'
+  const isHvac = incident?.source_asset_id === 'CHILLER_PLANT'
+  const isPwr = !isGas && !isWater && !isHvac
+
   const serviceMatrixRows = [
-    { name: 'Emergency', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'ICU', t0: 'normal', t5: isIncActive ? 'risk' : 'normal', t10: isIncActive ? 'risk' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'OT', t0: 'normal', t5: isIncActive ? 'degraded' : 'normal', t10: isIncActive ? 'risk' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'Wards', t0: 'normal', t5: 'normal', t10: isIncActive ? 'degraded' : 'normal', t15: isIncActive ? 'degraded' : 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'OPD', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'Laboratory', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' },
-    { name: 'Radiology', t0: 'normal', t5: 'normal', t10: 'normal', t15: 'normal', t30: 'normal', t45: 'normal' }
+    {
+      name: 'Emergency (ED)',
+      t0: isIncActive ? (isGas ? 'degraded' : 'normal') : 'normal',
+      t5: isIncActive ? (isGas ? 'risk' : isPwr ? 'degraded' : 'normal') : 'normal',
+      t10: isIncActive ? (isGas ? 'failed' : isPwr ? 'risk' : 'degraded') : 'normal',
+      t15: isIncActive ? (isGas ? 'failed' : isPwr ? 'failed' : 'degraded') : 'normal',
+      t30: isIncActive ? 'degraded' : 'normal',
+      t45: 'normal'
+    },
+    {
+      name: 'Intensive Care (ICU)',
+      t0: isIncActive ? (isGas ? 'risk' : 'normal') : 'normal',
+      t5: isIncActive ? (isGas ? 'failed' : isHvac ? 'risk' : isWater ? 'degraded' : 'degraded') : 'normal',
+      t10: isIncActive ? (isGas ? 'failed' : isHvac ? 'failed' : isWater ? 'risk' : 'risk') : 'normal',
+      t15: isIncActive ? 'failed' : 'normal',
+      t30: isIncActive ? 'degraded' : 'normal',
+      t45: 'normal'
+    },
+    {
+      name: 'Surgical (OT)',
+      t0: isIncActive ? (isGas || isHvac || isWater ? 'risk' : 'degraded') : 'normal',
+      t5: isIncActive ? (isGas || isHvac ? 'failed' : isWater ? 'risk' : 'risk') : 'normal',
+      t10: isIncActive ? 'failed' : 'normal',
+      t15: isIncActive ? 'failed' : 'normal',
+      t30: isIncActive ? 'degraded' : 'normal',
+      t45: 'normal'
+    },
+    {
+      name: 'Inpatient Wards',
+      t0: isIncActive ? (isPwr ? 'risk' : isWater ? 'degraded' : 'normal') : 'normal',
+      t5: isIncActive ? (isPwr ? 'risk' : isWater ? 'risk' : isHvac ? 'degraded' : 'normal') : 'normal',
+      t10: isIncActive ? (isPwr || isWater ? 'failed' : isHvac ? 'risk' : 'degraded') : 'normal',
+      t15: isIncActive ? (isPwr || isWater ? 'failed' : 'degraded') : 'normal',
+      t30: isIncActive ? 'degraded' : 'normal',
+      t45: 'normal'
+    },
+    {
+      name: 'Administration Hub',
+      t0: isIncActive ? (isPwr ? 'failed' : 'normal') : 'normal',
+      t5: isIncActive ? (isPwr ? 'failed' : 'normal') : 'normal',
+      t10: isIncActive ? (isPwr ? 'failed' : 'normal') : 'normal',
+      t15: isIncActive ? (isPwr ? 'failed' : 'normal') : 'normal',
+      t30: isIncActive ? 'degraded' : 'normal',
+      t45: 'normal'
+    }
   ]
 
   return (

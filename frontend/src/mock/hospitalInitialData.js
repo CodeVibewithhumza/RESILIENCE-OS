@@ -993,11 +993,11 @@ export const CASCADE_TIMELINE = [
   },
   {
     t_offset_min: 20,
-    title: "Critical Exhaustion Boundary",
+    title: "Critical Reserve Boundary",
     description: "Unmitigated battery reserve depleted. Generator fuel margin down to 45 mins. Cascading blackout imminent.",
     affected_node_ids: ["UPS_CRITICAL", "SERVICE_ICU", "SERVICE_OT", "SERVICE_ER"],
     system_resilience_score: 28.0,
-    service_impact_summary: "CATASTROPHIC: ICU life-support risk; Immediate intervention required."
+    service_impact_summary: "Simulated reserve reaches the configured threshold for ICU-supporting infrastructure; human decision-support review is recommended."
   }
 ];
 

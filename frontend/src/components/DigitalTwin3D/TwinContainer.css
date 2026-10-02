@@ -608,8 +608,44 @@
   box-shadow: -10px 0 30px rgba(0, 0, 0, 0.7);
   display: flex;
   flex-direction: column;
-  z-index: 20;
-  animation: slideInRight 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 35;
+  animation: slideInRight 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.theme-light .twin-inspector-drawer,
+[data-theme="light"] .twin-inspector-drawer {
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  border-left: 1px solid #cbd5e1;
+  box-shadow: -10px 0 30px rgba(0, 0, 0, 0.12);
+}
+
+.theme-light .inspector-header,
+[data-theme="light"] .inspector-header {
+  background: #f1f5f9;
+  border-bottom: 1px solid #cbd5e1;
+}
+
+.theme-light .inspector-asset-name,
+[data-theme="light"] .inspector-asset-name {
+  color: #0f172a;
+}
+
+.theme-light .inspector-metric-card,
+[data-theme="light"] .inspector-metric-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.theme-light .metric-val,
+[data-theme="light"] .metric-val {
+  color: #0f172a;
+}
+
+.theme-light .inspector-action-btn,
+[data-theme="light"] .inspector-action-btn {
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  color: #334155;
 }
 
 @keyframes slideInRight {

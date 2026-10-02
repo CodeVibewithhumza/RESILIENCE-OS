@@ -151,10 +151,64 @@ export default function StartSimulationView({
   onReset,
   onNotify
 }) {
-  const [displayMode, setDisplayMode] = useState('split') // 'split' | 'twin' | 'table'
+  const [displayMode, setDisplayMode] = useState(() => {
+    try {
+      return localStorage.getItem('resilience_sim_display_mode') || 'split'
+    } catch {
+      return 'split'
+    }
+  })
+  const handleSetDisplayMode = (mode) => {
+    setDisplayMode(mode)
+    try {
+      localStorage.setItem('resilience_sim_display_mode', mode)
+    } catch {}
+  }
   const [selectedAssetId, setSelectedAssetId] = useState(null)
 
-  // Draggable Split-Pane Resizer State (User-controlled width for 3D Twin vs Telemetry Matrix)
+  // 1. Draggable Left Sidebar Resizer State (between configuration sidebar and 3D simulation area)
+  const [leftSidebarWidth, setLeftSidebarWidth] = useState(() => {
+    try {
+      const saved = localStorage.getItem('resilience_sim_left_sidebar_width')
+      if (saved) {
+        const val = parseFloat(saved)
+        if (!isNaN(val) && val >= 240 && val <= 500) return val
+      }
+    } catch {}
+    return 310
+  })
+  const [isDraggingSidebar, setIsDraggingSidebar] = useState(false)
+  const isDraggingSidebarRef = useRef(false)
+  const simMainGridRef = useRef(null)
+
+  const handleSidebarPointerDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingSidebarRef.current = true
+    setIsDraggingSidebar(true)
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId)
+    } catch {}
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleSidebarMouseDown = (e) => {
+    e.preventDefault()
+    e.stopPropagation()
+    isDraggingSidebarRef.current = true
+    setIsDraggingSidebar(true)
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+  }
+
+  const handleSidebarTouchStart = (e) => {
+    e.stopPropagation()
+    isDraggingSidebarRef.current = true
+    setIsDraggingSidebar(true)
+  }
+
+  // 2. Draggable Split-Pane Resizer State (User-controlled width for 3D Twin vs Telemetry Matrix)
   const [splitPercent, setSplitPercent] = useState(() => {
     try {
       const saved = localStorage.getItem('resilience_sim_split_ratio')
@@ -163,7 +217,7 @@ export default function StartSimulationView({
         if (!isNaN(val) && val >= 25 && val <= 75) return val
       }
     } catch {}
-    return 58
+    return 56
   })
   const [isDraggingSplit, setIsDraggingSplit] = useState(false)
   const isDraggingRef = useRef(false)
@@ -198,35 +252,60 @@ export default function StartSimulationView({
 
   useEffect(() => {
     const handlePointerMove = (e) => {
-      if (!isDraggingRef.current || !splitWorkspaceRef.current) return
-      const rect = splitWorkspaceRef.current.getBoundingClientRect()
-      if (!rect || rect.width <= 0) return
+      // 1. Sidebar Resizer
+      if (isDraggingSidebarRef.current && simMainGridRef.current) {
+        const rect = simMainGridRef.current.getBoundingClientRect()
+        if (rect && rect.width > 0) {
+          const clientX =
+            e.clientX !== undefined
+              ? e.clientX
+              : e.touches && e.touches[0]
+              ? e.touches[0].clientX
+              : undefined
+          if (clientX !== undefined) {
+            const rawWidth = clientX - rect.left
+            const clampedWidth = Math.min(Math.max(rawWidth, 230), 480)
+            setLeftSidebarWidth(Math.round(clampedWidth))
+          }
+        }
+        return
+      }
 
-      const clientX =
-        e.clientX !== undefined
-          ? e.clientX
-          : e.touches && e.touches[0]
-          ? e.touches[0].clientX
-          : undefined
-      if (clientX === undefined) return
+      // 2. Twin vs Matrix Resizer
+      if (isDraggingRef.current && splitWorkspaceRef.current) {
+        const rect = splitWorkspaceRef.current.getBoundingClientRect()
+        if (!rect || rect.width <= 0) return
 
-      const rawPct = ((clientX - rect.left) / rect.width) * 100
-      const clampedPct = Math.min(Math.max(rawPct, 15), 85)
-      setSplitPercent(Math.round(clampedPct * 10) / 10)
+        const clientX =
+          e.clientX !== undefined
+            ? e.clientX
+            : e.touches && e.touches[0]
+            ? e.touches[0].clientX
+            : undefined
+        if (clientX === undefined) return
+
+        const rawPct = ((clientX - rect.left) / rect.width) * 100
+        const clampedPct = Math.min(Math.max(rawPct, 15), 85)
+        setSplitPercent(Math.round(clampedPct * 10) / 10)
+      }
     }
 
     const handlePointerUp = (e) => {
+      if (isDraggingSidebarRef.current) {
+        isDraggingSidebarRef.current = false
+        setIsDraggingSidebar(false)
+      }
       if (isDraggingRef.current) {
         isDraggingRef.current = false
         setIsDraggingSplit(false)
-        try {
-          if (e?.pointerId !== undefined && e?.target?.hasPointerCapture?.(e.pointerId)) {
-            e.target.releasePointerCapture(e.pointerId)
-          }
-        } catch {}
-        document.body.style.cursor = ''
-        document.body.style.userSelect = ''
       }
+      try {
+        if (e?.pointerId !== undefined && e?.target?.hasPointerCapture?.(e.pointerId)) {
+          e.target.releasePointerCapture(e.pointerId)
+        }
+      } catch {}
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
     }
 
     window.addEventListener('pointermove', handlePointerMove, { passive: false })
@@ -255,6 +334,12 @@ export default function StartSimulationView({
       localStorage.setItem('resilience_sim_split_ratio', splitPercent.toFixed(1))
     } catch {}
   }, [splitPercent])
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('resilience_sim_left_sidebar_width', leftSidebarWidth.toString())
+    } catch {}
+  }, [leftSidebarWidth])
 
   const [selectedCategory, setSelectedCategory] = useState('electrical')
   const [selectedIncident, setSelectedIncident] = useState('transformer')
@@ -396,9 +481,15 @@ export default function StartSimulationView({
       </section>
 
       {/* 2. MAIN SPLIT: Left Controls & Right 3D Visual + Timeline */}
-      <section className="sim-main-grid">
+      <section
+        ref={simMainGridRef}
+        className={`sim-main-grid ${isDraggingSidebar ? 'is-sidebar-resizing' : ''}`}
+      >
         {/* Left Controls Column */}
-        <aside className="sim-left-controls">
+        <aside
+          className="sim-left-controls"
+          style={{ width: `${leftSidebarWidth}px`, flex: `0 0 ${leftSidebarWidth}px` }}
+        >
           {/* Section 1: Select Incident Scenario */}
           <div className="sim-panel-box">
             <div className="sim-panel-title">1. Select Incident Scenario</div>
@@ -516,6 +607,25 @@ export default function StartSimulationView({
           </div>
         </aside>
 
+        {/* Draggable Vertical Resizer Handle between Left Controls & Digital Twin Workspace */}
+        <div
+          className={`sim-sidebar-divider-handle ${isDraggingSidebar ? 'is-active' : ''}`}
+          onPointerDown={handleSidebarPointerDown}
+          onMouseDown={handleSidebarMouseDown}
+          onTouchStart={handleSidebarTouchStart}
+          onDoubleClick={() => setLeftSidebarWidth(310)}
+          title="Drag left or right to resize configuration sidebar (Double-click to reset)"
+          role="separator"
+          aria-orientation="vertical"
+        >
+          <div className="sim-split-accent-bar" />
+          <div className="divider-grip-indicator">
+            <span className="grip-dot" />
+            <span className="grip-dot" />
+            <span className="grip-dot" />
+          </div>
+        </div>
+
         {/* Right Main Area: 3D Visual + Timeline & Expected Impact */}
         <div className="sim-right-workspace">
           {/* Main Visual: Digital Twin Canvas + Dedicated External Telemetry Matrix */}
@@ -545,7 +655,7 @@ export default function StartSimulationView({
                 <button
                   type="button"
                   className={`sim-view-mode-btn ${displayMode === 'split' ? 'is-active' : ''}`}
-                  onClick={() => setDisplayMode('split')}
+                  onClick={() => handleSetDisplayMode('split')}
                   title="Side-by-Side: 3D Twin on Left + Telemetry Matrix on Right"
                 >
                   <Columns size={13} />
@@ -555,7 +665,7 @@ export default function StartSimulationView({
                 <button
                   type="button"
                   className={`sim-view-mode-btn ${displayMode === 'twin' ? 'is-active' : ''}`}
-                  onClick={() => setDisplayMode('twin')}
+                  onClick={() => handleSetDisplayMode('twin')}
                   title="Full-Width 3D Digital Twin View"
                 >
                   <Box size={13} />
@@ -565,7 +675,7 @@ export default function StartSimulationView({
                 <button
                   type="button"
                   className={`sim-view-mode-btn ${displayMode === 'table' ? 'is-active' : ''}`}
-                  onClick={() => setDisplayMode('table')}
+                  onClick={() => handleSetDisplayMode('table')}
                   title="Full-Width Comprehensive Telemetry Matrix"
                 >
                   <Table size={13} />

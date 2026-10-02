@@ -492,14 +492,14 @@ class MultiObjectiveRankingEngine:
         abs_r = abs(delta_r)
 
         if abs(delta_icu) > 0:
-            icu_phrase = f"{lead} secures {abs(delta_icu):.0f}% higher ICU continuity"
+            icu_phrase = f"{lead} models {abs(delta_icu):.0f}% higher ICU load continuity"
         else:
-            icu_phrase = "both preserve identical ICU life-support"
+            icu_phrase = "both maintain identical modeled ICU load support"
 
         if abs(delta_rt) > 0:
-            rt_phrase = f"{'+' if delta_rt > 0 else '-'}{abs(delta_rt):.1f}h backup runtime"
+            rt_phrase = f"{'+' if delta_rt > 0 else '-'}{abs(delta_rt):.1f}h simulated reserve runtime"
         else:
-            rt_phrase = "equal backup duration"
+            rt_phrase = "equal simulated reserve duration"
 
         return (
             f"{lead} achieves a +{abs_r:.1f} higher Resilience Index than {follow}; "
@@ -516,9 +516,8 @@ class MultiObjectiveRankingEngine:
         """Constructs an auditable, defensible justification for the top ranking."""
         p_name = profile.value.replace("_", " ").title()
         return (
-            f"Multi-Objective MCDA under '{p_name}' profile selects Strategy '{recommended.strategy_name}' ({recommended.strategy_code}) as Rank #1. "
-            f"Projected Resilience Index: {recommended.projected_resilience_score:.1f}/100 (+{recommended.delta_resilience or 0.0:.1f} vs baseline), "
-            f"TOPSIS Closeness: {recommended.topsis_score:.3f}, Pareto Optimal: {recommended.pareto_optimal}. "
-            f"Secures {recommended.icu_continuity_pct:.1f}% ICU life support with {recommended.backup_runtime_remaining_hours:.1f}h generator endurance. "
-            f"Sensitivity Analysis: Recommended in {sum(1 for w in sensitivity.values() if w == recommended.strategy_id)} of 4 operational profiles."
+            f"Multi-objective strategy comparison under the configured '{p_name}' profile indicates Strategy '{recommended.strategy_name}' ({recommended.strategy_code}) "
+            f"produced the highest simulated Resilience Index ({recommended.projected_resilience_score:.1f}/100, delta: {recommended.delta_resilience or 0.0:+.1f} vs no-action baseline). "
+            f"Maintains the configured ICU-supporting load at {recommended.icu_continuity_pct:.1f}% in the simulation with simulated generator reserve duration of {recommended.backup_runtime_remaining_hours:.1f} h. "
+            f"Human review is required before selecting a response strategy."
         )
