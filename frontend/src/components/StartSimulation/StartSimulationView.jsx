@@ -335,14 +335,62 @@ export default function StartSimulationView({
     } catch {}
   }, [splitPercent])
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('resilience_sim_left_sidebar_width', leftSidebarWidth.toString())
-    } catch {}
-  }, [leftSidebarWidth])
+function findCategoryAndIncident(incident) {
+  if (!incident || !incident.is_active) return null
 
-  const [selectedCategory, setSelectedCategory] = useState('electrical')
-  const [selectedIncident, setSelectedIncident] = useState('transformer')
+  if (incident.compound_heatwave) {
+    return { category: 'combined', incidentId: 'combined_heatwave' }
+  }
+
+  const assetId = (incident.source_asset_id || '').toUpperCase()
+  const failType = (incident.failure_type || '').toLowerCase()
+  const title = (incident.title || '').toLowerCase()
+
+  if (assetId.includes('GEN') || failType.includes('generator') || title.includes('generator')) {
+    return { category: 'electrical', incidentId: 'gen' }
+  }
+  if (assetId.includes('GRID') || failType.includes('grid') || title.includes('grid')) {
+    return { category: 'electrical', incidentId: 'grid' }
+  }
+  if (assetId.includes('UPS') || failType.includes('battery') || failType.includes('ups') || title.includes('ups') || title.includes('battery')) {
+    return { category: 'electrical', incidentId: 'ups' }
+  }
+  if (assetId.includes('TRANSFORMER') || failType.includes('transformer') || title.includes('transformer')) {
+    return { category: 'electrical', incidentId: 'transformer' }
+  }
+  if (assetId.includes('WATER') || failType.includes('water') || failType.includes('pump') || title.includes('water') || title.includes('pump')) {
+    if (failType.includes('tank') || failType.includes('contamin') || title.includes('tank')) {
+      return { category: 'water', incidentId: 'water_tank' }
+    }
+    return { category: 'water', incidentId: 'water_pump' }
+  }
+  if (assetId.includes('CHILLER') || assetId.includes('HVAC') || failType.includes('chiller') || failType.includes('hvac') || title.includes('chiller') || title.includes('hvac')) {
+    return { category: 'hvac', incidentId: 'chiller_trip' }
+  }
+  if (assetId.includes('OXYGEN') || assetId.includes('GAS') || failType.includes('oxygen') || failType.includes('gas') || title.includes('oxygen') || title.includes('gas')) {
+    return { category: 'gas', incidentId: 'o2_rupture' }
+  }
+
+  return null
+}
+
+  const matchedActive = useMemo(() => findCategoryAndIncident(incident), [incident])
+
+  const [selectedCategory, setSelectedCategory] = useState(() => {
+    return matchedActive?.category || 'electrical'
+  })
+  const [selectedIncident, setSelectedIncident] = useState(() => {
+    return matchedActive?.incidentId || 'transformer'
+  })
+
+  // Synchronize category & incident selection whenever an active incident is running or changes
+  useEffect(() => {
+    if (matchedActive) {
+      setSelectedCategory(matchedActive.category)
+      setSelectedIncident(matchedActive.incidentId)
+    }
+  }, [matchedActive])
+
   const [severity, setSeverity] = useState('Full Failure')
   const [startTime, setStartTime] = useState('Immediate (T = 0)')
   const [duration, setDuration] = useState('2 Hours')

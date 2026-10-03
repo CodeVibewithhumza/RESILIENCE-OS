@@ -148,6 +148,7 @@ function updateAssetsWithTelemetry(baseAssets, tel) {
 /**
  * Resolves deterministic asset state for a given cascade checkpoint index.
  * Accurately models electrical, thermal, and mechanical dependency propagation across all 8 crisis scenarios.
+ * When a mitigation strategy has been applied, reflects the stabilized/recovered physical state across all forward checkpoints.
  */
 function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAssets = INITIAL_ASSETS) {
   if (!incident || !incident.is_active) return INITIAL_ASSETS
@@ -159,10 +160,12 @@ function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAsset
   const affectedNodeIds = new Set(milestone?.affected_node_ids || [])
   const sourceAssetId = incident.source_asset_id
   const isHeatwave = Boolean(incident.compound_heatwave)
+  const activeStrat = incident.active_mitigation_strategy
 
   return baseAssets.map((asset) => {
-    // 1. The active incident's source failure node remains permanently failed with 0 load throughput
+    // 1. The active incident's source failure node remains isolated/failed
     if (asset.id === sourceAssetId) {
+      // If alternate feed or bypass strategy applied, source remains isolated while secondary feeds the hospital
       return {
         ...asset,
         status: 'failed',
@@ -172,7 +175,39 @@ function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAsset
       }
     }
 
-    // --- SCENARIO 1 & 8: GRID OUTAGE / COMPOUND HEATWAVE ---
+    // --- STRATEGY-MITIGATED RECOVERY (If a strategy is active, physical assets stabilize) ---
+    if (activeStrat) {
+      if (asset.id === 'GEN_01') {
+        return { ...asset, status: 'normal', health_score: 98.0, current_load: activeStrat === 'strat_a' ? 480.0 : 320.0 }
+      }
+      if (asset.id === 'GEN_02') {
+        return { ...asset, status: activeStrat === 'strat_b' || activeStrat === 'strat_f' ? 'normal' : 'standby', health_score: 100.0, current_load: activeStrat === 'strat_b' ? 400.0 : 0.0 }
+      }
+      if (asset.id === 'TRANSFORMER_02') {
+        return { ...asset, status: 'normal', health_score: 100.0, current_load: activeStrat === 'strat_c' ? 380.0 : 320.0 }
+      }
+      if (asset.id === 'EMERGENCY_BUS') {
+        return { ...asset, status: 'normal', health_score: 100.0, available_capacity: 600.0 }
+      }
+      if (asset.id === 'MAIN_BUS') {
+        return { ...asset, status: 'normal', health_score: 95.0, available_capacity: 500.0 }
+      }
+      if (asset.id === 'UPS_CRITICAL') {
+        return { ...asset, status: 'normal', health_score: 95.0, battery_level_pct: 95, current_load: 220.0 }
+      }
+      if (asset.id === 'CHILLER_PLANT') {
+        return { ...asset, status: 'normal', health_score: 95.0, temperature_c: 7.2, current_load: 180.0 }
+      }
+      if (asset.id === 'WATER_PUMP_STATION') {
+        return { ...asset, status: 'normal', health_score: 98.0, pressure_psi: 60.0 }
+      }
+      if (asset.id === 'OXYGEN_MANIFOLD') {
+        return { ...asset, status: 'normal', health_score: 100.0, pressure_psi: 55.0 }
+      }
+      return { ...asset, status: 'normal', health_score: 100.0 }
+    }
+
+    // --- UNMITIGATED CASCADE: SCENARIO 1 & 8: GRID OUTAGE / COMPOUND HEATWAVE ---
     if (sourceAssetId === 'GRID_MAIN') {
       if (asset.id === 'TRANSFORMER_01' || asset.id === 'TRANSFORMER_02') {
         return { ...asset, status: 'failed', health_score: 0.0, current_load: 0.0, available_capacity: 0.0 }
@@ -311,6 +346,7 @@ function getAssetsForCheckpoint(incident, timeline, checkpointIdx = 0, baseAsset
 /**
  * Resolves tiered, priority-weighted clinical service continuity across checkpoints.
  * Accurately models specific physical dependencies for each failure scenario.
+ * When a mitigation strategy is applied, protects all clinical services at full operation across the timeline.
  */
 function getServicesForCheckpoint(incident, timeline, checkpointIdx = 0, baseServices = INITIAL_SERVICES) {
   if (!incident || !incident.is_active) return INITIAL_SERVICES
@@ -321,7 +357,31 @@ function getServicesForCheckpoint(incident, timeline, checkpointIdx = 0, baseSer
 
   const sourceAssetId = incident.source_asset_id
   const isHeatwave = Boolean(incident.compound_heatwave)
+  const activeStrat = incident.active_mitigation_strategy
   const idx = Math.min(checkpointIdx, 3)
+
+  // If a strategy is active, clinical continuity is sustained across all forward checkpoints!
+  if (activeStrat) {
+    const isShed = activeStrat === 'strat_b'
+    return baseServices.map((svc) => {
+      if (svc.id === 'SERVICE_ICU') {
+        return { ...svc, status: 'full_operation', at_risk: false, service_continuity_pct: 100.0, risk_reason: 'Mitigated: 100% ICU life-support secured' }
+      }
+      if (svc.id === 'SERVICE_ER') {
+        return { ...svc, status: 'full_operation', at_risk: false, service_continuity_pct: 100.0, risk_reason: 'Mitigated: Trauma & emergency admissions protected' }
+      }
+      if (svc.id === 'SERVICE_OT') {
+        return { ...svc, status: 'full_operation', at_risk: false, service_continuity_pct: isShed ? 85.0 : 98.0, risk_reason: 'Mitigated: Operating theatre sterile HVAC powered' }
+      }
+      if (svc.id === 'SERVICE_WARD') {
+        return { ...svc, status: 'full_operation', at_risk: false, service_continuity_pct: isShed ? 60.0 : 85.0, risk_reason: 'Mitigated: Inpatient care stabilized' }
+      }
+      if (svc.id === 'SERVICE_ADMIN') {
+        return { ...svc, status: isShed ? 'reduced_capacity' : 'full_operation', at_risk: false, service_continuity_pct: isShed ? 10.0 : 75.0, risk_reason: isShed ? 'Non-critical admin load shed' : 'Nominal' }
+      }
+      return { ...svc, status: 'full_operation', at_risk: false, service_continuity_pct: 100.0, risk_reason: null }
+    })
+  }
 
   // Dynamic service degradation curves tailored to each specific scenario
   let CURVES = {
@@ -936,10 +996,52 @@ export default function App() {
     fetchHospitalState()
   }, [isLive, fetchHospitalState])
 
-  // Active backend incident timeline is used when available; CASCADE_TIMELINE remains fallback
-  const effectiveTimeline = incident?.timeline && incident.timeline.length > 0
-    ? incident.timeline
-    : CASCADE_TIMELINE
+  // Active backend incident timeline is used when available; when a strategy is applied, provides the mitigated progression
+  const effectiveTimeline = useMemo(() => {
+    if (!incident?.is_active) return CASCADE_TIMELINE
+    const activeStrat = incident.active_mitigation_strategy
+    if (!activeStrat) {
+      return incident?.timeline && incident.timeline.length > 0
+        ? incident.timeline
+        : CASCADE_TIMELINE
+    }
+
+    const stratCode = (activeStrat.replace('strat_', '').toUpperCase()) || 'C'
+    return [
+      {
+        t_offset_min: 0,
+        title: `T+0 min: Strategy ${stratCode} Dispatched`,
+        description: `Automated response protocols activated. Initial fault isolation and emergency failover engaged.`,
+        affected_node_ids: [incident.source_asset_id],
+        service_impact_summary: 'Critical ICU and Emergency circuits protected.',
+        system_resilience_score: 86.0
+      },
+      {
+        t_offset_min: 5,
+        title: `T+5 min: Secondary Circuits Synchronized`,
+        description: `Alternative feeds and backup generation stabilized. Non-critical loads rebalanced.`,
+        affected_node_ids: [incident.source_asset_id],
+        service_impact_summary: 'Full ICU & Surgical OT continuity sustained at 100%.',
+        system_resilience_score: 92.0
+      },
+      {
+        t_offset_min: 10,
+        title: `T+10 min: Sustained Operational Redundancy`,
+        description: `Facility operating under stable containment. Continuous backup runtime verified.`,
+        affected_node_ids: [],
+        service_impact_summary: 'Zero clinical disruption across all acute departments.',
+        system_resilience_score: 94.0
+      },
+      {
+        t_offset_min: 20,
+        title: `T+20 min: Hospital Baseline Recovery Verified`,
+        description: `All primary and auxiliary life-safety envelopes operating in optimal resilience mode.`,
+        affected_node_ids: [],
+        service_impact_summary: 'Facility stabilized. Mitigation protocol fully effective.',
+        system_resilience_score: 96.0
+      }
+    ]
+  }, [incident])
 
   // Dynamic failure injection handler: sends configured payload to backend engine
   const handleTriggerFailure = useCallback(async (customPayload) => {
@@ -961,7 +1063,8 @@ export default function App() {
           setIncident((prev) => ({
             ...prev,
             ...res.data.incident,
-            is_active: true
+            is_active: true,
+            active_mitigation_strategy: null
           }))
         }
         if (res.data.resilience_index) {
@@ -998,16 +1101,21 @@ export default function App() {
       const res = await applyStrategy(strategyId)
       if (res.success && res.data) {
         showToast(res.data.message || `Strategy ${strategyId} applied successfully!`, 'success')
-        if (res.data.new_resilience_score != null) {
-          setResilience((prev) => ({
-            ...prev,
-            overall_score: res.data.new_resilience_score
-          }))
-        }
-        setIncident((prev) => ({
+        const targetResilience = res.data.new_resilience_score || 92
+        setResilience((prev) => ({
           ...prev,
-          active_mitigation_strategy: strategyId
+          overall_score: targetResilience
         }))
+        const updatedIncident = {
+          ...incident,
+          active_mitigation_strategy: strategyId
+        }
+        setIncident(updatedIncident)
+
+        // Immediately update physical assets and clinical services to reflect the mitigated state
+        setAssets(getAssetsForCheckpoint(updatedIncident, effectiveTimeline, activeCheckpointIndex, INITIAL_ASSETS))
+        setServices(getServicesForCheckpoint(updatedIncident, effectiveTimeline, activeCheckpointIndex, INITIAL_SERVICES))
+
         // Refresh hospital state and what-if comparison to reflect recovery
         await fetchHospitalState()
         await fetchWhatIfAnalysis()
@@ -1022,7 +1130,7 @@ export default function App() {
       showToast(errText, 'error')
       return { success: false, error: errText }
     }
-  }, [fetchHospitalState, fetchWhatIfAnalysis, showToast])
+  }, [incident, effectiveTimeline, activeCheckpointIndex, fetchHospitalState, fetchWhatIfAnalysis, showToast])
 
   // Controlled fetch: when entering what-if view, or initial load for dashboard
   useEffect(() => {
@@ -1080,6 +1188,10 @@ export default function App() {
     if (incident.is_active) {
       setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, nextIdx, INITIAL_ASSETS))
       setServices(getServicesForCheckpoint(incident, effectiveTimeline, nextIdx, INITIAL_SERVICES))
+      if (incident.active_mitigation_strategy) {
+        const score = effectiveTimeline[nextIdx]?.system_resilience_score || 92
+        setResilience((prev) => ({ ...prev, overall_score: score }))
+      }
     }
   }
 
@@ -1088,6 +1200,10 @@ export default function App() {
     if (incident.is_active) {
       setAssets(getAssetsForCheckpoint(incident, effectiveTimeline, idx, INITIAL_ASSETS))
       setServices(getServicesForCheckpoint(incident, effectiveTimeline, idx, INITIAL_SERVICES))
+      if (incident.active_mitigation_strategy) {
+        const score = effectiveTimeline[idx]?.system_resilience_score || 92
+        setResilience((prev) => ({ ...prev, overall_score: score }))
+      }
     }
   }
 
@@ -1222,6 +1338,8 @@ export default function App() {
               error={whatIfError}
               onRefresh={fetchWhatIfAnalysis}
               onApplyStrategy={handleApplyStrategy}
+              onTriggerFailure={handleTriggerFailure}
+              onReset={handleReset}
               isIncidentActive={incident.is_active}
               incident={incident}
               assets={assets}
