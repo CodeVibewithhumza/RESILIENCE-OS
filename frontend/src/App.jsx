@@ -1386,6 +1386,10 @@ export default function App() {
               theme={theme}
               onSetTheme={setTheme}
               onNotify={showToast}
+              assets={assets}
+              resilience={resilience}
+              incident={incident}
+              onNavigate={setActiveSection}
             />
           )}
         </main>
