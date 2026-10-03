@@ -19,7 +19,19 @@ import {
   Activity,
   CheckCircle2,
   Share2,
-  Copy
+  Copy,
+  Eye,
+  X,
+  Maximize2,
+  ZoomIn,
+  ZoomOut,
+  Sparkles,
+  Gauge,
+  Sliders,
+  ShieldAlert,
+  BatteryCharging,
+  Wind,
+  Droplets
 } from 'lucide-react'
 import hospitalCampusImg from '../../assets/hospital_campus_twin.jpg'
 import './ReportsView.css'
@@ -37,6 +49,14 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
   const [generatedAt, setGeneratedAt] = useState(null)
   const [downloadMenuOpen, setDownloadMenuOpen] = useState(false)
   const [copied, setCopied] = useState(false)
+
+  // Interactive Report Review Modal & Trajectory Graph States
+  const [isReviewModalOpen, setIsReviewModalOpen] = useState(false)
+  const [reviewZoom, setReviewZoom] = useState('100%') // 'fit' | '100%' | '125%'
+  const [graphTab, setGraphTab] = useState('trajectory') // 'trajectory' | 'breakdown' | 'margins'
+  const [hoveredPoint, setHoveredPoint] = useState(null)
+  const [showStressCascade, setShowStressCascade] = useState(false)
+  const [showConfidenceCorridor, setShowConfidenceCorridor] = useState(true)
 
   const [includedSections, setIncludedSections] = useState({
     exec_summary: true,
@@ -315,6 +335,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
               .a4-document-paper {
                 width: 100% !important;
                 max-width: 100% !important;
+                min-height: 275mm !important;
                 box-shadow: none !important;
                 border: none !important;
                 padding: 0 !important;
@@ -322,6 +343,15 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
                 background: #ffffff !important;
                 color: #0f172a !important;
                 font-size: 9.5px !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: flex-start !important;
+                box-sizing: border-box !important;
+              }
+              .a4-doc-footer {
+                margin-top: auto !important;
+                padding-top: 10px !important;
+                border-top: 1.5px solid #cbd5e1 !important;
               }
               .a4-section-block {
                 page-break-inside: avoid;
@@ -968,7 +998,7 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
       </div>
 
       {/* 8. Verification Stamp Footer */}
-      <div className="a4-doc-footer font-mono" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div className="a4-doc-footer font-mono">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
           <span style={{ fontWeight: '700' }}>ResilienceOS Digital Twin Simulation Engine</span>
           <span style={{ color: '#64748B', fontSize: '7px' }}>Simulation Mode • Synthetic Infrastructure Data • Human-in-the-Loop Decision Support</span>
@@ -1333,6 +1363,442 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
               </div>
             </div>
           </div>
+
+          {/* Panel 4: Interactive Resilience Trajectory & Sub-System Stress Profile */}
+          <div className="reports-panel-card trajectory-graph-card">
+            <div className="trajectory-card-header">
+              <div className="tch-left">
+                <span className="reports-panel-title">Resilience & Risk Trajectory Telemetry</span>
+                <span className={`tch-badge font-mono ${(activeInc?.is_active || showStressCascade) ? 'is-warning' : 'is-nominal'}`}>
+                  {(activeInc?.is_active || showStressCascade) ? 'SIMULATED CASCADE ACTIVE' : 'NOMINAL HORIZON • 2H'}
+                </span>
+              </div>
+              <div className="trajectory-controls-group font-mono">
+                {graphTab === 'trajectory' && (
+                  <div className="trajectory-sub-toggles">
+                    <button
+                      type="button"
+                      className={`t-sub-btn ${showConfidenceCorridor ? 'is-active' : ''}`}
+                      onClick={() => setShowConfidenceCorridor(!showConfidenceCorridor)}
+                      title="Toggle ±3.5% statistical operational confidence corridor"
+                    >
+                      Corridor ±3.5%
+                    </button>
+                    <button
+                      type="button"
+                      className={`t-sub-btn ${showStressCascade ? 'is-simulating' : ''}`}
+                      onClick={() => setShowStressCascade(!showStressCascade)}
+                      title="Simulate failure cascade and autonomous self-healing recovery"
+                    >
+                      ⚡ {showStressCascade ? 'Reset Nominal' : 'Simulate Outage'}
+                    </button>
+                  </div>
+                )}
+                <div className="trajectory-tabs-pills">
+                  <button
+                    type="button"
+                    className={`tt-pill ${graphTab === 'trajectory' ? 'is-active' : ''}`}
+                    onClick={() => setGraphTab('trajectory')}
+                  >
+                    2h Horizon
+                  </button>
+                  <button
+                    type="button"
+                    className={`tt-pill ${graphTab === 'breakdown' ? 'is-active' : ''}`}
+                    onClick={() => setGraphTab('breakdown')}
+                  >
+                    System Stress
+                  </button>
+                  <button
+                    type="button"
+                    className={`tt-pill ${graphTab === 'margins' ? 'is-active' : ''}`}
+                    onClick={() => setGraphTab('margins')}
+                  >
+                    Margins
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* View 1: 2-Hour Resilience Curve (Interactive Telemetry SVG Chart) */}
+            {graphTab === 'trajectory' && (
+              <div className="trajectory-svg-container">
+                <svg
+                  viewBox="0 0 540 195"
+                  className="trajectory-svg-chart"
+                  preserveAspectRatio="none"
+                >
+                  <defs>
+                    {/* Gradients */}
+                    <linearGradient id="nominalAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.25" />
+                      <stop offset="60%" stopColor="#00F0FF" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#00F0FF" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="confidenceBandGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#00F0FF" stopOpacity="0.12" />
+                      <stop offset="100%" stopColor="#00E5A3" stopOpacity="0.05" />
+                    </linearGradient>
+                    <linearGradient id="unmitigatedAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity="0.35" />
+                      <stop offset="70%" stopColor="#EF4444" stopOpacity="0.10" />
+                      <stop offset="100%" stopColor="#EF4444" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="mitigatedAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#10B981" stopOpacity="0.28" />
+                      <stop offset="70%" stopColor="#10B981" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#10B981" stopOpacity="0.0" />
+                    </linearGradient>
+                    <linearGradient id="hazardAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#EF4444" stopOpacity="0.08" />
+                      <stop offset="100%" stopColor="#EF4444" stopOpacity="0.02" />
+                    </linearGradient>
+
+                    {/* SVG Filters for Neon Glow */}
+                    <filter id="neonCyanGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="2.5" floodColor="#00F0FF" floodOpacity="0.6" />
+                    </filter>
+                    <filter id="neonEmeraldGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="2.5" floodColor="#10B981" floodOpacity="0.6" />
+                    </filter>
+                    <filter id="neonRedGlow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feDropShadow dx="0" dy="1" stdDeviation="2.5" floodColor="#EF4444" floodOpacity="0.6" />
+                    </filter>
+                  </defs>
+
+                  {/* Danger Zone Under Safety Floor (< 70% Y > 64) */}
+                  <rect x="48" y="64" width="464" height="98" fill="url(#hazardAreaGrad)" />
+
+                  {/* Background Grid Lines (Horizontal) */}
+                  <line x1="48" y1="22" x2="512" y2="22" stroke="var(--border-subtle, rgba(255,255,255,0.08))" strokeDasharray="3 3" />
+                  <line x1="48" y1="50" x2="512" y2="50" stroke="var(--border-subtle, rgba(255,255,255,0.08))" strokeDasharray="3 3" />
+                  <line x1="48" y1="78" x2="512" y2="78" stroke="var(--border-subtle, rgba(255,255,255,0.08))" strokeDasharray="3 3" />
+                  <line x1="48" y1="106" x2="512" y2="106" stroke="var(--border-subtle, rgba(255,255,255,0.08))" strokeDasharray="3 3" />
+                  <line x1="48" y1="134" x2="512" y2="134" stroke="var(--border-subtle, rgba(255,255,255,0.08))" strokeDasharray="3 3" />
+                  <line x1="48" y1="162" x2="512" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.15))" />
+                  <line x1="48" y1="22" x2="48" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.15))" />
+
+                  {/* Vertical Time Marker Guides */}
+                  <line x1="106" y1="22" x2="106" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+                  <line x1="164" y1="22" x2="164" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+                  <line x1="222" y1="22" x2="222" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+                  <line x1="280" y1="22" x2="280" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+                  <line x1="396" y1="22" x2="396" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+                  <line x1="512" y1="22" x2="512" y2="162" stroke="var(--border-subtle, rgba(255,255,255,0.04))" strokeDasharray="2 4" />
+
+                  {/* Y-Axis Percentage Labels */}
+                  <text x="40" y="25" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">100%</text>
+                  <text x="40" y="53" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">80%</text>
+                  <text x="40" y="81" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">60%</text>
+                  <text x="40" y="109" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">40%</text>
+                  <text x="40" y="137" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">20%</text>
+                  <text x="40" y="165" textAnchor="end" fontSize="9" fill="var(--text-muted, #64748B)" fontFamily="monospace" fontWeight="600">0%</text>
+
+                  {/* Critical Safety Floor Boundary (70% at Y = 64) */}
+                  <line x1="48" y1="64" x2="512" y2="64" stroke="#F59E0B" strokeDasharray="5 4" strokeWidth="1.4" opacity="0.9" />
+                  <g>
+                    <rect x="372" y="55" width="136" height="18" rx="4" fill="var(--bg-surface, #0B1E2E)" stroke="#F59E0B" strokeWidth="1" />
+                    <text x="440" y="67.5" textAnchor="middle" fontSize="8" fill="#F59E0B" fontFamily="monospace" fontWeight="700" letterSpacing="0.4">
+                      ⚠ CRITICAL FLOOR: 70%
+                    </text>
+                  </g>
+
+                  {/* Statistical Confidence Corridor Ribbon (±3.5% envelope) */}
+                  {showConfidenceCorridor && !(activeInc?.is_active || showStressCascade) && (
+                    <path
+                      d="M 48,25.2 C 77,24.5 80,24.0 106,24.3 C 132,24.6 140,26.0 164,25.8 C 190,25.5 198,23.5 222,23.7 C 248,23.9 256,25.0 280,24.8 C 306,24.6 314,25.9 338,25.7 C 364,25.5 372,23.8 396,24.0 C 422,24.2 430,25.2 454,25.0 C 480,24.8 488,24.1 512,24.2 L 512,35.0 C 488,34.9 480,35.6 454,35.8 C 430,36.0 422,35.0 396,34.8 C 372,34.6 364,36.3 338,36.5 C 314,36.7 306,35.4 280,35.6 C 256,35.8 248,34.7 222,34.5 C 198,34.3 190,36.3 164,36.6 C 140,36.8 132,35.4 106,35.1 C 80,34.8 77,35.3 48,36.0 Z"
+                      fill="url(#confidenceBandGrad)"
+                    />
+                  )}
+
+                  {/* Mode 1: Simulated Cascade vs Mitigation Recovery */}
+                  {(activeInc?.is_active || showStressCascade) ? (
+                    <>
+                      {/* Unmitigated Failure Area & Spline */}
+                      <path
+                        d="M 48,30.1 C 80,38 90,62 106,66.1 C 128,72 144,88 164,93.4 C 210,105 240,110 280,111.6 C 340,114 430,126 512,131.9 L 512,162 L 48,162 Z"
+                        fill="url(#unmitigatedAreaGrad)"
+                      />
+                      <path
+                        d="M 48,30.1 C 80,38 90,62 106,66.1 C 128,72 144,88 164,93.4 C 210,105 240,110 280,111.6 C 340,114 430,126 512,131.9"
+                        fill="none"
+                        stroke="#EF4444"
+                        strokeWidth="2.4"
+                        strokeLinecap="round"
+                        filter="url(#neonRedGlow)"
+                      />
+
+                      {/* Mitigated Automated Response Area & Spline */}
+                      <path
+                        d="M 48,30.1 C 65,34 75,34 90,32.2 C 110,30 130,28.2 164,28.5 C 210,29 240,28.4 280,28.5 C 340,28.6 430,28.7 512,28.8 L 512,162 L 48,162 Z"
+                        fill="url(#mitigatedAreaGrad)"
+                      />
+                      <path
+                        d="M 48,30.1 C 65,34 75,34 90,32.2 C 110,30 130,28.2 164,28.5 C 210,29 240,28.4 280,28.5 C 340,28.6 430,28.7 512,28.8"
+                        fill="none"
+                        stroke="#10B981"
+                        strokeWidth="2.6"
+                        strokeLinecap="round"
+                        filter="url(#neonEmeraldGlow)"
+                      />
+                    </>
+                  ) : (
+                    /* Mode 2: Nominal Dynamic High-Resolution Wave */
+                    <>
+                      <path
+                        d="M 48,30.1 C 77,29.3 80,28.8 106,29.1 C 132,29.4 140,31.0 164,30.7 C 190,30.4 198,28.2 222,28.4 C 248,28.6 256,29.7 280,29.5 C 306,29.3 314,30.7 338,30.5 C 364,30.3 372,28.5 396,28.7 C 422,28.9 430,30.0 454,29.8 C 480,29.6 488,28.9 512,29.0 L 512,162 L 48,162 Z"
+                        fill="url(#nominalAreaGrad)"
+                      />
+                      <path
+                        d="M 48,30.1 C 77,29.3 80,28.8 106,29.1 C 132,29.4 140,31.0 164,30.7 C 190,30.4 198,28.2 222,28.4 C 248,28.6 256,29.7 280,29.5 C 306,29.3 314,30.7 338,30.5 C 364,30.3 372,28.5 396,28.7 C 422,28.9 430,30.0 454,29.8 C 480,29.6 488,28.9 512,29.0"
+                        fill="none"
+                        stroke="#00F0FF"
+                        strokeWidth="2.5"
+                        strokeLinecap="round"
+                        filter="url(#neonCyanGlow)"
+                      />
+                    </>
+                  )}
+
+                  {/* Interactive Milestone Telemetry Checkpoints */}
+                  {[
+                    { x: 48, y: 30.1, t: 'T+0m', val: (currentResScore || 94.2).toFixed(1), event: (activeInc?.is_active || showStressCascade) ? 'Outage Injected • Grid Feeder Offline' : 'Live Origin Baseline • Dual Feed Locked' },
+                    { x: 106, y: (activeInc?.is_active || showStressCascade) ? 66.1 : 29.1, t: 'T+15m', val: (activeInc?.is_active || showStressCascade) ? '68.5' : '94.9', event: (activeInc?.is_active || showStressCascade) ? 'Unmitigated Feeder Trip Cascading' : 'Telemetry Grid Sync Verified' },
+                    { x: 164, y: (activeInc?.is_active || showStressCascade) ? 93.4 : 30.7, t: 'T+30m', val: (activeInc?.is_active || showStressCascade) ? '49.0' : '93.8', event: (activeInc?.is_active || showStressCascade) ? 'Chiller Thermal Alarm Triggered' : 'Normal Secondary Distribution' },
+                    { x: 280, y: (activeInc?.is_active || showStressCascade) ? 111.6 : 29.5, t: 'T+60m', val: (activeInc?.is_active || showStressCascade) ? '36.0' : '94.6', event: (activeInc?.is_active || showStressCascade) ? 'ICU Subsystem Battery Degrading' : 'Continuous Redundant Tier III State' },
+                    { x: 396, y: (activeInc?.is_active || showStressCascade) ? 122.0 : 28.7, t: 'T+90m', val: (activeInc?.is_active || showStressCascade) ? '28.0' : '95.2', event: (activeInc?.is_active || showStressCascade) ? 'Severe Service Domain Depletion' : 'Thermal Dissipation Nominal' },
+                    { x: 512, y: (activeInc?.is_active || showStressCascade) ? 131.9 : 29.0, t: 'T+120m', val: (activeInc?.is_active || showStressCascade) ? '21.5' : '95.0', event: (activeInc?.is_active || showStressCascade) ? 'Blackout State Reached' : '2h Projected Steady Equilibrium' }
+                  ].map((pt, idx) => (
+                    <g
+                      key={idx}
+                      className="svg-node-interactive"
+                      onMouseEnter={() => setHoveredPoint(pt)}
+                      onMouseLeave={() => setHoveredPoint(null)}
+                      style={{ cursor: 'pointer' }}
+                    >
+                      {/* Vertical Laser Crosshair Guide on Hover */}
+                      {hoveredPoint?.t === pt.t && (
+                        <line x1={pt.x} y1="22" x2={pt.x} y2="162" stroke="var(--accent-cyan, #00F0FF)" strokeDasharray="3 3" strokeWidth="1.2" opacity="0.8" />
+                      )}
+
+                      {/* Ripple Halo on Hover */}
+                      {hoveredPoint?.t === pt.t && (
+                        <circle
+                          cx={pt.x}
+                          cy={pt.y}
+                          r={10}
+                          fill="none"
+                          stroke={(activeInc?.is_active || showStressCascade) && idx > 0 ? '#EF4444' : '#00F0FF'}
+                          strokeWidth="1.2"
+                          opacity="0.6"
+                          className="ripple-ring"
+                        />
+                      )}
+
+                      {/* Primary Node Point */}
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={hoveredPoint?.t === pt.t ? 5.5 : 4}
+                        fill={(activeInc?.is_active || showStressCascade) && idx > 0 ? '#EF4444' : '#00F0FF'}
+                        stroke="var(--bg-surface, #01111E)"
+                        strokeWidth="2"
+                        style={{ transition: 'all 0.15s ease' }}
+                      />
+
+                      {/* Mitigated Node Point during Cascade Mode */}
+                      {(activeInc?.is_active || showStressCascade) && (
+                        <circle
+                          cx={pt.x}
+                          cy={idx === 0 ? 30.1 : idx === 1 ? 32.2 : idx === 2 ? 28.5 : idx === 3 ? 28.5 : 28.8}
+                          r={hoveredPoint?.t === pt.t ? 5.5 : 4}
+                          fill="#10B981"
+                          stroke="var(--bg-surface, #01111E)"
+                          strokeWidth="2"
+                          style={{ transition: 'all 0.15s ease' }}
+                        />
+                      )}
+                    </g>
+                  ))}
+
+                  {/* X-Axis Time Labels */}
+                  <text x="48" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+0m</text>
+                  <text x="106" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+15m</text>
+                  <text x="164" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+30m</text>
+                  <text x="222" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+45m</text>
+                  <text x="280" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+60m</text>
+                  <text x="396" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+90m</text>
+                  <text x="512" y="178" textAnchor="middle" fontSize="9.5" fill="var(--text-secondary, #94A3B8)" fontFamily="monospace" fontWeight="600">T+120m</text>
+                </svg>
+
+                {/* Floating Precision Tooltip HUD */}
+                {hoveredPoint && (
+                  <div className="trajectory-tooltip-overlay font-mono">
+                    <div className="tto-top">
+                      <span className="tto-time font-bold">{hoveredPoint.t} Checkpoint</span>
+                      <span className="tto-val">
+                        Resilience: <strong>{hoveredPoint.val}%</strong>
+                      </span>
+                    </div>
+                    <span className="tto-desc">{hoveredPoint.event}</span>
+                    <div className="tto-status-bar">
+                      <span className="tto-pill">
+                        Headroom: <strong>+{(parseFloat(hoveredPoint.val) - 70).toFixed(1)}%</strong>
+                      </span>
+                      <span className="tto-pill">
+                        Threshold: <strong>{parseFloat(hoveredPoint.val) >= 70 ? 'NOMINAL' : 'BREACH'}</strong>
+                      </span>
+                    </div>
+                  </div>
+                )}
+
+                {/* Chart Bottom Legend */}
+                <div className="trajectory-legend-row font-mono">
+                  <span className="t-leg-item">
+                    <span className="t-dot" style={{ background: '#00F0FF', boxShadow: '0 0 6px #00F0FF' }} />
+                    Baseline Live Telemetry ({currentResScore.toFixed(1)}%)
+                  </span>
+                  {(activeInc?.is_active || showStressCascade) && (
+                    <span className="t-leg-item">
+                      <span className="t-dot" style={{ background: '#EF4444', boxShadow: '0 0 6px #EF4444' }} />
+                      Unmitigated Failure Cascade (21.5%)
+                    </span>
+                  )}
+                  {(activeInc?.is_active || showStressCascade) && (
+                    <span className="t-leg-item">
+                      <span className="t-dot" style={{ background: '#10B981', boxShadow: '0 0 6px #10B981' }} />
+                      AI Automated Recovery (95.5%)
+                    </span>
+                  )}
+                  {showConfidenceCorridor && !(activeInc?.is_active || showStressCascade) && (
+                    <span className="t-leg-item">
+                      <span className="t-dot" style={{ background: 'rgba(0, 240, 255, 0.4)' }} />
+                      Confidence Corridor (±3.5%)
+                    </span>
+                  )}
+                  <span className="t-leg-item">
+                    <span className="t-dot" style={{ background: '#F59E0B' }} />
+                    Critical Safety Floor (70%)
+                  </span>
+                </div>
+
+                {/* 4 Executive Diagnostic KPI Telemetry Cards */}
+                <div className="trajectory-kpi-chips font-mono">
+                  <div className="tk-chip">
+                    <span className="tk-label">CURRENT INDEX</span>
+                    <span className="tk-val" style={{ color: '#00F0FF' }}>{(currentResScore || 94.2).toFixed(1)}%</span>
+                    <span className="tk-sub">Nominal Equilibrium</span>
+                  </div>
+                  <div className="tk-chip">
+                    <span className="tk-label">SAFETY HEADROOM</span>
+                    <span className="tk-val" style={{ color: '#10B981' }}>+{((currentResScore || 94.2) - 70).toFixed(1)}%</span>
+                    <span className="tk-sub">Above 70% Floor</span>
+                  </div>
+                  <div className="tk-chip">
+                    <span className="tk-label">VALLEY FORECAST</span>
+                    <span className="tk-val" style={{ color: (activeInc?.is_active || showStressCascade) ? '#EF4444' : '#00A3FF' }}>
+                      {(activeInc?.is_active || showStressCascade) ? '21.5% (Severe)' : '92.8% (Stable)'}
+                    </span>
+                    <span className="tk-sub">2h Horizon Minimum</span>
+                  </div>
+                  <div className="tk-chip">
+                    <span className="tk-label">AUTONOMY RUNTIME</span>
+                    <span className="tk-val" style={{ color: '#F59E0B' }}>8.5 Hours</span>
+                    <span className="tk-sub">Dual Diesel + UPS</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* View 2: Multi-Domain System Stress Breakdown */}
+            {graphTab === 'breakdown' && (
+              <div className="system-stress-breakdown font-mono">
+                {[
+                  { domain: 'Critical Life-Support & Surgical OT', pct: (subScores.service_continuity ?? 100).toFixed(0), weight: '35%', load: '142 kW', status: '100% SECURE', color: '#10B981' },
+                  { domain: 'Main Electrical Bus & Generator Sync', pct: (subScores.stability_factor ?? 88.2).toFixed(0), weight: '20%', load: '320 kW', status: 'ONLINE (8.5h)', color: '#00A3FF' },
+                  { domain: 'Backup Energy Margin (UPS Inverters)', pct: (subScores.backup_margin ?? 88.8).toFixed(0), weight: '20%', load: '100% Chg', status: 'N+1 ARMED', color: '#00E5A3' },
+                  { domain: 'HVAC & Cleanroom Thermal Loop', pct: (subScores.recovery_readiness ?? 100).toFixed(0), weight: '15%', load: '18.4°C', status: 'STABLE 38m', color: '#10B981' },
+                  { domain: 'Telemetry Comms & SCADA Network', pct: (subScores.resource_conservation ?? 100).toFixed(0), weight: '10%', load: '4ms Lat', status: 'OPTIMAL', color: '#00F0FF' }
+                ].map((item, idx) => (
+                  <div key={idx} className="stress-item-row">
+                    <div className="sir-header">
+                      <div className="sir-title-group">
+                        <span className="sir-title">{item.domain}</span>
+                        <span className="sir-wt">Weight: {item.weight} • Telemetry: {item.load}</span>
+                      </div>
+                      <span className="sir-status" style={{ color: item.color }}>{item.status} ({item.pct}%)</span>
+                    </div>
+                    <div className="sir-progress-track">
+                      <div
+                        className="sir-progress-fill"
+                        style={{ width: `${item.pct}%`, backgroundColor: item.color, boxShadow: `0 0 8px ${item.color}` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* View 3: Autonomous Margins */}
+            {graphTab === 'margins' && (
+              <div className="autonomous-margins-grid font-mono">
+                <div className="margin-tile">
+                  <div className="mt-icon-wrap" style={{ color: '#00A3FF', background: 'rgba(0,163,255,0.12)' }}>
+                    <Zap size={18} />
+                  </div>
+                  <div className="mt-text">
+                    <span className="mt-val">8.5 Hours</span>
+                    <span className="mt-lbl">GEN_01 Diesel Autonomy</span>
+                    <span className="mt-sub">1,850 L reserve (88% tank capacity)</span>
+                  </div>
+                </div>
+
+                <div className="margin-tile">
+                  <div className="mt-icon-wrap" style={{ color: '#10B981', background: 'rgba(16,185,129,0.12)' }}>
+                    <BatteryCharging size={18} />
+                  </div>
+                  <div className="mt-text">
+                    <span className="mt-val">45.0 Min</span>
+                    <span className="mt-lbl">UPS Critical Inverter</span>
+                    <span className="mt-sub">100% battery bank • Zero transfer blip</span>
+                  </div>
+                </div>
+
+                <div className="margin-tile">
+                  <div className="mt-icon-wrap" style={{ color: '#00E5A3', background: 'rgba(0,229,163,0.12)' }}>
+                    <Wind size={18} />
+                  </div>
+                  <div className="mt-text">
+                    <span className="mt-val">38.0 Min</span>
+                    <span className="mt-lbl">Chilled Water Inertia</span>
+                    <span className="mt-sub">Thermal rise &lt; 0.8°C/hr buffer</span>
+                  </div>
+                </div>
+
+                <div className="margin-tile">
+                  <div className="mt-icon-wrap" style={{ color: '#F59E0B', background: 'rgba(245,158,11,0.12)' }}>
+                    <ShieldCheck size={18} />
+                  </div>
+                  <div className="mt-text">
+                    <span className="mt-val">&lt; 4.2 Sec</span>
+                    <span className="mt-lbl">Autonomous MTTM</span>
+                    <span className="mt-sub">Mean time to autonomous failover</span>
+                  </div>
+                </div>
+
+                <div className="margin-tile">
+                  <div className="mt-icon-wrap" style={{ color: '#00F0FF', background: 'rgba(0,240,255,0.12)' }}>
+                    <Droplets size={18} />
+                  </div>
+                  <div className="mt-text">
+                    <span className="mt-val">72.0 Hours</span>
+                    <span className="mt-lbl">Cryogenic O2 Storage</span>
+                    <span className="mt-sub">Dual 55 PSI headers nominal</span>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* RIGHT COLUMN: Quick Reports + A4 Preview */}
@@ -1406,15 +1872,28 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
               </div>
 
               <div style={{ position: 'relative', display: 'flex', gap: '6px' }}>
-                <button
-                  type="button"
-                  className="download-rep-btn primary-action-btn"
-                  onClick={() => handleDownload()}
-                  title={`Download as ${outputFormat.toUpperCase()}`}
-                >
-                  {outputFormat === 'pdf' ? <Printer size={13} /> : <Download size={13} />}
-                  <span>{outputFormat === 'pdf' ? 'Print / Save PDF' : outputFormat === 'markdown' ? 'Export Markdown' : 'Export JSON'}</span>
-                </button>
+                {/* Primary Button: In PDF Mode, opens Full-Screen Review Modal */}
+                {outputFormat === 'pdf' ? (
+                  <button
+                    type="button"
+                    className="download-rep-btn primary-action-btn review-btn"
+                    onClick={() => setIsReviewModalOpen(true)}
+                    title="Review document before printing or saving"
+                  >
+                    <Eye size={13} />
+                    <span>Review & Export Report</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    className="download-rep-btn primary-action-btn"
+                    onClick={() => handleDownload()}
+                    title={`Export as ${outputFormat.toUpperCase()}`}
+                  >
+                    <Download size={13} />
+                    <span>{outputFormat === 'markdown' ? 'Export Markdown' : 'Export JSON'}</span>
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -1427,8 +1906,11 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
 
                 {downloadMenuOpen && (
                   <div className="export-menu-dropdown font-mono">
+                    <button type="button" onClick={() => { setIsReviewModalOpen(true); setDownloadMenuOpen(false); }}>
+                      <Eye size={12} /> Review Document (A4)
+                    </button>
                     <button type="button" onClick={() => handleDownload('pdf')}>
-                      <Printer size={12} /> PDF Document (.pdf)
+                      <Printer size={12} /> Direct Print PDF (.pdf)
                     </button>
                     <button type="button" onClick={() => handleDownload('markdown')}>
                       <FileText size={12} /> Executive Markdown (.md)
@@ -1441,12 +1923,118 @@ export default function ReportsView({ resilience, incident, assets = [], onNotif
               </div>
             </div>
 
+            {/* Click to review overlay banner */}
+            {outputFormat === 'pdf' && (
+              <div
+                className="preview-review-hint-bar font-mono"
+                onClick={() => setIsReviewModalOpen(true)}
+              >
+                <Eye size={12} style={{ color: 'var(--accent-cyan)' }} />
+                <span>Click document or <strong>"Review & Export Report"</strong> to open high-resolution audit inspection</span>
+                <Maximize2 size={12} style={{ marginLeft: 'auto', color: 'var(--text-muted)' }} />
+              </div>
+            )}
+
             {outputFormat === 'pdf' && renderReportPreview()}
             {outputFormat === 'markdown' && renderMarkdownPreview()}
             {outputFormat === 'json' && renderJsonPreview()}
           </div>
         </div>
       </section>
+
+      {/* 3. EXECUTIVE DOCUMENT FULL-SCREEN REVIEW MODAL */}
+      {isReviewModalOpen && (
+        <div className="report-review-modal-overlay" onClick={() => setIsReviewModalOpen(false)}>
+          <div className="report-review-modal-container" onClick={(e) => e.stopPropagation()}>
+            {/* Top Review Bar */}
+            <div className="review-modal-header font-mono">
+              <div className="rmh-left">
+                <div className="rmh-doc-badge">
+                  <Eye size={14} style={{ color: '#00F0FF' }} />
+                  <span className="rmh-title">ResilienceOS Executive Briefing Review</span>
+                </div>
+                <span className="rmh-status-badge">AUDIT READY</span>
+              </div>
+
+              <div className="rmh-center-controls">
+                <span className="rmh-zoom-label">Zoom:</span>
+                <button
+                  type="button"
+                  className={`rmh-zoom-btn ${reviewZoom === 'fit' ? 'is-active' : ''}`}
+                  onClick={() => setReviewZoom('fit')}
+                >
+                  Fit Width
+                </button>
+                <button
+                  type="button"
+                  className={`rmh-zoom-btn ${reviewZoom === '100%' ? 'is-active' : ''}`}
+                  onClick={() => setReviewZoom('100%')}
+                >
+                  100%
+                </button>
+                <button
+                  type="button"
+                  className={`rmh-zoom-btn ${reviewZoom === '125%' ? 'is-active' : ''}`}
+                  onClick={() => setReviewZoom('125%')}
+                >
+                  125%
+                </button>
+              </div>
+
+              <div className="rmh-right-actions">
+                <button
+                  type="button"
+                  className="rmh-action-btn rmh-print-btn"
+                  onClick={() => handlePrintPdf()}
+                  title="Print to PDF"
+                >
+                  <Printer size={13} />
+                  <span>Print / Save PDF</span>
+                </button>
+                <button
+                  type="button"
+                  className="rmh-action-btn rmh-md-btn"
+                  onClick={() => handleDownload('markdown')}
+                  title="Download Markdown"
+                >
+                  <Share2 size={13} />
+                  <span>Markdown</span>
+                </button>
+                <button
+                  type="button"
+                  className="rmh-action-btn rmh-json-btn"
+                  onClick={() => handleDownload('json')}
+                  title="Download JSON"
+                >
+                  <Activity size={13} />
+                  <span>JSON</span>
+                </button>
+                <button
+                  type="button"
+                  className="rmh-close-btn"
+                  onClick={() => setIsReviewModalOpen(false)}
+                  aria-label="Close review dialog"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            </div>
+
+            {/* Review Document Viewport */}
+            <div className="review-modal-viewport">
+              <div
+                className="review-document-wrapper"
+                style={{
+                  transform: reviewZoom === 'fit' ? 'scale(0.92)' : reviewZoom === '125%' ? 'scale(1.18)' : 'scale(1)',
+                  transformOrigin: 'top center'
+                }}
+              >
+                {renderReportPreview()}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
