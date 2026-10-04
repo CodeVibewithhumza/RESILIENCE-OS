@@ -5,6 +5,8 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![React](https://img.shields.io/badge/React-19+-61DAFB.svg?logo=react&logoColor=black)](https://reactjs.org/)
 [![Three.js](https://img.shields.io/badge/Three.js-R3F-black.svg?logo=three.js&logoColor=white)](https://threejs.org/)
+[![Vercel](https://img.shields.io/badge/Vercel-Frontend-black.svg?logo=vercel&logoColor=white)](https://vercel.com)
+[![Render](https://img.shields.io/badge/Render-Backend-46E3B7.svg?logo=render&logoColor=white)](https://render.com)
 [![NetworkX](https://img.shields.io/badge/NetworkX-3.2+-orange.svg)](https://networkx.org/)
 [![pytest](https://img.shields.io/badge/pytest-106%2F106%20Passing-brightgreen.svg)](tests/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](docker-compose.yml)
@@ -29,6 +31,7 @@
 7. [REST & WebSocket API Reference](#-rest--websocket-api-reference)
 8. [Installation & Deployment Guide](#-installation--deployment-guide)
    - [Prerequisites](#prerequisites)
+   - [Cloud Deployment (Vercel Frontend + Render Backend)](#-cloud-deployment-vercel--render)
    - [Local Development Setup](#local-development-setup)
    - [One-Click Windows Launcher](#one-click-windows-launcher)
    - [Docker & Containerized Deployment](#docker--containerized-deployment)
@@ -253,6 +256,47 @@ The backend provides OpenAPI 3.0 documentation at `/docs`.
 * **Python 3.10+** (Python 3.11 / 3.12 / 3.13 / 3.14 fully supported)
 * **Node.js 18+** & `npm`
 * **Docker & Docker Compose** *(Optional, for containerized deployment)*
+
+---
+
+### ☁️ Cloud Deployment (Vercel + Render)
+
+ResilienceOS can be deployed to the cloud for free with zero-configuration serverless hosting:
+
+```
+┌─────────────────────────────────────────┐       WebSocket (WSS) / REST API       ┌─────────────────────────────────────────┐
+│          VERCEL (React 19 Frontend)     │ ─────────────────────────────────────► │       RENDER (FastAPI Backend + DB)     │
+│   • 3D WebGL Digital Twin HUD           │ ◄───────────────────────────────────── │   • Singleton State Coordinator         │
+│   • Multi-Criteria Decision Studio      │       Real-Time Telemetry Stream       │   • Cascade Engine & Graph BFS          │
+└─────────────────────────────────────────┘                                        └─────────────────────────────────────────┘
+```
+
+#### 1. Deploy Backend on [Render](https://render.com)
+1. In Render Dashboard, click **New +** → **Web Service** and connect your GitHub repository.
+2. Configure settings:
+   * **Root Directory**: *(Leave blank)*
+   * **Runtime**: `Python 3`
+   * **Build Command**: `pip install -r requirements.txt`
+   * **Start Command**: `uvicorn backend.app.main:app --host 0.0.0.0 --port $PORT`
+3. Add Environment Variables under **Advanced**:
+   * `PYTHONPATH` = `.`
+   * `ENVIRONMENT` = `production`
+   * *(Optional)* `DATABASE_URL` = `postgresql+asyncpg://...` (Or omit to use resilient in-memory graph models)
+4. Click **Create Web Service**. Render provides your live backend URL (e.g. `https://resilienceos-backend.onrender.com`).
+
+> [!TIP]
+> **Free Tier 24/7 Keep-Alive:** Render free tier spins down after 15 min of inactivity. Use a free monitoring service like [cron-job.org](https://cron-job.org/) or [UptimeRobot](https://uptimerobot.com/) to ping `https://<your-render-url>/` every 5–10 minutes to keep your backend warm with 0ms cold starts.
+
+#### 2. Deploy Frontend on [Vercel](https://vercel.com)
+1. In Vercel Dashboard, click **Add New...** → **Project** and import your repository.
+2. Set configuration:
+   * **Framework Preset**: `Vite`
+   * **Root Directory**: `frontend`
+   * **Build Command**: `npm run build`
+   * **Output Directory**: `dist`
+3. Add Environment Variable:
+   * `VITE_API_BASE_URL` = `https://<your-render-backend-url>.onrender.com`
+4. Click **Deploy**. Vercel will build and launch your production command center.
 
 ---
 
