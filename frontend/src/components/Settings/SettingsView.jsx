@@ -42,8 +42,6 @@ import {
 import './SettingsView.css'
 import { getApiBaseUrl } from '../../config/api'
 
-const SETTING_PASSCODE = '5678'
-
 const SETTING_TABS = [
   { id: 'model', name: 'Hospital Model', sub: 'Assets, services, dependencies', icon: Building },
   { id: 'sim', name: 'Simulation', sub: 'Parameters & scenarios', icon: Activity },
@@ -64,19 +62,6 @@ export default function SettingsView({
   incident,
   onNavigate
 }) {
-  // Security PIN Lock State (Code: 5678) — Auto-locks every time user leaves page
-  const [isUnlocked, setIsUnlocked] = useState(false)
-  const [enteredPin, setEnteredPin] = useState('')
-  const [pinError, setPinError] = useState('')
-  const [isShaking, setIsShaking] = useState(false)
-
-  // Auto-lock whenever leaving the Settings view
-  useEffect(() => {
-    return () => {
-      sessionStorage.removeItem('resilience_settings_unlocked')
-    }
-  }, [])
-
   const [activeTab, setActiveTab] = useState('model')
   const [assetSystemFilter, setAssetSystemFilter] = useState('All Systems')
   const [thresholdSystemTab, setThresholdSystemTab] = useState('Electrical')
@@ -288,68 +273,6 @@ export default function SettingsView({
     reader.readAsText(file)
   }
 
-  const handleKeyPress = (numStr) => {
-    if (enteredPin.length < 4) {
-      const nextPin = enteredPin + numStr
-      setEnteredPin(nextPin)
-      setPinError('')
-      if (nextPin.length === 4) {
-        verifyPin(nextPin)
-      }
-    }
-  }
-
-  const handleDelete = () => {
-    setEnteredPin((prev) => prev.slice(0, -1))
-    setPinError('')
-  }
-
-  const handleClear = () => {
-    setEnteredPin('')
-    setPinError('')
-  }
-
-  const verifyPin = (pinToVerify) => {
-    if (pinToVerify === SETTING_PASSCODE) {
-      setIsUnlocked(true)
-      sessionStorage.setItem('resilience_settings_unlocked', 'true')
-      setPinError('')
-      if (onNotify) onNotify('Security Passcode Verified — Settings Unlocked', 'success')
-    } else {
-      setIsShaking(true)
-      setPinError('INVALID PASSCODE — ACCESS DENIED')
-      if (onNotify) onNotify('Invalid Passcode! Security Clearance Required.', 'error')
-      setTimeout(() => {
-        setIsShaking(false)
-        setEnteredPin('')
-      }, 700)
-    }
-  }
-
-  // Handle physical keyboard inputs when lock screen is active
-  useEffect(() => {
-    if (isUnlocked) return
-
-    const handleKeyDown = (e) => {
-      if (/^[0-9]$/.test(e.key)) {
-        e.preventDefault()
-        handleKeyPress(e.key)
-      } else if (e.key === 'Backspace') {
-        e.preventDefault()
-        handleDelete()
-      } else if (e.key === 'Escape') {
-        handleClear()
-      } else if (e.key === 'Enter') {
-        if (enteredPin.length === 4) {
-          verifyPin(enteredPin)
-        }
-      }
-    }
-
-    window.addEventListener('keydown', handleKeyDown)
-    return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [isUnlocked, enteredPin])
-
   const handleResetAll = () => {
     setSimSpeed(1)
     setTimeStep(1)
@@ -366,102 +289,6 @@ export default function SettingsView({
     setCameraAutoRotate(false)
     if (onReset) onReset()
     if (onNotify) onNotify('All system settings reset to factory defaults', 'warning')
-  }
-
-  // 0. IF LOCKED: RENDER PIN SECURITY GATEWAY
-  if (!isUnlocked) {
-    return (
-      <div className="settings-lock-screen-container font-mono">
-        <div className={`settings-lock-card ${isShaking ? 'is-shaking' : ''}`}>
-          <div className="settings-lock-badge-wrap">
-            <div className="settings-lock-icon-glow">
-              <Lock size={28} className="settings-lock-icon" />
-            </div>
-            <span className="settings-lock-tag">
-              <ShieldAlert size={12} /> RESTRICTED ACCESS // LEVEL 4 CLEARANCE
-            </span>
-          </div>
-
-          <h2 className="settings-lock-title">Hospital Security Gateway</h2>
-          <p className="settings-lock-desc">
-            Modifying critical infrastructure thresholds, topology models, and simulation dynamics requires authorization.
-          </p>
-
-          {/* 4 Digit Visual PIN Indicator */}
-          <div className="settings-pin-display-wrap">
-            <div className="settings-pin-dots-row">
-              {[0, 1, 2, 3].map((idx) => {
-                const isFilled = enteredPin.length > idx
-                return (
-                  <div
-                    key={idx}
-                    className={`settings-pin-dot ${isFilled ? 'is-filled' : ''} ${pinError ? 'is-error' : ''}`}
-                  >
-                    {isFilled ? '●' : '○'}
-                  </div>
-                )
-              })}
-            </div>
-            {pinError ? (
-              <span className="settings-pin-error">{pinError}</span>
-            ) : (
-              <span className="settings-pin-hint">Enter 4-Digit Passcode</span>
-            )}
-          </div>
-
-          {/* Interactive PIN Keypad */}
-          <div className="settings-pin-keypad">
-            {[1, 2, 3, 4, 5, 6, 7, 8, 9].map((num) => (
-              <button
-                key={num}
-                type="button"
-                className="settings-pin-key"
-                onClick={() => handleKeyPress(String(num))}
-              >
-                {num}
-              </button>
-            ))}
-            <button
-              type="button"
-              className="settings-pin-key key-func"
-              onClick={handleClear}
-              title="Clear Passcode"
-            >
-              C
-            </button>
-            <button
-              type="button"
-              className="settings-pin-key"
-              onClick={() => handleKeyPress('0')}
-            >
-              0
-            </button>
-            <button
-              type="button"
-              className="settings-pin-key key-func"
-              onClick={handleDelete}
-              title="Backspace"
-            >
-              ⌫
-            </button>
-          </div>
-
-          {/* Bottom Action Bar */}
-          <div className="settings-lock-footer">
-            {onNavigate && (
-              <button
-                type="button"
-                className="settings-lock-return-btn font-sans"
-                onClick={() => onNavigate('dashboard')}
-              >
-                <ArrowLeft size={13} />
-                <span>Return to Dashboard</span>
-              </button>
-            )}
-          </div>
-        </div>
-      </div>
-    )
   }
 
   return (
