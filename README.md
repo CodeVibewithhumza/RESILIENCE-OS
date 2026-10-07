@@ -16,48 +16,54 @@
 
 ---
 
+## 🚨 The Core Problem Statement & What is a Digital Twin?
+
+### 1. The Real-World Problem in Plain English
+Hospitals are not just buildings—they are fragile, multi-utility life-support machines:
+* **Power Grid** feeds $\to$ **Transformers** $\to$ **HVAC Chillers** $\to$ **Operating Theatres & Cleanroom Pressure**.
+* **Electrical Bus** $\to$ **UPS Batteries** $\to$ **ICU Ventilators & Dialysis**.
+* **Liquid Oxygen Bulk Storage** $\to$ **Atmospheric Vaporizers** $\to$ **Mechanical Ventilator Gas Pendants**.
+
+When a primary transformer fails or an oxygen line drops pressure, it **cascades across separate utilities**. Within 8 to 15 minutes:
+1. Chillers stall $\to$ ICU & surgical rooms experience thermal runaway.
+2. UPS batteries discharge rapidly $\to$ Ventilators and surgical monitors lose power.
+3. **Traditional BMS alarms only ring AFTER equipment fails.** Operators panic, drown in 50+ uncoordinated alerts, and cannot mathematically compute multi-variable recovery trade-offs under extreme pressure.
+
+### 2. What is our "Digital Twin"? (It's NOT just a 3D model!)
+A **3D model** is static. A **Digital Twin** is a living, state-synchronized computational replica:
+* **Physical Asset State:** Real-time telemetry (kW load, temperature, barometric pressure, battery SOC).
+* **Graph Topology ($G = \mathcal{V}, \mathcal{E}$):** 52 infrastructure nodes connected by physical dependencies (`POWERS`, `COOLS`, `PROVIDES_GAS`, `BACKS_UP`).
+* **Predictive Physics:** When node $A$ trips, the twin computes the cascade path to node $B$ across time ($T+0 \to T+45\text{min}$) before the physical equipment actually breaks.
+
+---
+
+## 🗺️ Project Implementation Phases
+
+```mermaid
+graph TD
+    P1["Phase 1: Knowledge Graph & Spatial Twin<br/>(Physical Topology, BIM Reconstruction & Sensor Telemetry)"] --> P2["Phase 2: Physics-Informed Cascade Engine<br/>(Propagation Trajectory, Battery Decay & Blast Radius)"]
+    P2 --> P3["Phase 3: Multi-Agent Mitigation & MCDA<br/>(LangGraph State Machine, TOPSIS Ranking & Explainability)"]
+    P3 --> P4["Phase 4: Autonomous Command & Auditing<br/>(Human-in-the-Loop Dispatch, Recovery Feedback & PDF Reports)"]
+```
+
+| Phase | Title | Core Objective | Key Deliverables & Tech Stack |
+|---|---|---|---|
+| **Phase 1** | **Spatial Digital Twin & Topology Graph** | Model the physical hospital campus and establish multi-utility dependency graphs. | • BIM-grade 5-floor 3D WebGL reconstruction (Three.js / React Three Fiber)<br/>• Directed Property Knowledge Graph (NetworkX, 52 Nodes, 112 Edges)<br/>• Real-time OPC-UA / MQTT telemetry ingestion schemas |
+| **Phase 2** | **Temporal Cascade Failure Engine** | Simulate multi-hop failure propagation trajectories before alarms fire. | • Discrete time-step simulation engine ($T+0 \to T+45\text{min}$)<br/>• Physics-based UPS battery discharge & generator spool dynamics<br/>• Dynamic Resilience Index ($R \in [0, 100]$) synthesis |
+| **Phase 3** | **Multi-Agent Mitigation & Decision Lab** | Generate and rank optimal recovery strategies under multi-variable constraints. | • Multi-Agent LangGraph workflow with strict Pydantic verification<br/>• TOPSIS / MCDA multi-criteria strategy ranking (Strategies A–F)<br/>• Causal Explainable AI (XAI) natural language reasoning engine |
+| **Phase 4** | **Human-in-the-Loop Execution & Compliance** | Provide 1-click execution dispatch and automated regulatory incident audits. | • Human-in-the-Loop safety approval gateway with state rollback<br/>• Live self-healing feedback loop with real-time twin synchronization<br/>• Executive post-mortem PDF compliance report studio |
+
+---
+
 ## 📑 Table of Contents
 
-1. [Executive Summary & Problem Statement](#-executive-summary--problem-statement)
-2. [Core Platform Capabilities](#-core-platform-capabilities)
-3. [System Architecture & Data Flow](#-system-architecture--data-flow)
-4. [Mathematical & Algorithmic Formulations](#-mathematical--algorithmic-formulations)
-   - [Directed Property Dependency Graph](#1-directed-property-dependency-graph)
-   - [Resilience Index Synthesis ($R$)](#2-resilience-index-synthesis-r)
-   - [Physics-Informed Cascade Propagation](#3-physics-informed-cascade-propagation)
-   - [TOPSIS Multi-Criteria Decision Ranking](#4-topsis-multi-criteria-decision-ranking)
-5. [8-View Command Center Interface](#-8-view-command-center-interface)
-6. [Repository & Directory Structure](#-repository--directory-structure)
-7. [REST & WebSocket API Reference](#-rest--websocket-api-reference)
-8. [Installation & Deployment Guide](#-installation--deployment-guide)
-   - [Prerequisites](#prerequisites)
-   - [Cloud Deployment (Vercel Frontend + Render Backend)](#-cloud-deployment-vercel--render)
-   - [Local Development Setup](#local-development-setup)
-   - [One-Click Windows Launcher](#one-click-windows-launcher)
-   - [Docker & Containerized Deployment](#docker--containerized-deployment)
-   - [Running Automated Verification Tests](#running-automated-verification-tests)
-9. [Human-in-the-Loop Safety Protocol](#-human-in-the-loop-safety-protocol)
-10. [License](#-license)
-
----
-
-## 🎯 Executive Summary & Problem Statement
-
-Modern tertiary hospitals are complex interconnected ecosystems where clinical life-support services rely entirely on multi-utility physical infrastructure:
-
-* **Electrical Power:** Medium voltage (11kV) grid feeds, step-down transformers (415V), emergency diesel generators, automatic transfer switches (ATS), and static uninterruptible power supply (UPS) battery banks.
-* **Medical Gases:** Cryogenic liquid oxygen (LOX) bulk storage, atmospheric vaporizers, manifold back-ups, and high-pressure distribution pipelines to ICU mechanical ventilators and surgical pendants.
-* **HVAC & Environment:** Centrifugal water chillers, cooling towers, primary/secondary circulation pumps, and air handling units (AHU) maintaining sterile positive air pressure in cleanrooms and Operating Theatres.
-* **Domestic & Process Water:** Municipal mains, underground reservoirs, rooftop storage tanks, and hydro-pneumatic booster pumps supplying central sterilization (CSSD), dialyzers, and sanitary systems.
-
-### The Cascade Failure Threat
-When a primary asset experiences an unexpected fault (e.g., an 11kV transformer trip or main water booster failure), downstream disruptions do not occur in isolation. Subsystems propagate cascading stress across dependency chains. For instance, losing grid power causes HVAC chillers to stall, resulting in cleanroom thermal runaway within 15 minutes; meanwhile, static UPS batteries discharge rapidly while emergency generators spool up, threatening mechanical ventilation in the ICU.
-
-**ResilienceOS eliminates single-point-of-failure blind spots** by continuously computing dynamic health states, evaluating cascade blast radiuses, and recommending validated mitigation actions within seconds.
-
----
-
-## ⚡ Core Platform Capabilities
+1. [The Core Problem Statement & What is a Digital Twin?](#-the-core-problem-statement--what-is-a-digital-twin)
+2. [Project Implementation Phases](#️-project-implementation-phases)
+3. [Core Platform Capabilities](#-core-platform-capabilities)
+4. [System Architecture & Data Flow](#-system-architecture--data-flow)
+5. [Mathematical & Algorithmic Formulations](#-mathematical--algorithmic-formulations)
+6. [8-View Command Center Interface](#-8-view-command-center-interface)
+7. [Installation & Deployment Guide](#-installation--deployment-guide)
 
 * 🌐 **BIM-Grade 3D Digital Twin:** Spatial WebGL campus reconstruction (React Three Fiber) rendering 5 architectural floor levels (Basement B1, Ground L1, Floor 2, Floor 3, Roof L4), clinical room polygons, interactive 3D equipment assets, dynamic heatmaps, volumetric status glow shaders, and orthogonal Manhattan utility pipelines (color-coded for Power, MedGas, HVAC, Water) with dual Daylight Cleanroom / Dark Command Center lighting.
 * 🔗 **Graph Knowledge Engine:** Directed property graph ($G = (\mathcal{V}, \mathcal{E})$) modeling 52 physical nodes and 112 multi-tier dependency edges with relationship taxonomies (`POWERS`, `BACKS_UP`, `SUPPLIES`, `COOLS`, `PROVIDES_WATER`, `PROVIDES_GAS`).
