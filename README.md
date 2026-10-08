@@ -37,23 +37,225 @@ A **3D model** is static. A **Digital Twin** is a living, state-synchronized com
 
 ---
 
-## 🗺️ Project Implementation Phases
+## 🗺️ Project Implementation Phases## ⏱️ 30-Hour Hackathon Development & Integration Timeline
 
-```mermaid
-graph TD
-    P1["Phase 1: Knowledge Graph & Spatial Twin<br/>(Physical Topology, BIM Reconstruction & Sensor Telemetry)"] --> P2["Phase 2: Physics-Informed Cascade Engine<br/>(Propagation Trajectory, Battery Decay & Blast Radius)"]
-    P2 --> P3["Phase 3: Multi-Agent Mitigation & MCDA<br/>(LangGraph State Machine, TOPSIS Ranking & Explainability)"]
-    P3 --> P4["Phase 4: Autonomous Command & Auditing<br/>(Human-in-the-Loop Dispatch, Recovery Feedback & PDF Reports)"]
-```
+ResilienceOS was developed and integrated through a structured 30-hour hackathon execution cycle focused on building the end-to-end failure-to-decision workflow, validating the system, stabilizing the platform, and preparing the final demonstration.
 
-| Phase | Title | Core Objective | Key Deliverables & Tech Stack |
-|---|---|---|---|
-| **Phase 1** | **Spatial Digital Twin & Topology Graph** | Model the physical hospital campus and establish multi-utility dependency graphs. | • BIM-grade 5-floor 3D WebGL reconstruction (Three.js / React Three Fiber)<br/>• Directed Property Knowledge Graph (NetworkX, 52 Nodes, 112 Edges)<br/>• Real-time OPC-UA / MQTT telemetry ingestion schemas |
-| **Phase 2** | **Temporal Cascade Failure Engine** | Simulate multi-hop failure propagation trajectories before alarms fire. | • Discrete time-step simulation engine ($T+0 \to T+45\text{min}$)<br/>• Physics-based UPS battery discharge & generator spool dynamics<br/>• Dynamic Resilience Index ($R \in [0, 100]$) synthesis |
-| **Phase 3** | **Multi-Agent Mitigation & Decision Lab** | Generate and rank optimal recovery strategies under multi-variable constraints. | • Multi-Agent LangGraph workflow with strict Pydantic verification<br/>• TOPSIS / MCDA multi-criteria strategy ranking (Strategies A–F)<br/>• Causal Explainable AI (XAI) natural language reasoning engine |
-| **Phase 4** | **Human-in-the-Loop Execution & Compliance** | Provide 1-click execution dispatch and automated regulatory incident audits. | • Human-in-the-Loop safety approval gateway with state rollback<br/>• Live self-healing feedback loop with real-time twin synchronization<br/>• Executive post-mortem PDF compliance report studio |
+### Phase 1 — Setup & Dashboard Baseline
+H0 – H3
+
+Work:
+- Development environment setup and verification
+- Backend and frontend startup
+- Hospital baseline state initialization
+- Dashboard integration
+- Initial resilience/status information
+- Verification of normal hospital operating state
+- Real-time state connectivity verification
+
+Outcome:
+A stable baseline hospital digital twin and dashboard showing the normal operating condition.
 
 ---
+
+### Phase 2 — Start Simulation & Failure Injection
+H3 – H6
+
+Work:
+- Integrated Start Simulation workflow
+- Connected infrastructure failure scenarios
+- Supported failure categories such as electrical, gas, HVAC, water and combined scenarios where available
+- Connected failure injection to the backend HospitalStateEngine
+- Added severity and duration handling
+- Connected simulation events to affected infrastructure
+- Verified failure state transitions
+
+Outcome:
+Users can select and launch a hospital infrastructure failure scenario and observe the resulting system state.
+
+---
+
+### Phase 3 — Incident Timeline & Cascade Visualization
+H6 – H8
+
+Work:
+- Integrated Incident Timeline with simulation state
+- Connected failure events to cascade progression
+- Visualized progression across simulation checkpoints
+- Connected affected assets and services to the incident
+- Synchronized the 3D infrastructure representation with simulation state
+- Verified that infrastructure status changes when the incident progresses
+
+Outcome:
+The system shows how an infrastructure failure develops into a cascading incident over time.
+
+---
+
+### Phase 4 — Risk & Resilience Analysis
+H8 – H10
+
+Work:
+- Integrated Risk & Resilience analysis
+- Connected live incident state with resilience scoring
+- Added risk levels and threshold-based risk identification
+- Identified affected/high-risk infrastructure
+- Connected infrastructure impact with critical hospital services
+- Verified resilience changes before and after failure
+
+Outcome:
+The system explains the severity of an incident through risk and resilience analysis.
+
+---
+
+### Phase 5 — What-If Analysis & Decision Support
+H10 – H12
+
+Work:
+- Integrated What-If Analysis
+- Connected active failure scenarios with response strategies
+- Compared alternative mitigation strategies
+- Used the backend strategy/MCDA/TOPSIS engine for strategy evaluation
+- Displayed projected resilience impact
+- Added recommended strategy and decision factors
+- Connected strategy selection with the current incident state
+
+Outcome:
+Users can compare possible response strategies and understand their projected resilience impact.
+
+---
+
+### Phase 6 — Reports & Explainability
+H12 – H14
+
+Work:
+- Integrated Reports with live simulation information
+- Connected incident, risk, resilience and What-If information to reports
+- Added structured incident analysis
+- Integrated causal/explainability information where applicable
+- Verified report generation and export workflow
+- Prepared evidence of the complete decision-support process
+
+Outcome:
+The system can convert a simulated incident into a structured analysis and decision-support report.
+
+---
+
+### Phase 7 — Full-System Integration & Rehearsal
+H14 – H17
+
+Work:
+- Connected all six primary modules into one complete workflow
+- Tested:
+
+Dashboard
+→ Start Simulation
+→ Incident Timeline
+→ Risk & Resilience
+→ What-If Analysis
+→ Reports
+
+- Verified state synchronization between frontend and backend
+- Verified reset/recovery behavior
+- Fixed critical integration issues
+- Conducted the first complete demonstration rehearsal
+
+Outcome:
+The complete ResilienceOS workflow operates as one integrated system.
+
+---
+
+### Phase 8 — Secondary Scenario & Validation
+H17 – H19
+
+Work:
+- Verified an additional infrastructure failure scenario
+- Tested generator/UPS or another supported secondary scenario
+- Checked cascade behavior
+- Checked risk/resilience updates
+- Checked What-If strategy behavior
+- Checked timeline and report consistency
+- Documented limitations where a scenario was not stable enough for demonstration
+
+Outcome:
+The system is validated beyond the primary hero scenario.
+
+---
+
+### Phase 9 — Evidence, Documentation & Pitch Preparation
+H19 – H23
+
+Work:
+- Capture final screenshots
+- Document architecture and workflow
+- Document the six primary system features
+- Prepare technical explanation of:
+  - Failure injection
+  - Dependency/cascade propagation
+  - Risk & resilience calculation
+  - What-If strategy evaluation
+  - Explainability
+  - Reports
+- Prepare 30-second, 3-minute and 5-minute pitch versions
+- Assign team speaking responsibilities
+- Prepare judge Q&A
+
+Outcome:
+Technical implementation and presentation evidence are ready.
+
+---
+
+### Phase 10 — Final Rehearsal, Freeze & Submission
+H23 – H30
+
+H23 – H25:
+- Conduct judge-style full demonstration
+- Verify that the workflow is understandable without developer narration
+- Fix presentation and usability issues
+
+H25 – H27:
+- Freeze the release candidate
+- Backup/tag the final working version
+- Capture final demo screenshots/video
+- Verify repository and documentation
+
+H27 – H29:
+- Perform only high-confidence reliability and clarity fixes
+- Avoid risky architectural changes
+- Re-run the complete hero scenario
+
+H29 – H30:
+- Verify submission files and links
+- Verify build/startup process
+- Verify team roles
+- Reset system to a clean baseline
+- Final presentation readiness check
+
+Outcome:
+Final ResilienceOS hackathon build ready for demonstration and submission.
+
+---
+
+### 🎯 Final 30-Hour ResilienceOS Workflow
+
+Show the actual product workflow clearly:
+
+Dashboard
+↓
+Start Simulation
+↓
+Infrastructure Failure
+↓
+Incident Timeline
+↓
+Cascading Impact
+↓
+Risk & Resilience
+↓
+What-If Analysis
+↓
+Response Strategy
+↓
+Reports
 
 ## 📑 Table of Contents
 

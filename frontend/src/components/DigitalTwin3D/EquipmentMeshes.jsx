@@ -445,16 +445,10 @@ function AirAmbulanceHelicopter() {
  * Hospital Rooftop Structure with Helipad, AHU Condensers, Solar Arrays & Aviation Beacon
  */
 export function HospitalRooftop({ showRoof = true, xrayMode = false, isLight = false }) {
-  const beaconRef = useRef()
+  return null
+}
 
-  useFrame(({ clock }) => {
-    if (beaconRef.current) {
-      const t = clock.getElapsedTime()
-      beaconRef.current.intensity = Math.sin(t * 5) > 0.5 ? 2.5 : 0.2
-    }
-  })
-
-  if (!showRoof) return null
+function _DisabledHospitalRooftopContent({ showRoof = true, xrayMode = false, isLight = false }) {
   const buildingWidth = 14.8
   const buildingDepth = 11.0
   const elevation = 10.8
