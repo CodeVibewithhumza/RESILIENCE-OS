@@ -481,24 +481,32 @@ class RiskEstimationEngine:
             for sid, s in services.items()
         }
 
-        # 3.1 Identify Imminent Threshold Crossings (< 60 min)
+        # 3.1 Identify Imminent Threshold Crossings (< 60 min during active incident/depletion)
         imminent_crossings: List[TimeToThresholdEstimate] = []
         for a_risk in asset_risks.values():
-            if a_risk.time_to_threshold and a_risk.time_to_threshold.estimated_time_remaining_min <= 60.0:
-                imminent_crossings.append(a_risk.time_to_threshold)
+            if a_risk.time_to_threshold:
+                t_est = a_risk.time_to_threshold
+                is_depleting_condition = (
+                    t_est.is_critical or
+                    t_est.is_exhausted or
+                    (incident and incident.is_active and t_est.estimated_time_remaining_min <= 60.0) or
+                    (a_risk.operational_status in (OperationalStatus.DEGRADED, OperationalStatus.CRITICAL, OperationalStatus.FAILED) and t_est.estimated_time_remaining_min <= 60.0)
+                )
+                if is_depleting_condition:
+                    imminent_crossings.append(t_est)
 
         imminent_crossings.sort(key=lambda x: x.estimated_time_remaining_min)
 
-        # 3.2 Find Highest-Risk Entities
+        # 3.2 Find Highest-Risk Entities (only flag if elevated risk >= 0.20)
         highest_asset_id: Optional[str] = None
-        max_a_score = -1.0
+        max_a_score = 0.20
         for aid, a_eval in asset_risks.items():
             if a_eval.risk_score > max_a_score:
                 max_a_score = a_eval.risk_score
                 highest_asset_id = aid
 
         highest_service_id: Optional[str] = None
-        max_s_score = -1.0
+        max_s_score = 0.20
         for sid, s_eval in service_risks.items():
             if s_eval.risk_score > max_s_score:
                 max_s_score = s_eval.risk_score

@@ -1368,6 +1368,10 @@ export default function App() {
               resilience={resilience}
               assets={assets}
               services={services}
+              incident={incident}
+              onNavigate={(sec) => setActiveSection(sec)}
+              onSelectAsset={handleSelectAsset}
+              onNotify={showToast}
             />
           )}
 
