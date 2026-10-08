@@ -46,8 +46,8 @@ export function HospitalFloorPlinth({
             level === 3
               ? (isLight ? '#E0F2FE' : '#0B1E38') // ICU Medical Ice-Blue / Deep Slate Blue
               : level === 2
-              ? (isLight ? '#ECFDF5' : '#0A192F') // Surgical Sterile Mint / Navy
-              : (isLight ? '#F8FAFC' : '#0D1527') // ED Cleanroom Pearl / Charcoal
+                ? (isLight ? '#ECFDF5' : '#0A192F') // Surgical Sterile Mint / Navy
+                : (isLight ? '#F8FAFC' : '#0D1527') // ED Cleanroom Pearl / Charcoal
           }
           roughness={isLight ? 0.3 : 0.2}
           metalness={isLight ? 0.2 : 0.5}
@@ -335,10 +335,10 @@ export function HospitalFloorPlinth({
                 idx === 0
                   ? '#F59E0B' // Emergency Power Riser
                   : idx === 1
-                  ? '#10B981' // Medical Gas O2 Riser
-                  : idx === 2
-                  ? '#38BDF8' // Normal Power Riser
-                  : '#00F0FF' // Telemetry Fiber Bus
+                    ? '#10B981' // Medical Gas O2 Riser
+                    : idx === 2
+                      ? '#38BDF8' // Normal Power Riser
+                      : '#00F0FF' // Telemetry Fiber Bus
               }
             />
           </mesh>
@@ -1081,8 +1081,8 @@ export function ICUBedMesh({ status = 'normal', isSelected = false, hovered = fa
                 idx === 0
                   ? '#10B981' // Green Oxygen
                   : idx === 1
-                  ? '#EAB308' // Yellow Vacuum Suction
-                  : '#38BDF8' // Blue Nitrous / Air
+                    ? '#EAB308' // Yellow Vacuum Suction
+                    : '#38BDF8' // Blue Nitrous / Air
               }
             />
           </mesh>

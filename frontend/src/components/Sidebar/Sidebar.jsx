@@ -4,7 +4,6 @@ import {
   Box,
   PlayCircle,
   TrendingUp,
-  Clock,
   ShieldCheck,
   FileText,
   Settings,
@@ -96,11 +95,6 @@ export default function Sidebar({
       icon: Home
     },
     {
-      id: 'digital-twin',
-      label: 'Digital Twin',
-      icon: Box
-    },
-    {
       id: 'start-simulation',
       label: 'Start Simulation',
       icon: PlayCircle
@@ -109,11 +103,6 @@ export default function Sidebar({
       id: 'what-if',
       label: 'What-If Analysis',
       icon: TrendingUp
-    },
-    {
-      id: 'incident-timeline',
-      label: 'Incident Timeline',
-      icon: Clock
     },
     {
       id: 'risk-resilience',
@@ -146,9 +135,8 @@ export default function Sidebar({
 
   return (
     <aside
-      className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${
-        isMobileOpen ? 'is-mobile-open' : ''
-      } ${isResizing ? 'is-resizing' : ''}`}
+      className={`command-sidebar ${isCollapsed ? 'is-collapsed' : ''} ${isMobileOpen ? 'is-mobile-open' : ''
+        } ${isResizing ? 'is-resizing' : ''}`}
       style={!isCollapsed && width ? { width: `${width}px`, minWidth: `${width}px`, maxWidth: `${width}px` } : undefined}
       aria-label="Sidebar Navigation"
     >

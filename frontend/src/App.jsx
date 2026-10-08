@@ -1357,9 +1357,12 @@ export default function App() {
               onNextCheckpoint={handleNextCheckpoint}
               onOpenExplainability={handleOpenExplainability}
               onReset={handleReset}
+              onTriggerFailure={handleTriggerFailure}
+              onApplyStrategy={handleApplyStrategy}
               assets={assets}
               services={services}
               resilience={resilience}
+              onNotify={showToast}
             />
           )}
 
