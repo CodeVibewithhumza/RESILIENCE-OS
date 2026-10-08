@@ -965,7 +965,10 @@ function DigitalTwinScene({
         )
       })}
 
-      {/* Hospital Rooftop with Helipad & Air Ambulance removed per user request */}
+      {/* Hospital Rooftop Infrastructure (AHUs, Solar, Elevator Penthouse) */}
+      {(activeFloor === 'all' || activeFloor === 'floor_3') && (
+        <HospitalRooftop showRoof={showWalls} xrayMode={xrayMode} isLight={isLight} />
+      )}
 
       {/* Realistic Industrial Utility & Infrastructure Yard */}
       {(activeFloor === 'all' || activeFloor === 'floor_0') && (

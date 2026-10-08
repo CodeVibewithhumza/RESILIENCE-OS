@@ -145,9 +145,9 @@ export default function Home({
     } catch {}
   }, [middleSplitPercent])
 
-  const totalAssets = assets.length || 52
-  const totalServices = services.length || 8
-  const operationalServices = services.filter((s) => s.status === 'full_operation' || (!s.at_risk && s.status !== 'suspended')).length || 8
+  const totalAssets = assets.length || 31
+  const totalServices = services.length || 5
+  const operationalServices = services.filter((s) => s.status === 'full_operation' || (!s.at_risk && s.status !== 'suspended')).length || 5
   const atRiskServices = services.filter((s) => s.at_risk || s.status === 'reduced_capacity' || s.status === 'suspended').length
   const failedAssetsCount = assets.filter((a) => a.status === 'failed' || a.status === 'critical').length
   const degradedAssetsCount = assets.filter((a) => a.status === 'degraded' || a.status === 'starting').length
@@ -171,28 +171,28 @@ export default function Home({
   const powerDegraded = powerAssets.some((a) => a.status === 'degraded' || a.status === 'starting')
   const powerPct = typeof resilience?.subsystem_scores?.power === 'number'
     ? Math.round(resilience.subsystem_scores.power)
-    : (powerFailed ? 42 : powerDegraded ? 68 : 91)
+    : (powerFailed ? 42 : powerDegraded ? 68 : 96)
 
   const waterAsset = assetMap['WATER_PUMP_STATION']
   const waterFailed = waterAsset?.status === 'failed' || waterAsset?.status === 'critical'
   const waterDegraded = waterAsset?.status === 'degraded'
   const waterPct = typeof resilience?.subsystem_scores?.water === 'number'
     ? Math.round(resilience.subsystem_scores.water)
-    : (waterFailed ? 35 : waterDegraded ? 65 : 86)
+    : (waterFailed ? 35 : waterDegraded ? 65 : Math.round(waterAsset?.health_score ?? 96))
 
   const hvacAsset = assetMap['CHILLER_PLANT']
   const hvacFailed = hvacAsset?.status === 'failed' || hvacAsset?.status === 'critical'
   const hvacDegraded = hvacAsset?.status === 'degraded'
   const hvacPct = typeof resilience?.subsystem_scores?.hvac === 'number'
     ? Math.round(resilience.subsystem_scores.hvac)
-    : (hvacFailed ? 30 : hvacDegraded ? 62 : 78)
+    : (hvacFailed ? 30 : hvacDegraded ? 62 : Math.round(hvacAsset?.health_score ?? 98))
 
   const gasAsset = assetMap['OXYGEN_MANIFOLD']
   const gasFailed = gasAsset?.status === 'failed' || gasAsset?.status === 'critical'
   const gasDegraded = gasAsset?.status === 'degraded'
   const gasPct = typeof resilience?.subsystem_scores?.medical_gas === 'number'
     ? Math.round(resilience.subsystem_scores.medical_gas)
-    : (gasFailed ? 25 : gasDegraded ? 60 : 94)
+    : (gasFailed ? 25 : gasDegraded ? 60 : Math.round(gasAsset?.health_score ?? 98))
 
   // 1. DYNAMIC RESILIENCE INDEX DATA BASED ON FILTER
   const resilienceData = useMemo(() => {
@@ -425,43 +425,36 @@ export default function Home({
 
   // 4. DYNAMIC RISK DISTRIBUTION DATA BASED ON FILTER (BAR CHART / HISTOGRAM)
   const riskDistributionData = useMemo(() => {
+    const totalCount = assets.length || 31
+    const highCount = failedAssetsCount + (incident?.is_active ? 1 : 0)
+    const medCount = degradedAssetsCount + atRiskServices
+    const lowCount = Math.max(0, totalCount - highCount - medCount)
+    const total = totalCount
+
     if (riskFilter === 'by_severity') {
       const bars = [
-        { key: 'high', label: 'Critical (L1)', count: 2, color: '#EF4444', rgb: '239, 68, 68', pct: 17 },
-        { key: 'med', label: 'Warning (L2)', count: 4, color: '#F59E0B', rgb: '245, 158, 11', pct: 33 },
-        { key: 'low', label: 'Advisory (L3)', count: 6, color: '#00E5A3', rgb: '0, 229, 163', pct: 50 }
+        { key: 'high', label: 'Critical (L1)', count: highCount, color: '#EF4444', rgb: '239, 68, 68', pct: total > 0 ? Math.round((highCount / total) * 100) : 0 },
+        { key: 'med', label: 'Warning (L2)', count: medCount, color: '#F59E0B', rgb: '245, 158, 11', pct: total > 0 ? Math.round((medCount / total) * 100) : 0 },
+        { key: 'low', label: 'Advisory (L3)', count: lowCount, color: '#00E5A3', rgb: '0, 229, 163', pct: total > 0 ? Math.round((lowCount / total) * 100) : 100 }
       ]
-      return {
-        total: 12,
-        high: bars[0],
-        med: bars[1],
-        low: bars[2],
-        bars
-      }
+      return { total, high: bars[0], med: bars[1], low: bars[2], bars }
     }
     if (riskFilter === 'by_dept') {
+      const icuRisk = atRiskServices + (incident?.is_active ? 1 : 0)
+      const plantRisk = (powerFailed || waterFailed || hvacFailed || gasFailed ? 1 : 0)
+      const wardCount = Math.max(0, total - icuRisk - plantRisk)
       const bars = [
-        { key: 'icu', label: 'ICU & ER', count: 3, color: '#EF4444', rgb: '239, 68, 68', pct: 25 },
-        { key: 'plant', label: 'Central Plant', count: 4, color: '#F59E0B', rgb: '245, 158, 11', pct: 33 },
-        { key: 'wards', label: 'Inpatient', count: 5, color: '#00E5A3', rgb: '0, 229, 163', pct: 42 }
+        { key: 'icu', label: 'ICU & ER', count: icuRisk, color: '#EF4444', rgb: '239, 68, 68', pct: total > 0 ? Math.round((icuRisk / total) * 100) : 0 },
+        { key: 'plant', label: 'Central Plant', count: plantRisk, color: '#F59E0B', rgb: '245, 158, 11', pct: total > 0 ? Math.round((plantRisk / total) * 100) : 0 },
+        { key: 'wards', label: 'Inpatient', count: wardCount, color: '#00E5A3', rgb: '0, 229, 163', pct: total > 0 ? Math.round((wardCount / total) * 100) : 100 }
       ]
-      return {
-        total: 12,
-        high: bars[0],
-        med: bars[1],
-        low: bars[2],
-        bars
-      }
+      return { total, high: bars[0], med: bars[1], low: bars[2], bars }
     }
-    // Default 'by_system' (matches Dark_Dashboard.jpeg: High Risk 3, Medium Risk 5, Low Risk 4, Total 12)
-    const highCount = failedAssetsCount + (incident?.is_active ? 2 : 0) || 3
-    const medCount = degradedAssetsCount + atRiskServices || 5
-    const lowCount = Math.max(1, 12 - (highCount + medCount)) || 4
-    const total = highCount + medCount + lowCount
+    // Default 'by_system'
     const bars = [
-      { key: 'high', label: 'High Risk', count: highCount, color: '#EF4444', rgb: '239, 68, 68', pct: Math.round((highCount / total) * 100) },
-      { key: 'med', label: 'Medium Risk', count: medCount, color: '#F59E0B', rgb: '245, 158, 11', pct: Math.round((medCount / total) * 100) },
-      { key: 'low', label: 'Low Risk', count: lowCount, color: '#00E5A3', rgb: '0, 229, 163', pct: Math.round((lowCount / total) * 100) }
+      { key: 'high', label: 'High Risk', count: highCount, color: '#EF4444', rgb: '239, 68, 68', pct: total > 0 ? Math.round((highCount / total) * 100) : 0 },
+      { key: 'med', label: 'Medium Risk', count: medCount, color: '#F59E0B', rgb: '245, 158, 11', pct: total > 0 ? Math.round((medCount / total) * 100) : 0 },
+      { key: 'low', label: 'Low Risk', count: lowCount, color: '#00E5A3', rgb: '0, 229, 163', pct: total > 0 ? Math.round((lowCount / total) * 100) : 100 }
     ]
     return {
       total,
@@ -470,7 +463,7 @@ export default function Home({
       low: bars[2],
       bars
     }
-  }, [failedAssetsCount, incident, degradedAssetsCount, atRiskServices, riskFilter])
+  }, [assets.length, failedAssetsCount, incident, degradedAssetsCount, atRiskServices, powerFailed, waterFailed, hvacFailed, gasFailed, riskFilter])
 
   // Top 5 KPI Cards (Exact match to Dark_Dashboard.jpeg)
   const topCards = [
@@ -504,10 +497,14 @@ export default function Home({
       icon: 'fan',
       iconClass: 'icon-teal',
       pct: `${hvacPct}%`,
-      statusText: hvacFailed ? 'Critical' : hvacDegraded || hvacPct < 85 ? 'At Risk' : 'Normal',
-      statusClass: hvacFailed ? 'status-dot-critical' : hvacDegraded || hvacPct < 85 ? 'status-dot-warning' : 'status-dot-normal',
-      sparkPoints: '0,12 12,14 25,10 38,22 50,16 63,26 75,18 88,24 100,20',
-      sparkColor: '#F59E0B',
+      statusText: hvacFailed ? 'Critical' : hvacDegraded ? 'Degraded' : hvacAsset?.status === 'at_risk' ? 'At Risk' : 'Normal',
+      statusClass: hvacFailed ? 'status-dot-critical' : (hvacDegraded || hvacAsset?.status === 'at_risk') ? 'status-dot-warning' : 'status-dot-normal',
+      sparkPoints: hvacFailed
+        ? '0,28 12,26 25,28 38,27 50,29 63,28 75,27 88,29 100,28'
+        : hvacDegraded
+        ? '0,22 12,24 25,20 38,22 50,26 63,20 75,24 88,22 100,24'
+        : '0,14 12,12 25,16 38,10 50,14 63,8 75,12 88,10 100,8',
+      sparkColor: hvacFailed ? '#EF4444' : (hvacDegraded || hvacAsset?.status === 'at_risk') ? '#F59E0B' : '#00E5A3',
       targetSec: 'digital-twin'
     },
     {
@@ -543,20 +540,7 @@ export default function Home({
     const isIcuAtRisk = services.some((s) => s.id === 'SERVICE_ICU' && (s.at_risk || s.status === 'reduced_capacity'))
 
     return [
-      // 1. Helipad (Rooftop landing pad)
-      {
-        id: 'HELIPAD',
-        assetKey: 'HELIPAD',
-        label: 'Helipad',
-        icon: 'H',
-        top: '27%',
-        left: '63%',
-        badgeClass: 'pin-helipad',
-        dotColor: '#00F0FF',
-        status: 'Operational',
-        desc: 'Emergency Medical Aviation Bay'
-      },
-      // 2. Utility Block (Electrical Substation & Diesel Gens)
+      // 1. Utility Block (Electrical Substation & Diesel Gens)
       {
         id: 'UTILITY_BLOCK',
         assetKey: 'GRID_MAIN',
@@ -569,7 +553,7 @@ export default function Home({
         status: isTransformerDown ? 'Trip / Degraded' : '11kV Substation Active',
         desc: 'Substation & Standby Diesel Gens'
       },
-      // 3. Emergency (Trauma Entrance Canopy)
+      // 2. Emergency (Trauma Entrance Canopy)
       {
         id: 'EMERGENCY',
         assetKey: 'SERVICE_ER',
@@ -582,7 +566,7 @@ export default function Home({
         status: 'Trauma Unit Active',
         desc: 'Level 1 Trauma & Resuscitation'
       },
-      // 4. OT (East Clinical Suites)
+      // 3. OT (East Clinical Suites)
       {
         id: 'OT',
         assetKey: 'SERVICE_OT',
@@ -595,7 +579,7 @@ export default function Home({
         status: isTransformerDown ? 'Priority Bus Feed' : 'Surgical Suites Online',
         desc: 'Operating Theatres & Sterile Supply'
       },
-      // 5. ICU (West Clinical Wing)
+      // 4. ICU (West Clinical Wing)
       {
         id: 'ICU',
         assetKey: 'SERVICE_ICU',
@@ -608,7 +592,7 @@ export default function Home({
         status: isIcuAtRisk ? 'At Risk (UPS Protected)' : '100% Operational',
         desc: 'Intensive Care Unit (Level 3)'
       },
-      // 6. Main Hospital (Front Entrance & Reception)
+      // 5. Main Hospital (Front Entrance & Reception)
       {
         id: 'MAIN_HOSPITAL',
         assetKey: 'MAIN_HOSPITAL',
@@ -621,7 +605,7 @@ export default function Home({
         status: isTransformerDown ? 'Partial UPS Power' : 'Nominal Power',
         desc: 'Central Clinical Inpatient Building'
       },
-      // 7. Utility Block (Liquid Oxygen Cryogenic Storage Bay)
+      // 6. Utility Block (Liquid Oxygen Cryogenic Storage Bay)
       {
         id: 'MED_GAS_PLANT',
         assetKey: 'OXYGEN_MANIFOLD',
@@ -634,7 +618,7 @@ export default function Home({
         status: '94% Safe Line Pressure',
         desc: 'Cryogenic O2 Storage & Utility Bay'
       },
-      // 8. HVAC Plant (Rooftop Chiller Plant & AHU Units)
+      // 7. HVAC Plant (Rooftop Chiller Plant & AHU Units)
       {
         id: 'HVAC_PLANT',
         assetKey: 'CHILLER_PLANT',
@@ -642,13 +626,13 @@ export default function Home({
         icon: '⚙',
         top: '19%',
         left: '42.5%',
-        badgeClass: isChillerDown ? 'pin-critical' : 'pin-hvac',
-        dotColor: isChillerDown ? '#FF4D4D' : '#FFB800',
-        status: isChillerDown ? 'Critical Trip' : '78% Capacity (At Risk)',
+        badgeClass: isChillerDown ? 'pin-critical' : hvacDegraded ? 'pin-warning' : 'pin-hvac',
+        dotColor: isChillerDown ? '#FF4D4D' : hvacDegraded ? '#FFB800' : '#00F0FF',
+        status: isChillerDown ? 'Critical Trip' : hvacDegraded ? 'Degraded Capacity' : `${hvacPct}% Capacity (Nominal)`,
         desc: 'Chillers, AHUs & Air Handling'
       }
     ]
-  }, [incident, services])
+  }, [incident, services, hvacDegraded, hvacPct])
 
   const handlePinClick = (pin) => {
     if (onSelectAsset) {
@@ -986,13 +970,19 @@ export default function Home({
                   <div className="resilience-bar-item">
                     <div className="resilience-bar-meta">
                       <div className="bar-icon-name">
-                        <Wind size={13} style={{ color: '#F59E0B' }} />
+                        <Wind size={13} style={{ color: hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3' }} />
                         <span>HVAC</span>
                       </div>
                       <span className="bar-pct font-mono">{hvacPct}%</span>
                     </div>
                     <div className="bar-track">
-                      <div className="bar-fill" style={{ width: `${hvacPct}%`, backgroundColor: '#F59E0B' }} />
+                      <div
+                        className="bar-fill"
+                        style={{
+                          width: `${hvacPct}%`,
+                          backgroundColor: hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3'
+                        }}
+                      />
                     </div>
                   </div>
 
@@ -1103,11 +1093,11 @@ export default function Home({
                     </g>
                   ))}
 
-                  {/* 3. HVAC Line (Amber #F59E0B) - sharp up/down telemetry points */}
+                  {/* 3. HVAC Line (Green/Amber/Red based on status) */}
                   <path
                     d={perfChartData.hvac.path}
                     fill="none"
-                    stroke="#F59E0B"
+                    stroke={hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3'}
                     strokeWidth="1.8"
                     strokeLinejoin="miter"
                     strokeMiterlimit="4"
@@ -1116,8 +1106,8 @@ export default function Home({
                   />
                   {perfChartData.hvac.points.map((pt, idx) => (
                     <g key={`hvac-pt-${idx}`}>
-                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke="#F59E0B" strokeWidth="0.8" opacity="0.3" />
-                      <circle cx={pt.x} cy={pt.y} r="1.8" fill="#F59E0B" />
+                      <circle cx={pt.x} cy={pt.y} r="3" fill="none" stroke={hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3'} strokeWidth="0.8" opacity="0.3" />
+                      <circle cx={pt.x} cy={pt.y} r="1.8" fill={hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3'} />
                     </g>
                   ))}
 
@@ -1165,7 +1155,13 @@ export default function Home({
                   <span>Water</span>
                 </div>
                 <div className="legend-item">
-                  <span className="legend-dot" style={{ backgroundColor: '#F59E0B', boxShadow: '0 0 8px #F59E0B' }} />
+                  <span
+                    className="legend-dot"
+                    style={{
+                      backgroundColor: hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3',
+                      boxShadow: `0 0 8px ${hvacFailed ? '#EF4444' : hvacDegraded ? '#F59E0B' : '#00E5A3'}`
+                    }}
+                  />
                   <span>HVAC</span>
                 </div>
                 <div className="legend-item">
